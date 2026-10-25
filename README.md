@@ -42,10 +42,17 @@ O programa é compilado nativamente para Windows com `#![windows_subsystem = "wi
 - Banner visual no topo da tela destacando exatamente qual processo está sendo otimizado no momento (`🟢 OTIMIZANDO AGORA: Jogo (PID)`) com chips para Prioridade, P-core afixado, Cache L1/L2/L3, QoS de Disco e Rede.
 - Status individual por jogo na lista de processos ativos (`OTIMIZANDO AGORA`, `STANDBY` ou `INATIVO`).
 
-### 6. Proteção contra Conflitos com o Intel APO (Auto-Yield)
+### 6. Telemetria Completa do Jogo (7 Blocos NotMeter Style)
+- **FPS do Jogo / Programa** (Instantâneo, Médio 1s e 1% Low), **Uso de CPU Total (%)**, **Uso de GPU 3D (%)**, **Uso de Memória RAM (MB/GB e %)**, **Leitura de Disco (MB/s + Total GB lidos)**, **Uso de Internet (KB/s)** e **Ping (ms)**.
+
+### 7. Bandeja do Sistema (System Tray), Ícone Dinâmico e Menu Start/Stop
+- Opção **Minimizar para a Barra de Ícones (Tray)**: oculta a janela da barra de tarefas ao minimizar e mantém a otimização rodando em segundo plano.
+- **Menu de Contexto (Botão Direito):** permite alternar `▶ Start` / `⏹ Stop`, restaurar a janela ou fechar o aplicativo.
+- **Ícone Dinâmico:** alterna automaticamente entre **Mint/Ciano** (Ativo) e **Âmbar/Pausa** (Pausado).
+
+### 8. Proteção contra Conflitos com o Intel APO (Auto-Yield)
 - Detecta o serviço Intel DTT (`ipfsvc`) no Windows.
 - Monitora em tempo real se o Intel APO sobrescrever a afinidade da thread e cede automaticamente o controle (*Auto-Yield*), prevenindo oscilações e micro-stutters.
-
 ---
 
 ## Compilar e Executar
