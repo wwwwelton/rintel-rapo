@@ -1,72 +1,19 @@
 # Rintel RAPO
 
-Otimizador de jogos em tempo real para processadores Intel Core híbridos (P-cores / E-cores). **Não é o Intel Application Optimization (APO)**: utiliza estritamente contratos públicos de agendamento do Windows em user-mode, sem modificar arquivos binários ou tocar na memória dos jogos.
+Aplicativo Windows para detectar jogos Steam em execução e aplicar, **por opção do usuário**, ajustes de prioridade e afinidade. Não é o Intel Application Optimization (APO), não contém código do APO e não altera firmware, clock ou cache L1/L2/L3.
 
-O programa é compilado nativamente para Windows com `#![windows_subsystem = "windows"]`, **sem abrir janela de terminal**, exibindo apenas a interface gráfica.
+## Funcionalidade e limites
 
----
+- **Auto Prioridade:** eleva a classe do processo para acima do normal enquanto o jogo está em foco; restaura a classe original ao parar. O modo «Manter ajustes em segundo plano» também o faz fora de foco e pode prejudicar outros aplicativos.
+- **P-cores:** identifica os núcleos de maior classe de eficiência reportados pelo Windows e tenta fixar a thread de maior tempo de CPU recente neles. Não substitui afinidade já escolhida pelo jogo; ao detectar alteração externa em uma thread fixada, o Auto-Yield cede. Afinidade não garante melhora de desempenho.
+- **Prioridade de memória / EcoQoS:** define prioridade de páginas de memória 5 e desativa a marca de execução EcoQoS para o processo selecionado. Salva e tenta restaurar os valores anteriores ao desativar ou fechar o aplicativo, sem sobrescrever alterações externas detectadas. Não controla o cache da CPU nem a fila NVMe.
+- **Telemetria:** CPU, GPU, RAM e contadores de leitura I/O do processo selecionado; tráfego de rede e leitura do disco físico referem-se ao **sistema inteiro**. RTT é o tempo de conexão TCP a servidores DNS públicos na porta 53, não o ping do jogo. Valores podem estar indisponíveis quando o Windows não expõe contadores ou a rede bloqueia conexões de teste.
+- **Bandeja:** permite iniciar/parar a otimização e minimizar a interface sem interromper o monitoramento.
 
-## 🛡️ Segurança Anti-Cheat (Steam VAC, NCSoft GameGuard, Easy Anti-Cheat, BattlEye)
+O aplicativo não mede FPS nem realiza benchmarks do jogo; medições anteriores eram apenas a taxa de repintura da própria interface e foram removidas. Ganhos de FPS/latência precisam de medição externa no hardware e jogo reais. As APIs de agendamento usadas não constituem garantia de compatibilidade com anti-cheats; consulte a política do jogo.
 
-**100% livre de banimento.** O Rintel RAPO respeita rigorosamente as regras de integridade de plataformas como Valve Steam (VAC) e NCSoft:
-- **Zero Leitura ou Gravação de Memória:** Não utiliza `ReadProcessMemory`, `WriteProcessMemory`, `VirtualAllocEx` ou `PROCESS_VM_READ/WRITE`.
-- **Zero Injeção de Código:** Não injeta DLLs nem cria threads remotas (`CreateRemoteThread`).
-- **Zero Interceptação de Pacotes:** Não altera nem inspeciona o conteúdo de pacotes de rede.
-- **Apenas APIs Oficiais de Sistema Operacional:** Utiliza `SetThreadAffinityMask`, `SetPriorityClass`, `ProcessMemoryPriority` e flags oficiais da API Win32 do Windows.
+Versões anteriores podiam alterar os valores globais do Windows `NetworkThrottlingIndex` e `SystemResponsiveness`. Esta versão **não os modifica nem os restaura automaticamente**: se você usou a opção antiga, inspecione sua configuração de sistema antes de ajustá-la manualmente, para não apagar personalizações suas ou de outros programas.
 
----
+## Compilar e executar
 
-## Recursos Principais
-
-### 1. Priorização de Cache Interno da CPU (L1, L2 e L3)
-- **Cache L1 (80 KB por P-core: 48 KB L1D + 32 KB L1I):** Ao fixar a thread crítica nos P-cores, o pipeline de renderização obtém acesso exclusivo sem disputa de cache por threads de fundo.
-- **Cache L2 (2048 KB dedicado por P-core):** No i9-14900K, cada P-core possui 2 MB de L2 exclusivo. A afixação impede a degradação que ocorre ao compartilhar o L2 de 4 MB de clusters de E-cores.
-- **Cache L3 (36 MB Smart Cache):**
-  - Desativação do EcoQoS (`PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0`) para manter o barramento *Ring Bus / Uncore* em frequência máxima, minimizando a latência de acesso ao L3.
-  - `ProcessMemoryPriority` em nível `VERY_HIGH` (5) com retenção de working set, prevenindo evicções e TLB shootdowns.
-
-### 2. Suporte Completo a Jogos em Modo Janela / Borderless
-- Suporta jogos executados em tela cheia, modo janela e janela sem bordas (*borderless windowed*).
-- Opção **Modo Janela / Borderless**: mantém a otimização de prioridade e agendamento ativa mesmo ao alternar janelas secundárias ou em configurações com múltiplos monitores.
-
-### 3. Prioridade de Leitura e Armazenamento (Disco onde o Jogo está Instalado)
-- Identifica automaticamente a unidade de armazenamento do jogo (ex: `C:`, `D:`, etc.).
-- Aplica `IoPriorityHigh` (nível 3 de I/O) para o processo do jogo, garantindo fila prioritária no controlador NVMe/SSD e acelerando o carregamento de texturas, shaders e assets do disco de instalação.
-
-### 4. QoS de Internet com Preservação de Redutores de Ping (ExitLag, Mudfish, etc.)
-- Desativa o limitador interno do Windows (`NetworkThrottlingIndex = 0xFFFFFFFF` e `SystemResponsiveness = 0`), eliminando o enfileiramento artificial de pacotes de rede.
-- **Compatibilidade com Redutores de Ping:** Detecta ativamente processos como `ExitLag`, `Mudfish`, `NoPing`, `WTFast`, `GearUP Booster` e preserva suas rotas e túneis UDP sem qualquer interferência ou estrangulamento.
-- Opção com botão de ligar/desligar na interface.
-
-### 5. Indicador em Tempo Real do Processo em Otimização
-- Banner visual no topo da tela destacando exatamente qual processo está sendo otimizado no momento (`🟢 OTIMIZANDO AGORA: Jogo (PID)`) com chips para Prioridade, P-core afixado, Cache L1/L2/L3, QoS de Disco e Rede.
-- Status individual por jogo na lista de processos ativos (`OTIMIZANDO AGORA`, `STANDBY` ou `INATIVO`).
-
-### 6. Telemetria Completa do Jogo (7 Blocos NotMeter Style)
-- **FPS do Jogo / Programa** (Instantâneo, Médio 1s e 1% Low), **Uso de CPU Total (%)**, **Uso de GPU 3D (%)**, **Uso de Memória RAM (MB/GB e %)**, **Leitura de Disco (MB/s + Total GB lidos)**, **Uso de Internet (KB/s)** e **Ping (ms)**.
-
-### 7. Bandeja do Sistema (System Tray), Ícone Dinâmico e Menu Start/Stop
-- Opção **Minimizar para a Barra de Ícones (Tray)**: oculta a janela da barra de tarefas ao minimizar e mantém a otimização rodando em segundo plano.
-- **Menu de Contexto (Botão Direito):** permite alternar `▶ Start` / `⏹ Stop`, restaurar a janela ou fechar o aplicativo.
-- **Ícone Dinâmico:** alterna automaticamente entre **Mint/Ciano** (Ativo) e **Âmbar/Pausa** (Pausado).
-
-### 8. Proteção contra Conflitos com o Intel APO (Auto-Yield)
-- Detecta o serviço Intel DTT (`ipfsvc`) no Windows.
-- Monitora em tempo real se o Intel APO sobrescrever a afinidade da thread e cede automaticamente o controle (*Auto-Yield*), prevenindo oscilações e micro-stutters.
----
-
-## Compilar e Executar
-
-No Windows, com Rust instalado:
-
-```powershell
-cargo run --release
-```
-
-Ou compilação para Windows via Linux / WSL2:
-
-```bash
-cargo build --release --target x86_64-pc-windows-gnu
-```
-
-O binário final gerado é `rintel-rapo.exe`. Ao ser executado, ele abre diretamente a janela gráfica sem qualquer terminal.
+No Windows, com Rust: `cargo run --release`. No Linux/WSL2, para gerar o executável Windows: `cargo build --release --target x86_64-pc-windows-gnu`. O aplicativo gráfico não abre um terminal ao ser executado no Windows.

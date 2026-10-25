@@ -38,6 +38,11 @@ fn favored_mask(cores: &[(u8, u8, bool)]) -> usize {
         .filter(|(class, _, available)| *class == max && *available)
         .fold(0usize, |mask, (_, index, _)| mask | (1usize << index))
 }
+// Do not replace an affinity chosen by the game or another scheduler.
+fn can_pin_thread(thread_mask: usize, process_mask: usize, p_core_mask: usize) -> bool {
+    thread_mask == process_mask && thread_mask != p_core_mask
+}
+
 
 fn p_core_mask() -> Result<usize, String> {
     unsafe {
@@ -124,7 +129,7 @@ struct Pinned {
 }
 
 pub struct Pinner {
-    mask: usize,
+    pub(crate) mask: usize,
     samples: HashMap<(u32, u32), (u64, u64)>,
     pinned: HashMap<u32, Pinned>,
     last: Option<(u32, u32, u64)>,
@@ -148,7 +153,7 @@ impl Pinner {
         self.conflict
     }
     pub fn status(&self) -> Option<(u32, u32, u64)> {
-        self.last
+        self.last.filter(|(pid, tid, _)| self.pinned.get(pid).is_some_and(|pin| pin.tid == *tid))
     }
 
     fn restore(&mut self, pid: u32) {
@@ -336,7 +341,7 @@ impl Pinner {
                 let mut affinity: GROUP_AFFINITY = zeroed();
                 if GetThreadGroupAffinity(thread, &mut affinity) != 0
                     && affinity.Group == 0
-                    && affinity.Mask != mask
+                    && can_pin_thread(affinity.Mask, process_mask, mask)
                 {
                     let original = SetThreadAffinityMask(thread, mask);
                     if original != 0 {
@@ -378,6 +383,13 @@ mod tests {
         );
         assert_eq!(favored_mask(&[(0, 0, true), (0, 1, true)]), 0);
     }
+    #[test]
+    fn preserves_game_selected_thread_affinity() {
+        assert!(can_pin_thread(0b1111, 0b1111, 0b0011));
+        assert!(!can_pin_thread(0b0100, 0b1111, 0b0011));
+        assert!(!can_pin_thread(0b0011, 0b1111, 0b0011));
+    }
+
     #[test]
     fn installed_topology_accepts_reversible_p_core_mask() {
         let mask = p_core_mask().unwrap_or(1usize);

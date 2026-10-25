@@ -1,10 +1,8 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 pub mod cache;
-pub mod fps;
 pub mod hardware;
 pub mod intel_dtt;
-pub mod network;
 pub mod telemetry;
 pub mod tray;
 #[cfg(windows)]
@@ -19,12 +17,10 @@ mod windows;
 #[cfg(windows)]
 mod app {
     use super::{
-        cache::{self, HighResolutionTimer},
+        cache::{self, MemoryQosState},
         cpu::Monitor,
-        fps::{BenchmarkProfile, BenchmarkReport, FpsTracker, WindowFrameSampler},
         hardware::{self, CacheTopology},
         intel_dtt::{self, IntelDttReport, IntelDttStatus},
-        network::NetworkQosManager,
         pin::Pinner,
         steam::{self, Game},
         telemetry::TelemetryCollector,
@@ -33,7 +29,7 @@ mod app {
     };
     use eframe::egui;
     use std::{
-        collections::HashSet,
+        collections::{HashMap, HashSet},
         path::PathBuf,
         time::{Duration, Instant},
     };
@@ -66,12 +62,9 @@ mod app {
         auto_games: HashSet<PathBuf>,
         pin_games: HashSet<PathBuf>,
         qos_games: HashSet<PathBuf>,
-        applied_qos: HashSet<u32>,
+        applied_qos: HashMap<u32, MemoryQosState>,
         pinner: Option<Pinner>,
         pub windowed_mode: bool,
-        pub network_qos: NetworkQosManager,
-        pub storage_priority_enabled: bool,
-        high_res_timer: HighResolutionTimer,
         search: String,
         cpu: Monitor,
         cpu_error: String,
@@ -79,12 +72,9 @@ mod app {
         last_refresh: Instant,
         dtt_report: IntelDttReport,
         cache_topo: CacheTopology,
-        fps: FpsTracker,
-        sampler: WindowFrameSampler,
         telemetry: TelemetryCollector,
         tray: TrayController,
         last_icon_active: bool,
-        last_benchmark_report: Option<BenchmarkReport>,
         theme_applied: bool,
     }
 
@@ -97,12 +87,9 @@ mod app {
                 auto_games: HashSet::new(),
                 pin_games: HashSet::new(),
                 qos_games: HashSet::new(),
-                applied_qos: HashSet::new(),
+                applied_qos: HashMap::new(),
                 pinner: Pinner::new().ok(),
-                windowed_mode: true,
-                network_qos: NetworkQosManager::new(),
-                storage_priority_enabled: true,
-                high_res_timer: HighResolutionTimer::new(),
+                windowed_mode: false,
                 search: String::new(),
                 error: String::new(),
                 cpu: Monitor::new(),
@@ -110,12 +97,9 @@ mod app {
                 last_refresh: Instant::now() - Duration::from_secs(3),
                 dtt_report: intel_dtt::detect_intel_dtt(),
                 cache_topo: hardware::get_cache_topology(),
-                fps: FpsTracker::new(),
-                sampler: WindowFrameSampler::new(),
                 telemetry: TelemetryCollector::new(),
                 tray: TrayController::new(),
                 last_icon_active: true,
-                last_benchmark_report: None,
                 theme_applied: false,
             };
             app.scan();
@@ -145,6 +129,29 @@ mod app {
                 }
             }
         }
+        fn restore_qos(&mut self, pid: u32) -> Result<(), String> {
+            let Some(state) = self.applied_qos.get(&pid) else { return Ok(()) };
+            unsafe {
+                let handle = OpenProcess(
+                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION, 0, pid,
+                );
+                if handle.is_null() {
+                    let error = std::io::Error::last_os_error();
+                    if error.raw_os_error() == Some(87) {
+                        self.applied_qos.remove(&pid); // The old process exited.
+                        return Ok(());
+                    }
+                    return Err(format!("PID {pid}: {error}"));
+                }
+                let result = cache::restore_memory_qos(handle, state);
+                CloseHandle(handle);
+                if result.is_ok() {
+                    self.applied_qos.remove(&pid);
+                }
+                result
+            }
+        }
+
 
         fn refresh(&mut self) {
             let optimizer_active = self.tray.is_optimizer_running();
@@ -166,7 +173,9 @@ mod app {
                     } else {
                         for process in &self.running {
                             if self.optimizer.enabled(process.pid) {
-                                let _ = self.optimizer.toggle(process);
+                                if let Err(error) = self.optimizer.toggle(process) {
+                                    self.error = error;
+                                }
                             }
                         }
                     }
@@ -180,40 +189,49 @@ mod app {
                 }
             }
 
-            // Aplicar QoS de Memória, Armazenamento e Fila de Leitura NVMe/SSD
-            for process in &self.running {
-                let want_qos = optimizer_active && self.qos_games.contains(&process.directory);
-                if want_qos && !self.applied_qos.contains(&process.pid) {
-                    unsafe {
-                        let handle = OpenProcess(
-                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
-                            0,
-                            process.pid,
-                        );
-                        if !handle.is_null() {
-                            if cache::apply_memory_qos(handle).is_ok() {
-                                self.applied_qos.insert(process.pid);
-                            }
-                            CloseHandle(handle);
-                        }
-                    }
-                } else if !want_qos && self.applied_qos.contains(&process.pid) {
-                    unsafe {
-                        let handle = OpenProcess(
-                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
-                            0,
-                            process.pid,
-                        );
-                        if !handle.is_null() {
-                            let _ = cache::restore_memory_qos(handle);
-                            CloseHandle(handle);
-                        }
-                    }
-                    self.applied_qos.remove(&process.pid);
+            let stale: Vec<u32> = self.applied_qos.keys().copied().filter(|pid| {
+                !optimizer_active || !self.running.iter().any(|p|
+                    p.pid == *pid && self.qos_games.contains(&p.directory))
+            }).collect();
+            for pid in stale {
+                if let Err(error) = self.restore_qos(pid) {
+                    self.error = error;
                 }
             }
-            let active_pids: HashSet<u32> = self.running.iter().map(|p| p.pid).collect();
-            self.applied_qos.retain(|pid| active_pids.contains(pid));
+            if optimizer_active {
+                for process in &self.running {
+                    if !self.qos_games.contains(&process.directory) {
+                        continue;
+                    }
+                    unsafe {
+                        let handle = OpenProcess(
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION, 0, process.pid,
+                        );
+                        if handle.is_null() {
+                            self.error = format!("PID {}: {}", process.pid, std::io::Error::last_os_error());
+                            continue;
+                        }
+                        if let Some(state) = self.applied_qos.get(&process.pid) {
+                            match cache::matches_process(handle, state) {
+                                Ok(true) => {}
+                                Ok(false) => { self.applied_qos.remove(&process.pid); }
+                                Err(error) => {
+                                    self.error = error;
+                                    CloseHandle(handle);
+                                    continue;
+                                }
+                            }
+                        }
+                        if !self.applied_qos.contains_key(&process.pid) {
+                            match cache::apply_memory_qos(handle) {
+                                Ok(state) => { self.applied_qos.insert(process.pid, state); }
+                                Err(error) => self.error = error,
+                            }
+                        }
+                        CloseHandle(handle);
+                    }
+                }
+            }
 
             if let Some(pinner) = &mut self.pinner {
                 if optimizer_active {
@@ -225,29 +243,16 @@ mod app {
                 }
             }
 
-            // Ativar Timer de 1ms e QoS de Rede quando houver jogo sendo otimizado
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
             let active_process = if optimizer_active {
                 self.running.iter().find(|p| {
                     self.optimizer.boosted(p.pid)
-                        || self.applied_qos.contains(&p.pid)
+                        || self.applied_qos.contains_key(&p.pid)
                         || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
                 })
             } else {
                 None
             };
-
-            if let Some(proc) = active_process {
-                self.high_res_timer.enable();
-                if self.network_qos.user_enabled {
-                    self.network_qos.apply(&proc.exe);
-                } else {
-                    self.network_qos.restore();
-                }
-            } else {
-                self.high_res_timer.disable();
-                self.network_qos.restore();
-            }
             if let Err(error) = self.cpu.refresh() {
                 self.cpu_error = error;
             } else {
@@ -273,8 +278,9 @@ mod app {
 
     impl Drop for App {
         fn drop(&mut self) {
-            self.high_res_timer.disable();
-            self.network_qos.restore();
+            for pid in self.applied_qos.keys().copied().collect::<Vec<_>>() {
+                let _ = self.restore_qos(pid);
+            }
         }
     }
 
@@ -319,13 +325,7 @@ mod app {
 
     impl eframe::App for App {
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-            if !self.running.is_empty() || self.fps.benchmark.active {
-                let dt_ms = self.sampler.sample_interval_ms();
-                self.fps.record_frame_time(dt_ms);
-                ctx.request_repaint_after(Duration::from_millis(16));
-            } else {
-                ctx.request_repaint_after(Duration::from_secs(1));
-            }
+            ctx.request_repaint_after(Duration::from_secs(1));
 
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
@@ -385,7 +385,7 @@ mod app {
                                 .strong()
                                 .color(COLOR_TEXT),
                         );
-                        notmeter_badge(ui, "INTEL HYBRID DIRECTOR", COLOR_ACCENT);
+                        notmeter_badge(ui, "AGENDAMENTO WINDOWS", COLOR_ACCENT);
                         if current_opt_running {
                             notmeter_badge(ui, "🟢 ATIVO (START)", COLOR_ACCENT);
                         } else {
@@ -394,10 +394,10 @@ mod app {
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             match self.dtt_report.status {
                                 IntelDttStatus::ActiveRunning => {
-                                    notmeter_badge(ui, "INTEL DTT/APO ATIVO", COLOR_YELLOW);
+                                    notmeter_badge(ui, "INTEL DTT EM EXECUÇÃO", COLOR_YELLOW);
                                 }
                                 IntelDttStatus::InstalledStopped => {
-                                    notmeter_badge(ui, "INTEL DTT PARADO", COLOR_MUTED);
+                                    notmeter_badge(ui, "INTEL DTT DETECTADO", COLOR_MUTED);
                                 }
                                 IntelDttStatus::NotInstalled => {
                                     notmeter_badge(ui, "DTT NÃO DETECTADO", COLOR_ACCENT);
@@ -420,13 +420,13 @@ mod app {
                     });
 
                     ui.label(
-                        egui::RichText::new("Otimizador de alto desempenho para CPUs Intel Core • P-cores, L1/L2/L3 Cache, QoS de Rede e Fila de Armazenamento NVMe")
+                        egui::RichText::new("Agendamento opcional para jogos Steam: prioridade, afinidade P-core e prioridade de memória (APIs públicas do Windows)")
                             .size(12.0)
                             .color(COLOR_MUTED),
                     );
                     ui.add_space(10.0);
 
-                    // BANNER DE CONFLITO COM APO
+                    // Conflito de afinidade com qualquer outro agendador.
                     if let Some(conflict) = self.pinner.as_ref().and_then(|p| p.conflict()) {
                         notmeter_card(ui, |ui| {
                             ui.horizontal(|ui| {
@@ -434,7 +434,7 @@ mod app {
                                 ui.colored_label(
                                     COLOR_DANGER,
                                     format!(
-                                        "Thread {}:{} afinidade alterada externamente para {:#x} (Máscara esperada: {:#x}). Modo Auto-Yield ativo.",
+                                        "Thread {}:{} afinidade alterada externamente para {:#x} (Máscara aplicada: {:#x}).",
                                         conflict.pid, conflict.tid, conflict.external_mask, conflict.our_mask
                                     ),
                                 );
@@ -454,7 +454,7 @@ mod app {
                     let pin_status = self.pinner.as_ref().and_then(Pinner::status);
                     let active_proc = self.running.iter().find(|p| {
                         self.optimizer.boosted(p.pid)
-                            || self.applied_qos.contains(&p.pid)
+                            || self.applied_qos.contains_key(&p.pid)
                             || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
                     });
 
@@ -479,8 +479,7 @@ mod app {
                                 });
                                 ui.add_space(6.0);
 
-                                let is_pinned = pin_status.is_some_and(|(pid, _, _)| pid == proc.pid);
-                                let has_cache_qos = self.applied_qos.contains(&proc.pid);
+                                let has_cache_qos = self.applied_qos.contains_key(&proc.pid);
 
                                 ui.horizontal_wrapped(|ui| {
                                     if self.optimizer.boosted(proc.pid) {
@@ -491,31 +490,16 @@ mod app {
                                             notmeter_badge(ui, &format!("P-CORE ATIVO (TID {tid} · {ms}ms)"), COLOR_YELLOW);
                                         }
                                     }
-                                    if is_pinned {
-                                        notmeter_badge(ui, "CACHE L1/L2 EXCLUSIVO P-CORE", COLOR_ACCENT);
-                                    }
                                     if has_cache_qos {
-                                        notmeter_badge(ui, "CACHE L3 36MB (RING BUS UNTHROTTLED)", COLOR_CYAN);
-                                    }
-                                    if self.storage_priority_enabled {
-                                        let vol = proc.directory.components().next().map(|c| c.as_os_str().to_string_lossy().to_string()).unwrap_or_else(|| "C:".into());
-                                        notmeter_badge(ui, &format!("DISCO {vol} (IOPRIORITY HIGH / NVME)", vol = vol), COLOR_YELLOW);
-                                    }
-                                    if self.network_qos.is_active() {
-                                        notmeter_badge(ui, "QOS REDE SEM THROTTLING", COLOR_CYAN);
+                                        notmeter_badge(ui, "PRIORIDADE DE MEMÓRIA / ECOQOS", COLOR_CYAN);
                                     }
                                     if self.windowed_mode {
-                                        notmeter_badge(ui, "MODO JANELA / BORDERLESS", COLOR_MUTED);
+                                        notmeter_badge(ui, "MODO SEGUNDO PLANO", COLOR_MUTED);
                                     }
                                 });
 
                                 ui.add_space(6.0);
-                                ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new(format!("Caminho: {}", proc.exe.display())).size(11.0).color(COLOR_MUTED_2));
-                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                        ui.label(egui::RichText::new("🛡️ 100% Anti-Cheat Safe (Steam VAC, NCSoft GameGuard - Zero memória lida/gravada)").size(11.0).color(COLOR_ACCENT));
-                                    });
-                                });
+                                ui.label(egui::RichText::new(format!("Caminho: {}", proc.exe.display())).size(11.0).color(COLOR_MUTED_2));
                             }
                             None => {
                                 ui.horizontal(|ui| {
@@ -532,10 +516,6 @@ mod app {
 
                     ui.add_space(10.0);
 
-                    // NOVO BLOCO DE TELEMETRIA DO PROGRAMA / JOGO (1º BLOCO = FPS DO JOGO/PROGRAMA)
-                    let current_fps = self.fps.current_fps();
-                    let avg_fps = self.fps.avg_fps();
-                    let p1_low = self.fps.p1_low_fps();
                     let tm = &self.telemetry.metrics;
 
                     notmeter_card(ui, |ui| {
@@ -558,21 +538,7 @@ mod app {
                             }
                         });
                         ui.add_space(8.0);
-
-                        ui.horizontal_wrapped(|ui| {
-                            // 1. FPS DO PROGRAMA / JOGO (Primeiro Bloco)
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_ACCENT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(14, 8))
-                                .show(ui, |ui| {
-                                    ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("FPS DO JOGO / PROGRAMA").size(10.0).strong().color(COLOR_ACCENT));
-                                        ui.label(egui::RichText::new(format!("{:.0} FPS", current_fps)).size(22.0).strong().color(COLOR_TEXT));
-                                        ui.label(egui::RichText::new(format!("Méd {:.0} · 1% Low {:.0}", avg_fps, p1_low)).size(10.0).color(COLOR_MUTED));
-                                    });
-                                });
+                        ui.horizontal(|ui| {
 
                             // 2. Uso de CPU Total
                             egui::Frame::new()
@@ -598,7 +564,7 @@ mod app {
                                     ui.vertical(|ui| {
                                         ui.label(egui::RichText::new("USO DE GPU").size(10.0).strong().color(COLOR_MUTED));
                                         ui.label(egui::RichText::new(format!("{:.1}%", tm.gpu_usage_pct)).size(22.0).strong().color(COLOR_CYAN));
-                                        ui.label(egui::RichText::new("Engine 3D / Gráficos").size(10.0).color(COLOR_MUTED_2));
+                                        ui.label(egui::RichText::new("Engines PDH (estimativa)").size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
 
@@ -620,6 +586,8 @@ mod app {
                                         ui.label(egui::RichText::new(format!("{:.1}% da RAM", tm.mem_usage_pct)).size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
+                        });
+                        ui.horizontal(|ui| {
 
                             // 5. Leitura de Disco (MB/s)
                             egui::Frame::new()
@@ -629,12 +597,12 @@ mod app {
                                 .inner_margin(egui::Margin::symmetric(14, 8))
                                 .show(ui, |ui| {
                                     ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("LEITURA DE DISCO").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(if tm.has_target { "I/O DE LEITURA (PROCESSO)" } else { "LEITURA DE DISCO (SISTEMA)" }).size(10.0).strong().color(COLOR_MUTED));
                                         ui.label(egui::RichText::new(format!("{:.2} MB/s", tm.disk_read_mbs)).size(22.0).strong().color(COLOR_YELLOW));
-                                        let disk_sub = if tm.disk_total_read_gb > 0.01 {
-                                            format!("Total: {:.2} GB lidos", tm.disk_total_read_gb)
+                                        let disk_sub = if tm.has_target {
+                                            format!("Total: {:.2} GB de I/O lido (inclui cache)", tm.disk_total_read_gb)
                                         } else {
-                                            "Taxa de Leitura I/O".to_string()
+                                            "Leitura do disco físico".to_string()
                                         };
                                         ui.label(egui::RichText::new(disk_sub).size(10.0).color(COLOR_MUTED_2));
                                     });
@@ -648,9 +616,9 @@ mod app {
                                 .inner_margin(egui::Margin::symmetric(14, 8))
                                 .show(ui, |ui| {
                                     ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("USO DE INTERNET").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new("REDE TOTAL (SISTEMA)").size(10.0).strong().color(COLOR_MUTED));
                                         ui.label(egui::RichText::new(format!("{:.1} KB/s", tm.net_usage_kbs)).size(22.0).strong().color(COLOR_CYAN));
-                                        ui.label(egui::RichText::new("Tráfego de Rede").size(10.0).color(COLOR_MUTED_2));
+                                        ui.label(egui::RichText::new("Recebidos + enviados").size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
 
@@ -671,157 +639,13 @@ mod app {
                                 .inner_margin(egui::Margin::symmetric(14, 8))
                                 .show(ui, |ui| {
                                     ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("PING DO JOGO").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new("RTT TCP (EXTERNO)").size(10.0).strong().color(COLOR_MUTED));
                                         let ping_str = if tm.ping_ms > 0 { format!("{} ms", tm.ping_ms) } else { "-- ms".into() };
                                         ui.label(egui::RichText::new(ping_str).size(22.0).strong().color(ping_color));
-                                        ui.label(egui::RichText::new("Latência RTT").size(10.0).color(COLOR_MUTED_2));
+                                        ui.label(egui::RichText::new("TCP até DNS público; não é ping do jogo").size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
                         });
-                    });
-
-                    ui.add_space(10.0);
-
-                    // TELEMETRIA DE FRAME PACING & BENCHMARK NOTMETER STYLE
-                    notmeter_card(ui, |ui| {
-                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
-                        ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new("TELEMETRIA EM TEMPO REAL").size(14.0).strong().color(COLOR_TEXT));
-                            notmeter_badge(ui, "HIGH PRECISION QPC", COLOR_CYAN);
-
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if self.fps.benchmark.active {
-                                    notmeter_badge(ui, "GRAVANDO BENCHMARK...", COLOR_DANGER);
-                                    if ui.button(egui::RichText::new("Finalizar").size(11.0)).clicked() {
-                                        self.last_benchmark_report = self.fps.benchmark.stop();
-                                    }
-                                } else {
-                                    if ui.button(egui::RichText::new("Benchmark Otimizado (30s)").size(11.0)).clicked() {
-                                        self.fps.benchmark.start(BenchmarkProfile::Optimized, Some(30.0));
-                                    }
-                                    if ui.button(egui::RichText::new("Benchmark Padrão (30s)").size(11.0)).clicked() {
-                                        self.fps.benchmark.start(BenchmarkProfile::Baseline, Some(30.0));
-                                    }
-                                }
-                            });
-                        });
-
-                        ui.add_space(8.0);
-
-                        let current_fps = self.fps.current_fps();
-                        let avg_fps = self.fps.avg_fps();
-                        let p1_low = self.fps.p1_low_fps();
-
-                        ui.horizontal(|ui| {
-                            // Métrica 1: FPS Instantâneo
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(16, 10))
-                                .show(ui, |ui| {
-                                    ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("FPS INSTANTÂNEO").size(10.0).strong().color(COLOR_MUTED));
-                                        ui.label(egui::RichText::new(format!("{:.0}", current_fps)).size(30.0).strong().color(COLOR_TEXT));
-                                    });
-                                });
-                            ui.add_space(6.0);
-
-                            // Métrica 2: FPS Médio
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(16, 10))
-                                .show(ui, |ui| {
-                                    ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("MÉDIO (1S)").size(10.0).strong().color(COLOR_MUTED));
-                                        ui.label(egui::RichText::new(format!("{:.1}", avg_fps)).size(30.0).strong().color(COLOR_ACCENT));
-                                    });
-                                });
-                            ui.add_space(6.0);
-
-                            // Métrica 3: 1% Low FPS
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(16, 10))
-                                .show(ui, |ui| {
-                                    ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("1% LOW FPS").size(10.0).strong().color(COLOR_MUTED));
-                                        ui.label(egui::RichText::new(format!("{:.1}", p1_low)).size(30.0).strong().color(COLOR_YELLOW));
-                                    });
-                                });
-                            ui.add_space(6.0);
-
-                            // Métrica 4: Frame Time
-                            let cur_dt = if current_fps > 0.0 { 1000.0 / current_fps } else { 0.0 };
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::symmetric(16, 10))
-                                .show(ui, |ui| {
-                                    ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new("FRAME TIME").size(10.0).strong().color(COLOR_MUTED));
-                                        ui.label(egui::RichText::new(format!("{:.2} ms", cur_dt)).size(30.0).strong().color(COLOR_CYAN));
-                                    });
-                                });
-                        });
-                        ui.add_space(10.0);
-                        // Sparkline de Frame Pacing (Estilo NotMeter Live Monitor)
-                        ui.label(egui::RichText::new("CONSISTÊNCIA DE FRAME PACING (HISTÓRICO 60 QUADROS)").size(11.0).color(COLOR_MUTED));
-                        ui.add_space(4.0);
-
-                        let history = self.fps.frame_times_history(60);
-                        let (response, painter) = ui.allocate_painter(
-                            egui::vec2((ui.available_width() - 4.0).min(640.0), 38.0),
-                            egui::Sense::hover(),
-                        );
-                        let rect = response.rect;
-                        painter.rect_filled(rect, 4.0, egui::Color32::from_rgb(7, 17, 26));
-                        painter.rect_stroke(rect, egui::CornerRadius::same(4), egui::Stroke::new(1.0f32, COLOR_LINE_SOFT), egui::StrokeKind::Inside);
-
-                        if !history.is_empty() {
-                            let max_dt = history.iter().copied().fold(33.3f32, f32::max).max(16.6);
-                            let step = rect.width() / (history.len().max(1) as f32);
-                            for (i, &dt) in history.iter().enumerate() {
-                                let h = (dt / max_dt).clamp(0.0, 1.0) * rect.height();
-                                let x = rect.left() + i as f32 * step;
-                                let y = rect.bottom() - h;
-                                let color = if dt > 33.3 {
-                                    COLOR_DANGER
-                                } else if dt > 20.0 {
-                                    COLOR_YELLOW
-                                } else {
-                                    COLOR_ACCENT
-                                };
-                                painter.line_segment(
-                                    [egui::pos2(x, rect.bottom()), egui::pos2(x, y)],
-                                    egui::Stroke::new(step.max(1.8), color),
-                                );
-                            }
-                        }
-
-                        if let Some(rep) = &self.last_benchmark_report {
-                            ui.add_space(8.0);
-                            egui::Frame::new()
-                                .fill(COLOR_SURFACE_ELEVATED)
-                                .stroke(egui::Stroke::new(1.0f32, COLOR_ACCENT))
-                                .corner_radius(egui::CornerRadius::same(8))
-                                .inner_margin(egui::Margin::same(12))
-                                .show(ui, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.label(egui::RichText::new("RELATÓRIO DE BENCHMARK:").strong().color(COLOR_ACCENT));
-                                        ui.label(egui::RichText::new(format!("{}", rep.profile)).strong().color(COLOR_TEXT));
-                                    });
-                                    ui.label(egui::RichText::new(format!(
-                                        "Média: {:.1} FPS · 1% Low: {:.1} FPS · Jitter (σ): {:.2} ms · Total: {} quadros ({:.1}s)",
-                                        rep.avg_fps, rep.p1_low_fps, rep.jitter_ms, rep.total_frames, rep.duration_secs
-                                    )).size(13.0).color(COLOR_TEXT));
-                                });
-                        }
                     });
 
                     ui.add_space(10.0);
@@ -831,7 +655,7 @@ mod app {
                         ui.set_min_width((ui.available_width() - 8.0).max(640.0));
                         ui.horizontal(|ui| {
                             ui.label(egui::RichText::new("USO POR NÚCLEO LÓGICO").size(14.0).strong().color(COLOR_TEXT));
-                            ui.label(egui::RichText::new("INTEL RAPTOR LAKE ARCHITECTURE").size(11.0).color(COLOR_MUTED));
+                            ui.label(egui::RichText::new("TOPOLOGIA DETECTADA PELO WINDOWS").size(11.0).color(COLOR_MUTED));
                         });
                         ui.add_space(8.0);
 
@@ -840,7 +664,8 @@ mod app {
                             .spacing([14.0, 8.0])
                             .show(ui, |ui| {
                                 for (index, &load) in self.cpu.load.iter().enumerate() {
-                                    let is_p_core = index < 16;
+                                    let is_p_core = index < usize::BITS as usize
+                                        && self.pinner.as_ref().is_some_and(|p| p.mask & (1usize << index) != 0);
                                     let load_color = if load > 0.85 {
                                         COLOR_DANGER
                                     } else if load > 0.50 {
@@ -909,8 +734,8 @@ mod app {
 
                         ui.horizontal_wrapped(|ui| {
                             let mut auto_yield = self.pinner.as_ref().map_or(true, |p| p.auto_yield);
-                            if ui.checkbox(&mut auto_yield, egui::RichText::new("Auto-Yield (Intel APO)").color(COLOR_TEXT))
-                                .on_hover_text("Cede a afinidade caso o Intel APO tente alocar núcleos, prevenindo micro-stutters")
+                            if ui.checkbox(&mut auto_yield, egui::RichText::new("Auto-Yield (afinidade)").color(COLOR_TEXT))
+                                .on_hover_text("Cede afinidade se outro programa mudar a máscara de uma thread já fixada")
                                 .changed()
                             {
                                 if let Some(pinner) = &mut self.pinner {
@@ -918,14 +743,9 @@ mod app {
                                 }
                             }
 
-                            ui.checkbox(&mut self.windowed_mode, egui::RichText::new("Suporte Janela / Borderless").color(COLOR_TEXT))
-                                .on_hover_text("Mantém o agendamento em P-cores e prioridade ativos para jogos em janela e multi-monitor");
+                            ui.checkbox(&mut self.windowed_mode, egui::RichText::new("Manter ajustes em segundo plano").color(COLOR_TEXT))
+                                .on_hover_text("Mantém prioridade e afinidade do jogo mesmo fora de foco; pode prejudicar outros aplicativos");
 
-                            ui.checkbox(&mut self.network_qos.user_enabled, egui::RichText::new("QoS de Internet").color(COLOR_TEXT))
-                                .on_hover_text("Desativa o NetworkThrottlingIndex e prioriza pacotes sem interferir em ExitLag, Mudfish ou redutores de ping");
-
-                            ui.checkbox(&mut self.storage_priority_enabled, egui::RichText::new("Prioridade de Leitura/Disco").color(COLOR_TEXT))
-                                .on_hover_text("Aplica fila prioritária NVMe/SSD (IoPriorityHigh) e retenção em cache RAM para o disco do jogo");
 
                             let mut min_tray = self.tray.is_minimize_to_tray();
                             if ui.checkbox(&mut min_tray, egui::RichText::new("Minimizar para a Barra de Ícones (Tray)").color(COLOR_TEXT))
@@ -935,14 +755,6 @@ mod app {
                                 self.tray.set_minimize_to_tray(min_tray);
                             }
                         });
-                        let reducers = self.network_qos.detected_reducers();
-                        if !reducers.is_empty() {
-                            ui.add_space(6.0);
-                            ui.horizontal(|ui| {
-                                notmeter_badge(ui, "REDUTOR DE PING PRESERVADO", COLOR_CYAN);
-                                ui.colored_label(COLOR_TEXT, format!("{} (tráfego protegido contra restrições)", reducers.join(", ")));
-                            });
-                        }
                     });
 
                     ui.add_space(10.0);
@@ -962,7 +774,7 @@ mod app {
                         for process in &self.running {
                             let enabled = self.optimizer.enabled(process.pid);
                             let boosted = self.optimizer.boosted(process.pid);
-                            let has_qos = self.applied_qos.contains(&process.pid);
+                            let has_qos = self.applied_qos.contains_key(&process.pid);
                             let is_pinned = pin_status.is_some_and(|(pid, _, _)| pid == process.pid);
 
                             egui::Frame::new()
@@ -972,7 +784,7 @@ mod app {
                                 .inner_margin(egui::Margin::same(12))
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {
-                                        if boosted || is_pinned {
+                                        if boosted || is_pinned || has_qos {
                                             notmeter_badge(ui, "OTIMIZANDO AGORA", COLOR_ACCENT);
                                         } else if enabled {
                                             notmeter_badge(ui, "STANDBY", COLOR_YELLOW);
@@ -986,7 +798,10 @@ mod app {
                                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                             if self.auto_games.contains(&process.directory) {
                                                 notmeter_badge(ui, "AUTO ATIVO", COLOR_ACCENT);
-                                            } else if ui.button(egui::RichText::new(if enabled { "Restaurar" } else { "Otimizar" }).size(12.0)).clicked() {
+                                            } else if ui.add_enabled(
+                                                self.tray.is_optimizer_running(),
+                                                egui::Button::new(if enabled { "Restaurar" } else { "Otimizar" }),
+                                            ).clicked() {
                                                 if let Err(e) = self.optimizer.toggle(process) {
                                                     self.error = e;
                                                 } else if let Some(e) = self.optimizer.update(self.windowed_mode).into_iter().next() {
@@ -1039,9 +854,8 @@ mod app {
                                                 ui.label(egui::RichText::new(&game.name).size(14.0).strong().color(COLOR_TEXT));
 
                                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                                    // Toggle QoS Memória & Armazenamento
                                                     let mut qos = self.qos_games.contains(&game.directory);
-                                                    if ui.checkbox(&mut qos, egui::RichText::new("QoS Memória & Disco").color(COLOR_TEXT)).changed() {
+                                                    if ui.checkbox(&mut qos, egui::RichText::new("Prioridade de memória / EcoQoS").color(COLOR_TEXT)).changed() {
                                                         if qos {
                                                             self.qos_games.insert(game.directory.clone());
                                                         } else {
@@ -1078,12 +892,14 @@ mod app {
                                                     if ui.checkbox(&mut auto, egui::RichText::new("Auto Prioridade").color(COLOR_TEXT)).changed() {
                                                         if auto {
                                                             self.auto_games.insert(game.directory.clone());
-                                                            for process in &self.running {
-                                                                if process.directory == game.directory && !self.optimizer.enabled(process.pid) {
-                                                                    if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                                            if self.tray.is_optimizer_running() {
+                                                                for process in &self.running {
+                                                                    if process.directory == game.directory && !self.optimizer.enabled(process.pid) {
+                                                                        if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                                                    }
                                                                 }
+                                                                if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() { self.error = error; }
                                                             }
-                                                            if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() { self.error = error; }
                                                         } else {
                                                             self.auto_games.remove(&game.directory);
                                                             for process in &self.running {

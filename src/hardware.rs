@@ -122,7 +122,7 @@ pub fn get_cache_topology() -> CacheTopology {
             }
             offset += info.Size as usize;
         }
-        topo.levels.sort_by_key(|k| (k.level, k.cache_type.clone()));
+        topo.levels.sort_by(|a, b| a.level.cmp(&b.level).then_with(|| a.cache_type.cmp(&b.cache_type)));
     }
     topo
 }
