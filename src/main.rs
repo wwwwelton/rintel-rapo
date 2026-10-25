@@ -1,0 +1,1067 @@
+#![cfg_attr(not(test), windows_subsystem = "windows")]
+
+pub mod cache;
+pub mod fps;
+pub mod hardware;
+pub mod intel_dtt;
+pub mod network;
+pub mod telemetry;
+#[cfg(windows)]
+mod cpu;
+#[cfg(windows)]
+mod pin;
+#[cfg(any(test, windows))]
+mod steam;
+#[cfg(windows)]
+mod windows;
+
+#[cfg(windows)]
+mod app {
+    use super::{
+        cache::{self, HighResolutionTimer},
+        cpu::Monitor,
+        fps::{BenchmarkProfile, BenchmarkReport, FpsTracker, WindowFrameSampler},
+        hardware::{self, CacheTopology},
+        intel_dtt::{self, IntelDttReport, IntelDttStatus},
+        network::NetworkQosManager,
+        pin::Pinner,
+        steam::{self, Game},
+        telemetry::TelemetryCollector,
+        windows::{self, Optimizer, Running},
+    };
+    use eframe::egui;
+    use std::{
+        collections::HashSet,
+        path::PathBuf,
+        time::{Duration, Instant},
+    };
+    use windows_sys::Win32::{
+        Foundation::CloseHandle,
+        System::Threading::{
+            OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION,
+        },
+    };
+
+    // NotMeter Design Tokens
+    const COLOR_BG: egui::Color32 = egui::Color32::from_rgb(5, 12, 19); // #050c13
+    const COLOR_SURFACE: egui::Color32 = egui::Color32::from_rgb(9, 21, 32); // #091520
+    const COLOR_SURFACE_ELEVATED: egui::Color32 = egui::Color32::from_rgb(12, 26, 39); // #0c1a27
+    const COLOR_SURFACE_HOVER: egui::Color32 = egui::Color32::from_rgb(16, 34, 48); // #102230
+    const COLOR_LINE: egui::Color32 = egui::Color32::from_rgb(30, 57, 76); // #1e394c
+    const COLOR_LINE_SOFT: egui::Color32 = egui::Color32::from_rgb(20, 42, 57); // #142a39
+    const COLOR_TEXT: egui::Color32 = egui::Color32::from_rgb(243, 248, 251); // #f3f8fb
+    const COLOR_MUTED: egui::Color32 = egui::Color32::from_rgb(141, 169, 187); // #8da9bb
+    const COLOR_MUTED_2: egui::Color32 = egui::Color32::from_rgb(104, 134, 154); // #68869a
+    const COLOR_ACCENT: egui::Color32 = egui::Color32::from_rgb(70, 224, 213); // #46e0d5 (Mint/Cyan)
+    const COLOR_CYAN: egui::Color32 = egui::Color32::from_rgb(85, 215, 255); // #55d7ff
+    const COLOR_YELLOW: egui::Color32 = egui::Color32::from_rgb(255, 217, 107); // #ffd96b
+    const COLOR_DANGER: egui::Color32 = egui::Color32::from_rgb(255, 104, 119); // #ff6877
+
+    pub struct App {
+        games: Vec<Game>,
+        running: Vec<Running>,
+        optimizer: Optimizer,
+        auto_games: HashSet<PathBuf>,
+        pin_games: HashSet<PathBuf>,
+        qos_games: HashSet<PathBuf>,
+        applied_qos: HashSet<u32>,
+        pinner: Option<Pinner>,
+        pub windowed_mode: bool,
+        pub network_qos: NetworkQosManager,
+        pub storage_priority_enabled: bool,
+        high_res_timer: HighResolutionTimer,
+        search: String,
+        cpu: Monitor,
+        cpu_error: String,
+        error: String,
+        last_refresh: Instant,
+        dtt_report: IntelDttReport,
+        cache_topo: CacheTopology,
+        fps: FpsTracker,
+        sampler: WindowFrameSampler,
+        telemetry: TelemetryCollector,
+        last_benchmark_report: Option<BenchmarkReport>,
+        theme_applied: bool,
+    }
+
+    impl App {
+        pub fn new() -> Self {
+            let mut app = Self {
+                games: Vec::new(),
+                running: Vec::new(),
+                optimizer: Optimizer::new(),
+                auto_games: HashSet::new(),
+                pin_games: HashSet::new(),
+                qos_games: HashSet::new(),
+                applied_qos: HashSet::new(),
+                pinner: Pinner::new().ok(),
+                windowed_mode: true,
+                network_qos: NetworkQosManager::new(),
+                storage_priority_enabled: true,
+                high_res_timer: HighResolutionTimer::new(),
+                search: String::new(),
+                error: String::new(),
+                cpu: Monitor::new(),
+                cpu_error: String::new(),
+                last_refresh: Instant::now() - Duration::from_secs(3),
+                dtt_report: intel_dtt::detect_intel_dtt(),
+                cache_topo: hardware::get_cache_topology(),
+                fps: FpsTracker::new(),
+                sampler: WindowFrameSampler::new(),
+                telemetry: TelemetryCollector::new(),
+                last_benchmark_report: None,
+                theme_applied: false,
+            };
+            app.scan();
+            app.refresh();
+            app
+        }
+
+        fn scan(&mut self) {
+            self.dtt_report = intel_dtt::detect_intel_dtt();
+            match windows::steam_root() {
+                Some(root) => {
+                    self.games = steam::discover(&root);
+                    self.auto_games.retain(|directory| {
+                        self.games.iter().any(|game| &game.directory == directory)
+                    });
+                    self.pin_games.retain(|directory| {
+                        self.games.iter().any(|game| &game.directory == directory)
+                    });
+                    self.qos_games.retain(|directory| {
+                        self.games.iter().any(|game| &game.directory == directory)
+                    });
+                    self.error.clear();
+                }
+                None => {
+                    self.games.clear();
+                    self.error = "Steam não encontrado no registro do usuário".into();
+                }
+            }
+        }
+
+        fn refresh(&mut self) {
+            match windows::running(&self.games) {
+                Ok(processes) => {
+                    self.running = processes;
+                    self.error.clear();
+                    for process in &self.running {
+                        if self.auto_games.contains(&process.directory)
+                            && !self.optimizer.enabled(process.pid)
+                        {
+                            if let Err(error) = self.optimizer.toggle(process) {
+                                self.error = error;
+                            }
+                        }
+                    }
+                }
+                Err(e) => self.error = e,
+            }
+
+            if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() {
+                self.error = error;
+            }
+
+            // Aplicar QoS de Memória, Armazenamento e Fila de Leitura NVMe/SSD
+            for process in &self.running {
+                let want_qos = self.qos_games.contains(&process.directory);
+                if want_qos && !self.applied_qos.contains(&process.pid) {
+                    unsafe {
+                        let handle = OpenProcess(
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
+                            0,
+                            process.pid,
+                        );
+                        if !handle.is_null() {
+                            if cache::apply_memory_qos(handle).is_ok() {
+                                self.applied_qos.insert(process.pid);
+                            }
+                            CloseHandle(handle);
+                        }
+                    }
+                } else if !want_qos && self.applied_qos.contains(&process.pid) {
+                    unsafe {
+                        let handle = OpenProcess(
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
+                            0,
+                            process.pid,
+                        );
+                        if !handle.is_null() {
+                            let _ = cache::restore_memory_qos(handle);
+                            CloseHandle(handle);
+                        }
+                    }
+                    self.applied_qos.remove(&process.pid);
+                }
+            }
+            let active_pids: HashSet<u32> = self.running.iter().map(|p| p.pid).collect();
+            self.applied_qos.retain(|pid| active_pids.contains(pid));
+
+            if let Some(pinner) = &mut self.pinner {
+                if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode) {
+                    self.error = error;
+                }
+            }
+
+            // Ativar Timer de 1ms e QoS de Rede quando houver jogo sendo otimizado
+            let pin_status = self.pinner.as_ref().and_then(Pinner::status);
+            let active_process = self.running.iter().find(|p| {
+                self.optimizer.boosted(p.pid)
+                    || self.applied_qos.contains(&p.pid)
+                    || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
+            });
+
+            if let Some(proc) = active_process {
+                self.high_res_timer.enable();
+                if self.network_qos.user_enabled {
+                    self.network_qos.apply(&proc.exe);
+                } else {
+                    self.network_qos.restore();
+                }
+            } else {
+                self.high_res_timer.disable();
+                self.network_qos.restore();
+            }
+
+            if let Err(error) = self.cpu.refresh() {
+                self.cpu_error = error;
+            } else {
+                self.cpu_error.clear();
+            }
+
+            let target_game = active_process
+                .or_else(|| self.running.first())
+                .map(|p| (p.pid, p.game.as_str()));
+            self.telemetry.refresh(&self.cpu.load, target_game);
+
+            self.last_refresh = Instant::now();
+        }
+    }
+
+    impl Drop for App {
+        fn drop(&mut self) {
+            self.high_res_timer.disable();
+            self.network_qos.restore();
+        }
+    }
+
+    // NotMeter Reusable UI Helper Components
+    fn notmeter_card<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
+        egui::Frame::new()
+            .fill(COLOR_SURFACE)
+            .stroke(egui::Stroke::new(1.0f32, COLOR_LINE))
+            .corner_radius(egui::CornerRadius::same(10))
+            .inner_margin(egui::Margin::same(14))
+            .show(ui, add_contents)
+            .inner
+    }
+
+    fn notmeter_hero_card<R>(ui: &mut egui::Ui, is_active: bool, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
+        let stroke_color = if is_active { COLOR_ACCENT } else { COLOR_LINE };
+        egui::Frame::new()
+            .fill(COLOR_SURFACE_ELEVATED)
+            .stroke(egui::Stroke::new(if is_active { 1.5f32 } else { 1.0f32 }, stroke_color))
+            .corner_radius(egui::CornerRadius::same(12))
+            .inner_margin(egui::Margin::same(16))
+            .show(ui, add_contents)
+            .inner
+    }
+
+    fn notmeter_badge(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
+        let bg = egui::Color32::from_rgba_premultiplied(
+            (color.r() as f32 * 0.15) as u8,
+            (color.g() as f32 * 0.15) as u8,
+            (color.b() as f32 * 0.15) as u8,
+            60,
+        );
+        egui::Frame::new()
+            .fill(bg)
+            .stroke(egui::Stroke::new(1.0f32, color))
+            .corner_radius(egui::CornerRadius::same(5))
+            .inner_margin(egui::Margin::symmetric(8, 3))
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new(text).size(11.0).strong().color(color));
+            });
+    }
+
+    impl eframe::App for App {
+        fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+            if !self.running.is_empty() || self.fps.benchmark.active {
+                let dt_ms = self.sampler.sample_interval_ms();
+                self.fps.record_frame_time(dt_ms);
+                ctx.request_repaint_after(Duration::from_millis(16));
+            } else {
+                ctx.request_repaint_after(Duration::from_secs(1));
+            }
+
+            if self.last_refresh.elapsed() >= Duration::from_secs(1) {
+                self.refresh();
+            }
+
+            if !self.theme_applied {
+                let mut visuals = egui::Visuals::dark();
+                visuals.override_text_color = Some(COLOR_TEXT);
+                visuals.panel_fill = COLOR_BG;
+                visuals.window_fill = COLOR_SURFACE;
+                visuals.extreme_bg_color = COLOR_BG;
+                visuals.faint_bg_color = COLOR_SURFACE_ELEVATED;
+
+                visuals.widgets.inactive.bg_fill = COLOR_SURFACE_ELEVATED;
+                visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0f32, COLOR_LINE);
+                visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(6);
+                visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0f32, COLOR_TEXT);
+
+                visuals.widgets.hovered.bg_fill = COLOR_SURFACE_HOVER;
+                visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0f32, COLOR_ACCENT);
+                visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(6);
+                visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0f32, egui::Color32::WHITE);
+
+                visuals.widgets.active.bg_fill = COLOR_ACCENT;
+                visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0f32, COLOR_ACCENT);
+                visuals.widgets.active.corner_radius = egui::CornerRadius::same(6);
+                visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0f32, COLOR_BG);
+
+                visuals.selection.bg_fill = egui::Color32::from_rgba_premultiplied(70, 224, 213, 50);
+                visuals.selection.stroke = egui::Stroke::new(1.0f32, COLOR_ACCENT);
+
+                ctx.set_visuals(visuals);
+                self.theme_applied = true;
+            }
+            egui::CentralPanel::default().show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.add_space(8.0);
+
+                    // NOTMETER HEADER BAR
+                    ui.horizontal(|ui| {
+                        ui.heading(
+                            egui::RichText::new("RINTEL RAPO")
+                                .size(24.0)
+                                .extra_letter_spacing(-0.5)
+                                .strong()
+                                .color(COLOR_TEXT),
+                        );
+                        notmeter_badge(ui, "INTEL HYBRID DIRECTOR", COLOR_ACCENT);
+                        notmeter_badge(ui, "LIVE METER", COLOR_CYAN);
+
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            match self.dtt_report.status {
+                                IntelDttStatus::ActiveRunning => {
+                                    notmeter_badge(ui, "INTEL DTT/APO ATIVO", COLOR_YELLOW);
+                                }
+                                IntelDttStatus::InstalledStopped => {
+                                    notmeter_badge(ui, "INTEL DTT PARADO", COLOR_MUTED);
+                                }
+                                IntelDttStatus::NotInstalled => {
+                                    notmeter_badge(ui, "DTT NÃO DETECTADO", COLOR_ACCENT);
+                                }
+                            }
+
+                            if ui.button(egui::RichText::new("Atualizar").size(12.0)).clicked() {
+                                self.refresh();
+                            }
+                            if ui.button(egui::RichText::new("Reexaminar Steam").size(12.0)).clicked() {
+                                self.scan();
+                                self.refresh();
+                            }
+                        });
+                    });
+
+                    ui.label(
+                        egui::RichText::new("Otimizador de alto desempenho para CPUs Intel Core • P-cores, L1/L2/L3 Cache, QoS de Rede e Fila de Armazenamento NVMe")
+                            .size(12.0)
+                            .color(COLOR_MUTED),
+                    );
+                    ui.add_space(10.0);
+
+                    // BANNER DE CONFLITO COM APO
+                    if let Some(conflict) = self.pinner.as_ref().and_then(|p| p.conflict()) {
+                        notmeter_card(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                notmeter_badge(ui, "DISPUTA DE AFINIDADE DETECTADA", COLOR_DANGER);
+                                ui.colored_label(
+                                    COLOR_DANGER,
+                                    format!(
+                                        "Thread {}:{} afinidade alterada externamente para {:#x} (Máscara esperada: {:#x}). Modo Auto-Yield ativo.",
+                                        conflict.pid, conflict.tid, conflict.external_mask, conflict.our_mask
+                                    ),
+                                );
+                            });
+                        });
+                        ui.add_space(8.0);
+                    }
+
+                    if !self.error.is_empty() {
+                        notmeter_card(ui, |ui| {
+                            ui.colored_label(COLOR_DANGER, &self.error);
+                        });
+                        ui.add_space(8.0);
+                    }
+
+                    // HERO CARD: PROCESSO SENDO OTIMIZADO ATIVAMENTE
+                    let pin_status = self.pinner.as_ref().and_then(Pinner::status);
+                    let active_proc = self.running.iter().find(|p| {
+                        self.optimizer.boosted(p.pid)
+                            || self.applied_qos.contains(&p.pid)
+                            || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
+                    });
+
+                    notmeter_hero_card(ui, active_proc.is_some(), |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        match active_proc {
+                            Some(proc) => {
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        egui::RichText::new("🟢 PROCESSO EM OTIMIZAÇÃO ATIVA")
+                                            .size(13.0)
+                                            .strong()
+                                            .color(COLOR_ACCENT),
+                                    );
+                                    ui.label(
+                                        egui::RichText::new(&proc.game)
+                                            .size(18.0)
+                                            .strong()
+                                            .color(COLOR_TEXT),
+                                    );
+                                    notmeter_badge(ui, &format!("PID {}", proc.pid), COLOR_CYAN);
+                                });
+                                ui.add_space(6.0);
+
+                                let is_pinned = pin_status.is_some_and(|(pid, _, _)| pid == proc.pid);
+                                let has_cache_qos = self.applied_qos.contains(&proc.pid);
+
+                                ui.horizontal_wrapped(|ui| {
+                                    if self.optimizer.boosted(proc.pid) {
+                                        notmeter_badge(ui, "PRIORIDADE ACIMA DO NORMAL", COLOR_ACCENT);
+                                    }
+                                    if let Some((pid, tid, ms)) = pin_status {
+                                        if pid == proc.pid {
+                                            notmeter_badge(ui, &format!("P-CORE ATIVO (TID {tid} · {ms}ms)"), COLOR_YELLOW);
+                                        }
+                                    }
+                                    if is_pinned {
+                                        notmeter_badge(ui, "CACHE L1/L2 EXCLUSIVO P-CORE", COLOR_ACCENT);
+                                    }
+                                    if has_cache_qos {
+                                        notmeter_badge(ui, "CACHE L3 36MB (RING BUS UNTHROTTLED)", COLOR_CYAN);
+                                    }
+                                    if self.storage_priority_enabled {
+                                        let vol = proc.directory.components().next().map(|c| c.as_os_str().to_string_lossy().to_string()).unwrap_or_else(|| "C:".into());
+                                        notmeter_badge(ui, &format!("DISCO {vol} (IOPRIORITY HIGH / NVME)", vol = vol), COLOR_YELLOW);
+                                    }
+                                    if self.network_qos.is_active() {
+                                        notmeter_badge(ui, "QOS REDE SEM THROTTLING", COLOR_CYAN);
+                                    }
+                                    if self.windowed_mode {
+                                        notmeter_badge(ui, "MODO JANELA / BORDERLESS", COLOR_MUTED);
+                                    }
+                                });
+
+                                ui.add_space(6.0);
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new(format!("Caminho: {}", proc.exe.display())).size(11.0).color(COLOR_MUTED_2));
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        ui.label(egui::RichText::new("🛡️ 100% Anti-Cheat Safe (Steam VAC, NCSoft GameGuard - Zero memória lida/gravada)").size(11.0).color(COLOR_ACCENT));
+                                    });
+                                });
+                            }
+                            None => {
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("⚪ Nenhum processo em foco sendo otimizado no momento").size(14.0).strong().color(COLOR_MUTED));
+                                    if !self.running.is_empty() {
+                                        ui.label(egui::RichText::new("— Coloque a janela do jogo em foco para engajar as otimizações").size(12.0).color(COLOR_MUTED_2));
+                                    } else {
+                                        ui.label(egui::RichText::new("— Aguardando execução de jogos instalados na biblioteca Steam").size(12.0).color(COLOR_MUTED_2));
+                                    }
+                                });
+                            }
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // NOVO BLOCO DE TELEMETRIA DO PROGRAMA / JOGO (1º BLOCO = FPS DO JOGO/PROGRAMA)
+                    let current_fps = self.fps.current_fps();
+                    let avg_fps = self.fps.avg_fps();
+                    let p1_low = self.fps.p1_low_fps();
+                    let tm = &self.telemetry.metrics;
+
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                egui::RichText::new(if tm.has_target {
+                                    format!("TELEMETRIA DO PROGRAMA / JOGO EM EXECUÇÃO: {}", tm.target_name)
+                                } else {
+                                    "TELEMETRIA DO PROGRAMA / JOGO (MODO GLOBAL — AGUARDANDO JOGO)".to_string()
+                                })
+                                .size(14.0)
+                                .strong()
+                                .color(COLOR_TEXT),
+                            );
+                            if tm.has_target {
+                                notmeter_badge(ui, &format!("PID {}", tm.target_pid), COLOR_ACCENT);
+                            } else {
+                                notmeter_badge(ui, "SISTEMA GLOBAL", COLOR_MUTED);
+                            }
+                        });
+                        ui.add_space(8.0);
+
+                        ui.horizontal_wrapped(|ui| {
+                            // 1. FPS DO PROGRAMA / JOGO (Primeiro Bloco)
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_ACCENT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("FPS DO JOGO / PROGRAMA").size(10.0).strong().color(COLOR_ACCENT));
+                                        ui.label(egui::RichText::new(format!("{:.0} FPS", current_fps)).size(22.0).strong().color(COLOR_TEXT));
+                                        ui.label(egui::RichText::new(format!("Méd {:.0} · 1% Low {:.0}", avg_fps, p1_low)).size(10.0).color(COLOR_MUTED));
+                                    });
+                                });
+
+                            // 2. Uso de CPU Total
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("USO DE CPU TOTAL").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.1}%", tm.cpu_usage_pct)).size(22.0).strong().color(COLOR_ACCENT));
+                                        ui.label(egui::RichText::new(if tm.has_target { "Processo do Jogo" } else { "Global CPU" }).size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+
+                            // 3. Uso de GPU
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("USO DE GPU").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.1}%", tm.gpu_usage_pct)).size(22.0).strong().color(COLOR_CYAN));
+                                        ui.label(egui::RichText::new("Engine 3D / Gráficos").size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+
+                            // 4. Uso de Memória
+                            let mem_str = if tm.mem_used_mb >= 1024.0 {
+                                format!("{:.2} GB", tm.mem_used_mb / 1024.0)
+                            } else {
+                                format!("{:.0} MB", tm.mem_used_mb)
+                            };
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("USO DE MEMÓRIA").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(mem_str).size(22.0).strong().color(COLOR_TEXT));
+                                        ui.label(egui::RichText::new(format!("{:.1}% da RAM", tm.mem_usage_pct)).size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+
+                            // 5. Leitura de Disco (MB/s)
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("LEITURA DE DISCO").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.2} MB/s", tm.disk_read_mbs)).size(22.0).strong().color(COLOR_YELLOW));
+                                        ui.label(egui::RichText::new("Taxa de Leitura I/O").size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+
+                            // 6. Uso de Internet (KB/s)
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("USO DE INTERNET").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.1} KB/s", tm.net_usage_kbs)).size(22.0).strong().color(COLOR_CYAN));
+                                        ui.label(egui::RichText::new("Tráfego de Rede").size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+
+                            // 7. Ping (ms)
+                            let ping_color = if tm.ping_ms == 0 {
+                                COLOR_MUTED
+                            } else if tm.ping_ms < 60 {
+                                COLOR_ACCENT
+                            } else if tm.ping_ms < 120 {
+                                COLOR_YELLOW
+                            } else {
+                                COLOR_DANGER
+                            };
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("PING DO JOGO").size(10.0).strong().color(COLOR_MUTED));
+                                        let ping_str = if tm.ping_ms > 0 { format!("{} ms", tm.ping_ms) } else { "-- ms".into() };
+                                        ui.label(egui::RichText::new(ping_str).size(22.0).strong().color(ping_color));
+                                        ui.label(egui::RichText::new("Latência RTT").size(10.0).color(COLOR_MUTED_2));
+                                    });
+                                });
+                        });
+                    });
+
+                    ui.add_space(10.0);
+
+                    // TELEMETRIA DE FRAME PACING & BENCHMARK NOTMETER STYLE
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new("TELEMETRIA EM TEMPO REAL").size(14.0).strong().color(COLOR_TEXT));
+                            notmeter_badge(ui, "HIGH PRECISION QPC", COLOR_CYAN);
+
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                if self.fps.benchmark.active {
+                                    notmeter_badge(ui, "GRAVANDO BENCHMARK...", COLOR_DANGER);
+                                    if ui.button(egui::RichText::new("Finalizar").size(11.0)).clicked() {
+                                        self.last_benchmark_report = self.fps.benchmark.stop();
+                                    }
+                                } else {
+                                    if ui.button(egui::RichText::new("Benchmark Otimizado (30s)").size(11.0)).clicked() {
+                                        self.fps.benchmark.start(BenchmarkProfile::Optimized, Some(30.0));
+                                    }
+                                    if ui.button(egui::RichText::new("Benchmark Padrão (30s)").size(11.0)).clicked() {
+                                        self.fps.benchmark.start(BenchmarkProfile::Baseline, Some(30.0));
+                                    }
+                                }
+                            });
+                        });
+
+                        ui.add_space(8.0);
+
+                        let current_fps = self.fps.current_fps();
+                        let avg_fps = self.fps.avg_fps();
+                        let p1_low = self.fps.p1_low_fps();
+
+                        ui.horizontal(|ui| {
+                            // Métrica 1: FPS Instantâneo
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(16, 10))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("FPS INSTANTÂNEO").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.0}", current_fps)).size(30.0).strong().color(COLOR_TEXT));
+                                    });
+                                });
+                            ui.add_space(6.0);
+
+                            // Métrica 2: FPS Médio
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(16, 10))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("MÉDIO (1S)").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.1}", avg_fps)).size(30.0).strong().color(COLOR_ACCENT));
+                                    });
+                                });
+                            ui.add_space(6.0);
+
+                            // Métrica 3: 1% Low FPS
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(16, 10))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("1% LOW FPS").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.1}", p1_low)).size(30.0).strong().color(COLOR_YELLOW));
+                                    });
+                                });
+                            ui.add_space(6.0);
+
+                            // Métrica 4: Frame Time
+                            let cur_dt = if current_fps > 0.0 { 1000.0 / current_fps } else { 0.0 };
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(16, 10))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("FRAME TIME").size(10.0).strong().color(COLOR_MUTED));
+                                        ui.label(egui::RichText::new(format!("{:.2} ms", cur_dt)).size(30.0).strong().color(COLOR_CYAN));
+                                    });
+                                });
+                        });
+                        ui.add_space(10.0);
+                        // Sparkline de Frame Pacing (Estilo NotMeter Live Monitor)
+                        ui.label(egui::RichText::new("CONSISTÊNCIA DE FRAME PACING (HISTÓRICO 60 QUADROS)").size(11.0).color(COLOR_MUTED));
+                        ui.add_space(4.0);
+
+                        let history = self.fps.frame_times_history(60);
+                        let (response, painter) = ui.allocate_painter(
+                            egui::vec2((ui.available_width() - 4.0).min(640.0), 38.0),
+                            egui::Sense::hover(),
+                        );
+                        let rect = response.rect;
+                        painter.rect_filled(rect, 4.0, egui::Color32::from_rgb(7, 17, 26));
+                        painter.rect_stroke(rect, egui::CornerRadius::same(4), egui::Stroke::new(1.0f32, COLOR_LINE_SOFT), egui::StrokeKind::Inside);
+
+                        if !history.is_empty() {
+                            let max_dt = history.iter().copied().fold(33.3f32, f32::max).max(16.6);
+                            let step = rect.width() / (history.len().max(1) as f32);
+                            for (i, &dt) in history.iter().enumerate() {
+                                let h = (dt / max_dt).clamp(0.0, 1.0) * rect.height();
+                                let x = rect.left() + i as f32 * step;
+                                let y = rect.bottom() - h;
+                                let color = if dt > 33.3 {
+                                    COLOR_DANGER
+                                } else if dt > 20.0 {
+                                    COLOR_YELLOW
+                                } else {
+                                    COLOR_ACCENT
+                                };
+                                painter.line_segment(
+                                    [egui::pos2(x, rect.bottom()), egui::pos2(x, y)],
+                                    egui::Stroke::new(step.max(1.8), color),
+                                );
+                            }
+                        }
+
+                        if let Some(rep) = &self.last_benchmark_report {
+                            ui.add_space(8.0);
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_ACCENT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::same(12))
+                                .show(ui, |ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.label(egui::RichText::new("RELATÓRIO DE BENCHMARK:").strong().color(COLOR_ACCENT));
+                                        ui.label(egui::RichText::new(format!("{}", rep.profile)).strong().color(COLOR_TEXT));
+                                    });
+                                    ui.label(egui::RichText::new(format!(
+                                        "Média: {:.1} FPS · 1% Low: {:.1} FPS · Jitter (σ): {:.2} ms · Total: {} quadros ({:.1}s)",
+                                        rep.avg_fps, rep.p1_low_fps, rep.jitter_ms, rep.total_frames, rep.duration_secs
+                                    )).size(13.0).color(COLOR_TEXT));
+                                });
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // USO DE PROCESSADORES LÓGICOS (ESTILO HARDWARE MATRIX NOTMETER)
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new("USO POR NÚCLEO LÓGICO").size(14.0).strong().color(COLOR_TEXT));
+                            ui.label(egui::RichText::new("INTEL RAPTOR LAKE ARCHITECTURE").size(11.0).color(COLOR_MUTED));
+                        });
+                        ui.add_space(8.0);
+
+                        egui::Grid::new("notmeter_cpu_grid")
+                            .num_columns(4)
+                            .spacing([14.0, 8.0])
+                            .show(ui, |ui| {
+                                for (index, &load) in self.cpu.load.iter().enumerate() {
+                                    let is_p_core = index < 16;
+                                    let load_color = if load > 0.85 {
+                                        COLOR_DANGER
+                                    } else if load > 0.50 {
+                                        COLOR_YELLOW
+                                    } else {
+                                        COLOR_ACCENT
+                                    };
+
+                                    ui.horizontal(|ui| {
+                                        ui.monospace(
+                                            egui::RichText::new(format!("{index:02}"))
+                                                .size(11.0)
+                                                .color(if is_p_core { COLOR_CYAN } else { COLOR_MUTED }),
+                                        );
+
+                                        // Micro-gauge Notmeter style
+                                        let (response, painter) = ui.allocate_painter(egui::vec2(100.0, 14.0), egui::Sense::hover());
+                                        let rect = response.rect;
+                                        painter.rect_filled(rect, 3.0, COLOR_SURFACE_ELEVATED);
+                                        let fill_w = rect.width() * load.clamp(0.0, 1.0);
+                                        painter.rect_filled(
+                                            egui::Rect::from_min_size(rect.min, egui::vec2(fill_w, rect.height())),
+                                            3.0,
+                                            load_color,
+                                        );
+
+                                        ui.monospace(
+                                            egui::RichText::new(format!("{:.0}%", load * 100.0))
+                                                .size(11.0)
+                                                .strong()
+                                                .color(COLOR_TEXT),
+                                        );
+                                    });
+
+                                    if index % 4 == 3 {
+                                        ui.end_row();
+                                    }
+                                }
+                            });
+                        ui.add_space(6.0);
+                        ui.horizontal_wrapped(|ui| {
+                            for lvl in &self.cache_topo.levels {
+                                notmeter_badge(
+                                    ui,
+                                    &format!("L{} {} {}KB ({}x)", lvl.level, lvl.cache_type, lvl.size_kb, lvl.count),
+                                    COLOR_MUTED,
+                                );
+                            }
+                            if self.cache_topo.total_l3_kb > 0 {
+                                notmeter_badge(
+                                    ui,
+                                    &format!("L3 SMART CACHE {:.0}MB", self.cache_topo.total_l3_kb as f32 / 1024.0),
+                                    COLOR_CYAN,
+                                );
+                            }
+                        });
+                    });
+
+                    ui.add_space(10.0);
+
+                    // PAINEL DE CONTROLES E OPÇÕES EM TEMPO REAL
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.label(egui::RichText::new("OPÇÕES E DIRETRIZES DE AGENDAMENTO").size(14.0).strong().color(COLOR_TEXT));
+                        ui.add_space(6.0);
+
+                        ui.horizontal_wrapped(|ui| {
+                            let mut auto_yield = self.pinner.as_ref().map_or(true, |p| p.auto_yield);
+                            if ui.checkbox(&mut auto_yield, egui::RichText::new("Auto-Yield (Intel APO)").color(COLOR_TEXT))
+                                .on_hover_text("Cede a afinidade caso o Intel APO tente alocar núcleos, prevenindo micro-stutters")
+                                .changed()
+                            {
+                                if let Some(pinner) = &mut self.pinner {
+                                    pinner.auto_yield = auto_yield;
+                                }
+                            }
+
+                            ui.checkbox(&mut self.windowed_mode, egui::RichText::new("Suporte Janela / Borderless").color(COLOR_TEXT))
+                                .on_hover_text("Mantém o agendamento em P-cores e prioridade ativos para jogos em janela e multi-monitor");
+
+                            ui.checkbox(&mut self.network_qos.user_enabled, egui::RichText::new("QoS de Internet").color(COLOR_TEXT))
+                                .on_hover_text("Desativa o NetworkThrottlingIndex e prioriza pacotes sem interferir em ExitLag, Mudfish ou redutores de ping");
+
+                            ui.checkbox(&mut self.storage_priority_enabled, egui::RichText::new("Prioridade de Leitura/Disco").color(COLOR_TEXT))
+                                .on_hover_text("Aplica fila prioritária NVMe/SSD (IoPriorityHigh) e retenção em cache RAM para o disco do jogo");
+                        });
+
+                        let reducers = self.network_qos.detected_reducers();
+                        if !reducers.is_empty() {
+                            ui.add_space(6.0);
+                            ui.horizontal(|ui| {
+                                notmeter_badge(ui, "REDUTOR DE PING PRESERVADO", COLOR_CYAN);
+                                ui.colored_label(COLOR_TEXT, format!("{} (tráfego protegido contra restrições)", reducers.join(", ")));
+                            });
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // JOGOS RODANDO (LISTA NOTMETER STYLE)
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new(format!("JOGOS DETECTADOS EM EXECUÇÃO ({})", self.running.len())).size(14.0).strong().color(COLOR_TEXT));
+                        });
+                        ui.add_space(8.0);
+
+                        if self.running.is_empty() {
+                            ui.label(egui::RichText::new("Nenhum processo dentro das pastas dos jogos Steam instalado em execução.").size(12.0).color(COLOR_MUTED));
+                        }
+
+                        for process in &self.running {
+                            let enabled = self.optimizer.enabled(process.pid);
+                            let boosted = self.optimizer.boosted(process.pid);
+                            let has_qos = self.applied_qos.contains(&process.pid);
+                            let is_pinned = pin_status.is_some_and(|(pid, _, _)| pid == process.pid);
+
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::same(12))
+                                .show(ui, |ui| {
+                                    ui.horizontal(|ui| {
+                                        if boosted || is_pinned {
+                                            notmeter_badge(ui, "OTIMIZANDO AGORA", COLOR_ACCENT);
+                                        } else if enabled {
+                                            notmeter_badge(ui, "STANDBY", COLOR_YELLOW);
+                                        } else {
+                                            notmeter_badge(ui, "INATIVO", COLOR_MUTED);
+                                        }
+
+                                        ui.label(egui::RichText::new(&process.game).size(15.0).strong().color(COLOR_TEXT));
+                                        notmeter_badge(ui, &format!("PID {}", process.pid), COLOR_CYAN);
+
+                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                            if self.auto_games.contains(&process.directory) {
+                                                notmeter_badge(ui, "AUTO ATIVO", COLOR_ACCENT);
+                                            } else if ui.button(egui::RichText::new(if enabled { "Restaurar" } else { "Otimizar" }).size(12.0)).clicked() {
+                                                if let Err(e) = self.optimizer.toggle(process) {
+                                                    self.error = e;
+                                                } else if let Some(e) = self.optimizer.update(self.windowed_mode).into_iter().next() {
+                                                    self.error = e;
+                                                }
+                                            }
+
+                                            if has_qos {
+                                                notmeter_badge(ui, "QOS MEMÓRIA", COLOR_CYAN);
+                                            }
+                                        });
+                                    });
+                                    ui.add_space(2.0);
+                                    ui.label(egui::RichText::new(process.exe.display().to_string()).size(11.0).color(COLOR_MUTED_2));
+                                });
+                            ui.add_space(6.0);
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    // BIBLIOTECA STEAM COM FILTRO DE BUSCA
+                    notmeter_card(ui, |ui| {
+                        ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new(format!("BIBLIOTECA STEAM ({})", self.games.len())).size(14.0).strong().color(COLOR_TEXT));
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                ui.add(
+                                    egui::TextEdit::singleline(&mut self.search)
+                                        .hint_text("Buscar jogo...")
+                                        .desired_width(220.0),
+                                );
+                            });
+                        });
+                        ui.add_space(8.0);
+
+                        let search = self.search.to_lowercase();
+                        let mut needs_refresh = false;
+
+                        egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
+                            for game in &self.games {
+                                if game.name.to_lowercase().contains(&search) {
+                                    egui::Frame::new()
+                                        .fill(COLOR_SURFACE_ELEVATED)
+                                        .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
+                                        .corner_radius(egui::CornerRadius::same(6))
+                                        .inner_margin(egui::Margin::symmetric(12, 8))
+                                        .show(ui, |ui| {
+                                            ui.horizontal(|ui| {
+                                                ui.label(egui::RichText::new(&game.name).size(14.0).strong().color(COLOR_TEXT));
+
+                                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                                    // Toggle QoS Memória & Armazenamento
+                                                    let mut qos = self.qos_games.contains(&game.directory);
+                                                    if ui.checkbox(&mut qos, egui::RichText::new("QoS Memória & Disco").color(COLOR_TEXT)).changed() {
+                                                        if qos {
+                                                            self.qos_games.insert(game.directory.clone());
+                                                        } else {
+                                                            self.qos_games.remove(&game.directory);
+                                                        }
+                                                        needs_refresh = true;
+                                                    }
+
+                                                    // Toggle P-cores
+                                                    let mut pin = self.pin_games.contains(&game.directory);
+                                                    if ui.checkbox(&mut pin, egui::RichText::new("P-cores").color(COLOR_TEXT)).changed() {
+                                                        if pin {
+                                                            if self.pinner.is_none() {
+                                                                match Pinner::new() {
+                                                                    Ok(pinner) => self.pinner = Some(pinner),
+                                                                    Err(error) => self.error = error,
+                                                                }
+                                                            }
+                                                            if self.pinner.is_some() {
+                                                                self.pin_games.insert(game.directory.clone());
+                                                            }
+                                                        } else {
+                                                            self.pin_games.remove(&game.directory);
+                                                            if let Some(pinner) = &mut self.pinner {
+                                                                if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode) {
+                                                                    self.error = error;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Toggle Auto Prioridade
+                                                    let mut auto = self.auto_games.contains(&game.directory);
+                                                    if ui.checkbox(&mut auto, egui::RichText::new("Auto Prioridade").color(COLOR_TEXT)).changed() {
+                                                        if auto {
+                                                            self.auto_games.insert(game.directory.clone());
+                                                            for process in &self.running {
+                                                                if process.directory == game.directory && !self.optimizer.enabled(process.pid) {
+                                                                    if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                                                }
+                                                            }
+                                                            if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() { self.error = error; }
+                                                        } else {
+                                                            self.auto_games.remove(&game.directory);
+                                                            for process in &self.running {
+                                                                if process.directory == game.directory && self.optimizer.enabled(process.pid) {
+                                                                    if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            });
+                                        });
+                                    ui.add_space(4.0);
+                                }
+                            }
+                        });
+
+                        if needs_refresh {
+                            self.refresh();
+                        }
+                    });
+                });
+            });
+        }
+    }
+}
+
+#[cfg(windows)]
+fn main() -> eframe::Result {
+    eframe::run_native(
+        "Rintel RAPO",
+        eframe::NativeOptions {
+            viewport: eframe::egui::ViewportBuilder::default()
+                .with_inner_size([1180.0, 840.0])
+                .with_min_inner_size([960.0, 680.0])
+                .with_title("Rintel RAPO"),
+            ..Default::default()
+        },
+        Box::new(|_| Ok(Box::new(app::App::new()))),
+    )
+}
+
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("A interface e os controles de processos exigem Windows.");
+}
