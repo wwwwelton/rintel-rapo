@@ -6,6 +6,7 @@ pub mod hardware;
 pub mod intel_dtt;
 pub mod network;
 pub mod telemetry;
+pub mod tray;
 #[cfg(windows)]
 mod cpu;
 #[cfg(windows)]
@@ -27,6 +28,7 @@ mod app {
         pin::Pinner,
         steam::{self, Game},
         telemetry::TelemetryCollector,
+        tray::{self, TrayController},
         windows::{self, Optimizer, Running},
     };
     use eframe::egui;
@@ -80,6 +82,8 @@ mod app {
         fps: FpsTracker,
         sampler: WindowFrameSampler,
         telemetry: TelemetryCollector,
+        tray: TrayController,
+        last_icon_active: bool,
         last_benchmark_report: Option<BenchmarkReport>,
         theme_applied: bool,
     }
@@ -109,6 +113,8 @@ mod app {
                 fps: FpsTracker::new(),
                 sampler: WindowFrameSampler::new(),
                 telemetry: TelemetryCollector::new(),
+                tray: TrayController::new(),
+                last_icon_active: true,
                 last_benchmark_report: None,
                 theme_applied: false,
             };
@@ -141,16 +147,26 @@ mod app {
         }
 
         fn refresh(&mut self) {
+            let optimizer_active = self.tray.is_optimizer_running();
+
             match windows::running(&self.games) {
                 Ok(processes) => {
                     self.running = processes;
                     self.error.clear();
-                    for process in &self.running {
-                        if self.auto_games.contains(&process.directory)
-                            && !self.optimizer.enabled(process.pid)
-                        {
-                            if let Err(error) = self.optimizer.toggle(process) {
-                                self.error = error;
+                    if optimizer_active {
+                        for process in &self.running {
+                            if self.auto_games.contains(&process.directory)
+                                && !self.optimizer.enabled(process.pid)
+                            {
+                                if let Err(error) = self.optimizer.toggle(process) {
+                                    self.error = error;
+                                }
+                            }
+                        }
+                    } else {
+                        for process in &self.running {
+                            if self.optimizer.enabled(process.pid) {
+                                let _ = self.optimizer.toggle(process);
                             }
                         }
                     }
@@ -158,13 +174,15 @@ mod app {
                 Err(e) => self.error = e,
             }
 
-            if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() {
-                self.error = error;
+            if optimizer_active {
+                if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() {
+                    self.error = error;
+                }
             }
 
             // Aplicar QoS de Memória, Armazenamento e Fila de Leitura NVMe/SSD
             for process in &self.running {
-                let want_qos = self.qos_games.contains(&process.directory);
+                let want_qos = optimizer_active && self.qos_games.contains(&process.directory);
                 if want_qos && !self.applied_qos.contains(&process.pid) {
                     unsafe {
                         let handle = OpenProcess(
@@ -198,18 +216,26 @@ mod app {
             self.applied_qos.retain(|pid| active_pids.contains(pid));
 
             if let Some(pinner) = &mut self.pinner {
-                if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode) {
-                    self.error = error;
+                if optimizer_active {
+                    if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode) {
+                        self.error = error;
+                    }
+                } else {
+                    let _ = pinner.update(&[], &HashSet::new(), false);
                 }
             }
 
             // Ativar Timer de 1ms e QoS de Rede quando houver jogo sendo otimizado
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
-            let active_process = self.running.iter().find(|p| {
-                self.optimizer.boosted(p.pid)
-                    || self.applied_qos.contains(&p.pid)
-                    || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
-            });
+            let active_process = if optimizer_active {
+                self.running.iter().find(|p| {
+                    self.optimizer.boosted(p.pid)
+                        || self.applied_qos.contains(&p.pid)
+                        || pin_status.is_some_and(|(pid, _, _)| pid == p.pid)
+                })
+            } else {
+                None
+            };
 
             if let Some(proc) = active_process {
                 self.high_res_timer.enable();
@@ -222,7 +248,6 @@ mod app {
                 self.high_res_timer.disable();
                 self.network_qos.restore();
             }
-
             if let Err(error) = self.cpu.refresh() {
                 self.cpu_error = error;
             } else {
@@ -335,6 +360,18 @@ mod app {
                 ctx.set_visuals(visuals);
                 self.theme_applied = true;
             }
+
+            // Sincronizar ícone da janela com o estado Start/Stop da bandeja
+            let current_opt_running = self.tray.is_optimizer_running();
+            if current_opt_running != self.last_icon_active {
+                self.last_icon_active = current_opt_running;
+                let (rgba, width, height) = tray::build_window_icon_rgba(current_opt_running);
+                ctx.send_viewport_cmd(egui::ViewportCommand::Icon(Some(std::sync::Arc::new(
+                    egui::IconData { rgba, width, height },
+                ))));
+                self.refresh();
+            }
+
             egui::CentralPanel::default().show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.add_space(8.0);
@@ -349,8 +386,11 @@ mod app {
                                 .color(COLOR_TEXT),
                         );
                         notmeter_badge(ui, "INTEL HYBRID DIRECTOR", COLOR_ACCENT);
-                        notmeter_badge(ui, "LIVE METER", COLOR_CYAN);
-
+                        if current_opt_running {
+                            notmeter_badge(ui, "🟢 ATIVO (START)", COLOR_ACCENT);
+                        } else {
+                            notmeter_badge(ui, "⏸ PAUSADO (STOP)", COLOR_YELLOW);
+                        }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             match self.dtt_report.status {
                                 IntelDttStatus::ActiveRunning => {
@@ -369,6 +409,11 @@ mod app {
                             }
                             if ui.button(egui::RichText::new("Reexaminar Steam").size(12.0)).clicked() {
                                 self.scan();
+                                self.refresh();
+                            }
+                            let toggle_label = if current_opt_running { "⏹ Stop" } else { "▶ Start" };
+                            if ui.button(egui::RichText::new(toggle_label).size(12.0).strong()).clicked() {
+                                self.tray.set_optimizer_running(!current_opt_running);
                                 self.refresh();
                             }
                         });
@@ -881,8 +926,15 @@ mod app {
 
                             ui.checkbox(&mut self.storage_priority_enabled, egui::RichText::new("Prioridade de Leitura/Disco").color(COLOR_TEXT))
                                 .on_hover_text("Aplica fila prioritária NVMe/SSD (IoPriorityHigh) e retenção em cache RAM para o disco do jogo");
-                        });
 
+                            let mut min_tray = self.tray.is_minimize_to_tray();
+                            if ui.checkbox(&mut min_tray, egui::RichText::new("Minimizar para a Barra de Ícones (Tray)").color(COLOR_TEXT))
+                                .on_hover_text("Ao minimizar a janela, oculta da barra de tarefas e mantém o ícone interativo na bandeja do relógio (com menu Start/Stop)")
+                                .changed()
+                            {
+                                self.tray.set_minimize_to_tray(min_tray);
+                            }
+                        });
                         let reducers = self.network_qos.detected_reducers();
                         if !reducers.is_empty() {
                             ui.add_space(6.0);
@@ -1061,13 +1113,15 @@ mod app {
 
 #[cfg(windows)]
 fn main() -> eframe::Result {
+    let (rgba, width, height) = tray::build_window_icon_rgba(true);
     eframe::run_native(
         "Rintel RAPO",
         eframe::NativeOptions {
             viewport: eframe::egui::ViewportBuilder::default()
                 .with_inner_size([1180.0, 840.0])
                 .with_min_inner_size([960.0, 680.0])
-                .with_title("Rintel RAPO"),
+                .with_title("Rintel RAPO")
+                .with_icon(std::sync::Arc::new(eframe::egui::IconData { rgba, width, height })),
             ..Default::default()
         },
         Box::new(|_| Ok(Box::new(app::App::new()))),
