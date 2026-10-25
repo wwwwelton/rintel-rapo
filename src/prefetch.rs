@@ -1,23 +1,111 @@
 use std::{
     fs::{self, File},
     io::Read,
-    path::Path,
+    path::{Path, PathBuf},
+    time::Duration,
 };
 
+const CHUNK: usize = 1024 * 1024;
+const MIN_PREFETCH_BUDGET: u64 = 512 * 1024 * 1024;
+const MAX_PREFETCH_BUDGET: u64 = 4 * 1024 * 1024 * 1024;
+
+#[cfg(windows)]
+#[repr(C)]
+struct MemoryStatusEx {
+    dw_length: u32,
+    dw_memory_load: u32,
+    ull_total_phys: u64,
+    ull_avail_phys: u64,
+    ull_total_page_file: u64,
+    ull_avail_page_file: u64,
+    ull_total_virtual: u64,
+    ull_avail_virtual: u64,
+    ull_avail_extended_virtual: u64,
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn GlobalMemoryStatusEx(status: *mut MemoryStatusEx) -> i32;
+}
+
+fn budget_for_available_ram(available: u64) -> u64 {
+    (available / 4).clamp(MIN_PREFETCH_BUDGET, MAX_PREFETCH_BUDGET)
+}
+
+fn dynamic_budget() -> u64 {
+    #[cfg(windows)]
+    {
+        let mut status = MemoryStatusEx {
+            dw_length: std::mem::size_of::<MemoryStatusEx>() as u32,
+            dw_memory_load: 0,
+            ull_total_phys: 0,
+            ull_avail_phys: 0,
+            ull_total_page_file: 0,
+            ull_avail_page_file: 0,
+            ull_total_virtual: 0,
+            ull_avail_virtual: 0,
+            ull_avail_extended_virtual: 0,
+        };
+        unsafe {
+            if GlobalMemoryStatusEx(&mut status) == 0 {
+                return 0;
+            }
+        }
+        budget_for_available_ram(status.ull_avail_phys)
+    }
+    #[cfg(not(windows))]
+    {
+        0
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrefetchControl {
+    Continue,
+    #[allow(dead_code)]
+    Throttle,
+    Stop,
+}
+
+#[derive(Debug, Default)]
+pub struct RamCache {
+    bytes: u64,
+    files: usize,
+}
+
+impl RamCache {
+    pub fn bytes(&self) -> u64 {
+        self.bytes
+    }
+    #[allow(dead_code)]
+    pub fn files(&self) -> usize {
+        self.files
+    }
+}
+
+// Reads through the Windows file cache; the OS may evict those pages under pressure.
 fn warm_file(
     path: &Path,
-    limit: u64,
+    total_read: u64,
+    budget: &impl Fn() -> u64,
     buffer: &mut [u8],
-    game_running: &impl Fn() -> Result<bool, String>,
-) -> Result<u64, String> {
+    control: &impl Fn() -> PrefetchControl,
+) -> Result<(u64, bool), String> {
     let mut file = File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut bytes = 0;
-    let mut since_check = 0;
-    while bytes < limit {
-        if since_check == 0 && game_running()? {
-            return Err("AION 2 em execução; prefetch interrompido".into());
+    loop {
+        match control() {
+            PrefetchControl::Stop => return Ok((bytes, true)),
+            PrefetchControl::Throttle => std::thread::sleep(Duration::from_millis(5)),
+            PrefetchControl::Continue => {}
         }
-        let chunk = (limit - bytes).min(buffer.len() as u64) as usize;
+        let remaining = budget().saturating_sub(total_read.saturating_add(bytes));
+        if remaining == 0 {
+            break;
+        }
+        let chunk = remaining.min(buffer.len() as u64) as usize;
         let n = file
             .read(&mut buffer[..chunk])
             .map_err(|e| format!("{}: {e}", path.display()))?;
@@ -25,18 +113,44 @@ fn warm_file(
             break;
         }
         bytes += n as u64;
-        since_check += n;
-        if since_check >= 1024 * 1024 {
-            since_check = 0;
-        }
     }
-    Ok(bytes)
+    Ok((bytes, false))
 }
 
-pub fn prefetch_aion2(
+fn collect(dir: &Path, root: &Path, utoc: &mut Vec<PathBuf>, ucas: &mut Vec<(u64, PathBuf)>) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))? {
+        let entry = entry.map_err(|e| format!("{}: {e}", dir.display()))?;
+        let kind = entry.file_type().map_err(|e| format!("{}: {e}", entry.path().display()))?;
+        let path = entry.path();
+        if kind.is_symlink() {
+            continue;
+        }
+        if kind.is_dir() {
+            collect(&path, root, utoc, ucas)?;
+        } else if kind.is_file() {
+            let ext = path.extension().map(|e| e.to_ascii_lowercase());
+            let canonical = path.canonicalize().map_err(|e| format!("{}: {e}", path.display()))?;
+            if !canonical.starts_with(root) {
+                continue;
+            }
+            match ext.as_deref().and_then(|e| e.to_str()) {
+                Some("utoc") => utoc.push(canonical),
+                Some("ucas") => {
+                    let size = entry.metadata().map_err(|e| format!("{}: {e}", path.display()))?.len();
+                    ucas.push((size, canonical));
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(())
+}
+
+fn prefetch_with_budget(
     root: &Path,
-    game_running: impl Fn() -> Result<bool, String>,
-) -> Result<u64, String> {
+    budget: impl Fn() -> u64,
+    control: impl Fn() -> PrefetchControl,
+) -> Result<RamCache, String> {
     let root = root.canonicalize().map_err(|e| format!("Pasta do AION 2: {e}"))?;
     let game = if root.join("Aion2/Binaries/Win64/AION2.exe").is_file() {
         root.join("Aion2")
@@ -54,26 +168,44 @@ pub fn prefetch_aion2(
     if !exe.starts_with(&root) || !paks.starts_with(&root) || !paks.is_dir() {
         return Err("Arquivos do jogo fora da pasta selecionada".into());
     }
-    let mut buffer = [0u8; 64 * 1024];
-    let mut bytes = warm_file(&exe, 4 * 1024 * 1024, &mut buffer, &game_running)?;
-    for entry in fs::read_dir(&paks).map_err(|e| format!("{}: {e}", paks.display()))? {
-        let entry = entry.map_err(|e| format!("{}: {e}", paks.display()))?;
-        let path = entry.path();
-        if !entry.file_type().map_err(|e| format!("{}: {e}", path.display()))?.is_file()
-            || !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("utoc"))
-        {
-            continue;
+    let (mut utoc, mut ucas) = (Vec::new(), Vec::new());
+    collect(&paks, &paks, &mut utoc, &mut ucas)?;
+    ucas.sort();
+    let mut buffer = vec![0u8; CHUNK];
+    let mut cache = RamCache::default();
+    let order = std::iter::once(exe).chain(utoc).chain(ucas.into_iter().map(|(_, p)| p));
+    for path in order {
+        if cache.bytes >= budget() {
+            break;
         }
-        let path = path.canonicalize().map_err(|e| format!("{}: {e}", path.display()))?;
-        if !path.starts_with(&paks) {
-            continue;
+        let (read, stopped) = warm_file(&path, cache.bytes, &budget, &mut buffer, &control)?;
+        if read > 0 {
+            cache.bytes += read;
+            cache.files += 1;
         }
-        bytes += warm_file(&path, (32 * 1024 * 1024 - bytes).min(8 * 1024 * 1024), &mut buffer, &game_running)?;
-        if bytes >= 32 * 1024 * 1024 {
+        if stopped {
             break;
         }
     }
-    Ok(bytes)
+    Ok(cache)
+}
+
+#[allow(dead_code)]
+pub fn prefetch_aion2_ram(
+    root: &Path,
+    budget: u64,
+    control: impl Fn() -> PrefetchControl,
+) -> Result<RamCache, String> {
+    prefetch_with_budget(root, || budget, control)
+}
+
+/// Uses one quarter of currently available physical RAM, bounded to 512 MiB–4 GiB.
+/// The budget is sampled before every read, so pressure can stop the worker early.
+pub fn prefetch_aion2_dynamic(
+    root: &Path,
+    control: impl Fn() -> PrefetchControl,
+) -> Result<RamCache, String> {
+    prefetch_with_budget(root, dynamic_budget, control)
 }
 
 #[cfg(test)]
@@ -82,34 +214,62 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn warms_only_game_binary_and_iostore_indices_without_changing_files() {
+    fn dynamic_budget_uses_quarter_of_available_ram_with_safe_bounds() {
+        assert_eq!(budget_for_available_ram(256 * 1024 * 1024), MIN_PREFETCH_BUDGET);
+        assert_eq!(budget_for_available_ram(8 * 1024 * 1024 * 1024), 2 * 1024 * 1024 * 1024);
+        assert_eq!(budget_for_available_ram(32 * 1024 * 1024 * 1024), MAX_PREFETCH_BUDGET);
+    }
+
+    #[test]
+    fn caches_full_disk_files_in_ram_and_scales_with_budget() {
         let root = std::env::temp_dir().join(format!("rapo-prefetch-{}", std::process::id()));
         let game = root.join("Aion2");
         let binary = game.join("Binaries/Win64/AION2.exe");
         let paks = game.join("Content/Paks");
+        let l10n = paks.join("L10N");
         fs::create_dir_all(binary.parent().unwrap()).unwrap();
-        fs::create_dir_all(&paks).unwrap();
+        fs::create_dir_all(&l10n).unwrap();
         fs::write(&binary, b"binary").unwrap();
         fs::write(paks.join("global.utoc"), b"index").unwrap();
-        fs::write(paks.join("global.ucas"), b"bulk data").unwrap();
+        fs::write(l10n.join("voice.utoc"), b"subtoc").unwrap();
+        fs::write(paks.join("chunk0.ucas"), b"0123456789").unwrap();
 
-        let bytes = prefetch_aion2(&root, || Ok(false)).unwrap();
-        assert_eq!(bytes, 11);
+        let cache_small = prefetch_aion2_ram(&root, 17, || PrefetchControl::Continue).unwrap();
+        assert_eq!(cache_small.bytes(), 17);
+        assert_eq!(cache_small.files(), 3);
+
+        let mut cache_large = prefetch_aion2_ram(&root, 64, || PrefetchControl::Throttle).unwrap();
+        assert_eq!(cache_large.bytes(), 27);
+        assert_eq!(cache_large.files(), 4);
         assert_eq!(fs::read(&binary).unwrap(), b"binary");
-        assert_eq!(fs::read(paks.join("global.utoc")).unwrap(), b"index");
-        assert_eq!(fs::read(paks.join("global.ucas")).unwrap(), b"bulk data");
         fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
-    fn stops_immediately_when_game_is_running() {
+    fn stops_dynamically_when_cancelled() {
         let root = std::env::temp_dir().join(format!("rapo-prefetch-stop-{}", std::process::id()));
         let binary = root.join("Binaries/Win64/AION2.exe");
         let paks = root.join("Content/Paks");
         fs::create_dir_all(binary.parent().unwrap()).unwrap();
         fs::create_dir_all(&paks).unwrap();
         fs::write(binary, b"binary").unwrap();
-        assert!(prefetch_aion2(&root, || Ok(true)).is_err());
+        let cache = prefetch_aion2_ram(&root, 64, || PrefetchControl::Stop).unwrap();
+        assert_eq!(cache.bytes(), 0);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn dynamic_prefetch_reads_using_live_memory_budget() {
+        let root = std::env::temp_dir().join(format!("rapo-prefetch-dynamic-{}", std::process::id()));
+        let binary = root.join("Binaries/Win64/AION2.exe");
+        let paks = root.join("Content/Paks");
+        fs::create_dir_all(binary.parent().unwrap()).unwrap();
+        fs::create_dir_all(&paks).unwrap();
+        fs::write(binary, b"binary").unwrap();
+
+        let cache = prefetch_aion2_dynamic(&root, || PrefetchControl::Continue).unwrap();
+        assert_eq!(cache.bytes(), 6);
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -126,7 +286,7 @@ mod tests {
         fs::write(&outside, b"outside").unwrap();
         std::os::unix::fs::symlink(&outside, paks.join("escape.utoc")).unwrap();
 
-        assert_eq!(prefetch_aion2(&root, || Ok(false)).unwrap(), 6);
+        assert_eq!(prefetch_aion2_ram(&root, 64, || PrefetchControl::Continue).unwrap().bytes(), 6);
         fs::remove_file(outside).unwrap();
         fs::remove_dir_all(root).unwrap();
     }

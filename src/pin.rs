@@ -188,6 +188,9 @@ impl Pinner {
                 .is_some_and(|pins| pins.iter().any(|pin| pin.tid == *tid))
         })
     }
+    pub fn pinned_count(&self, pid: u32) -> usize {
+        self.pinned.get(&pid).map_or(0, Vec::len)
+    }
 
     fn restore_pin(pin: &Pinned) {
         unsafe {
