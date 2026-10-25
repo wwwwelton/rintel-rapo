@@ -7,6 +7,7 @@ pub struct TrayController {
     pub minimize_to_tray: Arc<AtomicBool>,
     pub optimizer_running: Arc<AtomicBool>,
     stop_flag: Arc<AtomicBool>,
+    fps_pause_requested: Arc<AtomicBool>,
 }
 
 #[cfg(windows)]
@@ -232,6 +233,7 @@ mod win_tray {
         minimize_to_tray: Arc<AtomicBool>,
         optimizer_running: Arc<AtomicBool>,
         stop_flag: Arc<AtomicBool>,
+        fps_pause_requested: Arc<AtomicBool>,
     ) {
         std::thread::spawn(move || unsafe {
             let class_name = to_wide("RintelRapoTrayClass");
@@ -320,6 +322,7 @@ mod win_tray {
                     if minimize_to_tray.load(Ordering::Relaxed) {
                         if IsIconic(main_hwnd) != 0 && IsWindowVisible(main_hwnd) != 0 {
                             ShowWindow(main_hwnd, SW_HIDE);
+                            fps_pause_requested.store(true, Ordering::Relaxed);
                             hidden_in_tray = true;
                         }
                     } else if hidden_in_tray {
@@ -452,19 +455,26 @@ impl TrayController {
         let minimize_to_tray = Arc::new(AtomicBool::new(true));
         let optimizer_running = Arc::new(AtomicBool::new(true));
         let stop_flag = Arc::new(AtomicBool::new(false));
+        let fps_pause_requested = Arc::new(AtomicBool::new(false));
 
         #[cfg(windows)]
         win_tray::spawn_tray_thread(
             Arc::clone(&minimize_to_tray),
             Arc::clone(&optimizer_running),
             Arc::clone(&stop_flag),
+            Arc::clone(&fps_pause_requested),
         );
 
         Self {
             minimize_to_tray,
             optimizer_running,
             stop_flag,
+            fps_pause_requested,
         }
+    }
+
+    pub fn take_fps_pause_request(&self) -> bool {
+        self.fps_pause_requested.swap(false, Ordering::Relaxed)
     }
 
     pub fn is_minimize_to_tray(&self) -> bool {
@@ -558,6 +568,11 @@ mod tests {
 
         tray.set_minimize_to_tray(false);
         assert!(!tray.is_minimize_to_tray());
+        assert!(!tray.take_fps_pause_request());
+        tray.fps_pause_requested
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        assert!(tray.take_fps_pause_request());
+        assert!(!tray.take_fps_pause_request());
 
         let (active_rgba, w, h) = build_window_icon_rgba(true);
         let (paused_rgba, _, _) = build_window_icon_rgba(false);

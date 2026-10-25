@@ -12,7 +12,7 @@ Aplicativo Windows para detectar jogos Steam em execução e aplicar, **por opç
 - **Bandeja:** permite iniciar/parar a otimização e minimizar a interface sem interromper o monitoramento.
 - **Administrador (opcional):** em «Opções e diretrizes de agendamento», «Reabrir como administrador» solicita UAC e reinicia o aplicativo elevado. Se cancelar, a janela atual permanece aberta. Após reiniciar, selecione os ajustes novamente; elevar pode permitir acesso a processos comuns, mas não contorna proteções de anti-cheat.
 
-O aplicativo não mede FPS nem realiza benchmarks do jogo; medições anteriores eram apenas a taxa de repintura da própria interface e foram removidas. Ganhos de FPS/latência precisam de medição externa no hardware e jogo reais. As APIs de agendamento usadas não constituem garantia de compatibilidade com anti-cheats; consulte a política do jogo.
+O aplicativo exibe o FPS/frame pacing da própria interface quando há um processo em execução; esse valor **não mede o FPS do jogo**. Ganhos de FPS/latência precisam de medição externa no hardware e jogo reais. As APIs de agendamento usadas não constituem garantia de compatibilidade com anti-cheats; consulte a política do jogo.
 
 Versões anteriores podiam alterar os valores globais do Windows `NetworkThrottlingIndex` e `SystemResponsiveness`. Esta versão **não os modifica nem os restaura automaticamente**: se você usou a opção antiga, inspecione sua configuração de sistema antes de ajustá-la manualmente, para não apagar personalizações suas ou de outros programas.
 

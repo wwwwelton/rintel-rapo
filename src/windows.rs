@@ -120,24 +120,27 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
         let mut entry: PROCESSENTRY32W = std::mem::zeroed();
         entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
         let mut found = Vec::new();
-        if Process32FirstW(snapshot, &mut entry) != 0 {
-            loop {
-                if let Some(exe) = process_path(entry.th32ProcessID) {
-                    if let Some(game) = game_for_path(&exe, games) {
-                        found.push((
-                            entry.cntThreads,
-                            Running {
-                                pid: entry.th32ProcessID,
-                                game: game.name.clone(),
-                                directory: game.directory.clone(),
-                                exe,
-                            },
-                        ));
-                    }
+        if Process32FirstW(snapshot, &mut entry) == 0 {
+            let error = std::io::Error::last_os_error();
+            CloseHandle(snapshot);
+            return Err(format!("Não foi possível iniciar enumeração de processos: {error}"));
+        }
+        loop {
+            if let Some(exe) = process_path(entry.th32ProcessID) {
+                if let Some(game) = game_for_path(&exe, games) {
+                    found.push((
+                        entry.cntThreads,
+                        Running {
+                            pid: entry.th32ProcessID,
+                            game: game.name.clone(),
+                            directory: game.directory.clone(),
+                            exe,
+                        },
+                    ));
                 }
-                if Process32NextW(snapshot, &mut entry) == 0 {
-                    break;
-                }
+            }
+            if Process32NextW(snapshot, &mut entry) == 0 {
+                break;
             }
         }
         CloseHandle(snapshot);

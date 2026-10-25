@@ -1,6 +1,7 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 pub mod cache;
+pub mod fps;
 pub mod hardware;
 pub mod intel_dtt;
 pub mod telemetry;
@@ -22,6 +23,7 @@ mod app {
         cache::{self, MemoryQosState},
         cpu::Monitor,
         hardware::{self, CacheTopology},
+        fps::FpsTracker,
         intel_dtt::{self, IntelDttReport, IntelDttStatus},
         pin::Pinner,
         prefetch,
@@ -65,6 +67,7 @@ mod app {
 
     pub struct App {
         games: Vec<Game>,
+        game_search_names: Vec<String>,
         running: Vec<Running>,
         optimizer: Optimizer,
         auto_games: HashSet<PathBuf>,
@@ -85,6 +88,7 @@ mod app {
         dtt_report: IntelDttReport,
         cache_topo: CacheTopology,
         telemetry: TelemetryCollector,
+        fps: FpsTracker,
         tray: TrayController,
         last_icon_active: bool,
         theme_applied: bool,
@@ -94,6 +98,7 @@ mod app {
         pub fn new() -> Self {
             let mut app = Self {
                 games: Vec::new(),
+                game_search_names: Vec::new(),
                 running: Vec::new(),
                 optimizer: Optimizer::new(),
                 auto_games: HashSet::new(),
@@ -113,6 +118,7 @@ mod app {
                 last_refresh: Instant::now() - Duration::from_secs(3),
                 dtt_report: intel_dtt::detect_intel_dtt(),
                 cache_topo: hardware::get_cache_topology(),
+                fps: FpsTracker::new(),
                 telemetry: TelemetryCollector::new(),
                 tray: TrayController::new(),
                 last_icon_active: true,
@@ -128,6 +134,11 @@ mod app {
             match windows::steam_root() {
                 Some(root) => {
                     self.games = steam::discover(&root);
+                    self.game_search_names = self
+                        .games
+                        .iter()
+                        .map(|game| game.name.to_lowercase())
+                        .collect();
                     self.auto_games.retain(|directory| {
                         self.games.iter().any(|game| &game.directory == directory)
                     });
@@ -141,6 +152,7 @@ mod app {
                 }
                 None => {
                     self.games.clear();
+                    self.game_search_names.clear();
                     self.error = "Steam não encontrado no registro do usuário".into();
                 }
             }
@@ -196,7 +208,11 @@ mod app {
                         }
                     }
                 }
-                Err(e) => self.error = e,
+                Err(e) => {
+                    self.running.clear();
+                    self.fps.reset();
+                    self.error = e;
+                }
             }
 
             if optimizer_active {
@@ -286,6 +302,11 @@ mod app {
                     .refresh(&self.cpu.load, Some((target_proc.game.as_str(), &game_pids)));
             } else {
                 self.telemetry.refresh(&self.cpu.load, None);
+            }
+            if self.running.is_empty() {
+                self.fps.reset();
+            } else {
+                self.fps.refresh_statistics();
             }
 
             let aion2_selected = self.games.iter().any(|game| {
@@ -407,10 +428,25 @@ mod app {
 
     impl eframe::App for App {
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-            ctx.request_repaint_after(Duration::from_secs(1));
-
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
+            }
+
+            let minimized = ctx.input(|input| input.viewport().minimized == Some(true));
+            let pause_requested = self.tray.take_fps_pause_request();
+            if pause_requested {
+                self.fps.pause_sampling();
+            }
+            if !minimized && !pause_requested && !self.running.is_empty() {
+                self.fps.record_frame_instant(Instant::now());
+                ctx.request_repaint_after(Duration::from_millis(16));
+            } else {
+                if self.running.is_empty() {
+                    self.fps.reset();
+                } else {
+                    self.fps.pause_sampling();
+                }
+                ctx.request_repaint_after(Duration::from_secs(1));
             }
 
             if !self.theme_applied {
@@ -621,6 +657,24 @@ mod app {
                             }
                         });
                         ui.add_space(8.0);
+                        let current_fps = self.fps.current_fps();
+                        let avg_fps = self.fps.avg_fps();
+                        let p1_low_fps = self.fps.p1_low_fps();
+                        ui.horizontal(|ui| {
+                            egui::Frame::new()
+                                .fill(COLOR_SURFACE_ELEVATED)
+                                .stroke(egui::Stroke::new(1.0f32, COLOR_ACCENT))
+                                .corner_radius(egui::CornerRadius::same(8))
+                                .inner_margin(egui::Margin::symmetric(14, 8))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new("FPS DA INTERFACE").size(10.0).strong().color(COLOR_ACCENT));
+                                        ui.label(egui::RichText::new(format!("{:.0} FPS", current_fps)).size(22.0).strong().color(COLOR_TEXT));
+                                        ui.label(egui::RichText::new(format!("Média {:.0} · 1% baixo {:.0}", avg_fps, p1_low_fps)).size(10.0).color(COLOR_MUTED));
+                                    });
+                                });
+                        });
+                        ui.add_space(6.0);
                         ui.horizontal(|ui| {
 
                             // 2. Uso de CPU Total
@@ -935,8 +989,10 @@ mod app {
                         let mut needs_refresh = false;
 
                         egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
-                            for game in &self.games {
-                                if game.name.to_lowercase().contains(&search) {
+                            for (game, search_name) in
+                                self.games.iter().zip(&self.game_search_names)
+                            {
+                                if search.is_empty() || search_name.contains(&search) {
                                     egui::Frame::new()
                                         .fill(COLOR_SURFACE_ELEVATED)
                                         .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
