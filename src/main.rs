@@ -754,6 +754,16 @@ mod app {
                             {
                                 self.tray.set_minimize_to_tray(min_tray);
                             }
+
+                            if ui.button("Reabrir como administrador")
+                                .on_hover_text("Solicita UAC somente agora. As opções deverão ser selecionadas novamente; processos protegidos ainda podem negar acesso.")
+                                .clicked()
+                            {
+                                match windows::relaunch_elevated() {
+                                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                                    Err(error) => self.error = error,
+                                }
+                            }
                         });
                     });
 

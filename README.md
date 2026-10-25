@@ -9,6 +9,7 @@ Aplicativo Windows para detectar jogos Steam em execução e aplicar, **por opç
 - **Prioridade de memória / EcoQoS:** define prioridade de páginas de memória 5 e desativa a marca de execução EcoQoS para o processo selecionado. Salva e tenta restaurar os valores anteriores ao desativar ou fechar o aplicativo, sem sobrescrever alterações externas detectadas. Não controla o cache da CPU nem a fila NVMe.
 - **Telemetria:** CPU, GPU, RAM e contadores de leitura I/O do processo selecionado; tráfego de rede e leitura do disco físico referem-se ao **sistema inteiro**. RTT é o tempo de conexão TCP a servidores DNS públicos na porta 53, não o ping do jogo. Valores podem estar indisponíveis quando o Windows não expõe contadores ou a rede bloqueia conexões de teste.
 - **Bandeja:** permite iniciar/parar a otimização e minimizar a interface sem interromper o monitoramento.
+- **Administrador (opcional):** em «Opções e diretrizes de agendamento», «Reabrir como administrador» solicita UAC e reinicia o aplicativo elevado. Se cancelar, a janela atual permanece aberta. Após reiniciar, selecione os ajustes novamente; elevar pode permitir acesso a processos comuns, mas não contorna proteções de anti-cheat.
 
 O aplicativo não mede FPS nem realiza benchmarks do jogo; medições anteriores eram apenas a taxa de repintura da própria interface e foram removidas. Ganhos de FPS/latência precisam de medição externa no hardware e jogo reais. As APIs de agendamento usadas não constituem garantia de compatibilidade com anti-cheats; consulte a política do jogo.
 

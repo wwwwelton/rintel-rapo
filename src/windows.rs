@@ -1,9 +1,10 @@
 use crate::steam::Game;
 use std::{
     collections::HashMap,
+    os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, SW_SHOWNORMAL};
 use windows_sys::Win32::{
     Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
     System::{
@@ -33,6 +34,39 @@ pub fn steam_root() -> Option<PathBuf> {
         .ok()?;
     let path: String = key.get_value("SteamPath").ok()?;
     Some(PathBuf::from(path))
+}
+
+pub fn relaunch_elevated() -> Result<(), String> {
+    #[link(name = "shell32")]
+    extern "system" {
+        fn ShellExecuteW(
+            hwnd: *mut std::ffi::c_void,
+            operation: *const u16,
+            file: *const u16,
+            parameters: *const u16,
+            directory: *const u16,
+            show: i32,
+        ) -> *mut std::ffi::c_void;
+    }
+
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("Não foi possível localizar o executável: {error}"))?;
+    let path: Vec<u16> = executable.as_os_str().encode_wide().chain([0]).collect();
+    let runas = [b'r' as u16, b'u' as u16, b'n' as u16, b'a' as u16, b's' as u16, 0];
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            runas.as_ptr(),
+            path.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    if (result as isize) <= 32 {
+        return Err(format!("Não foi possível reabrir como administrador: {}", std::io::Error::last_os_error()));
+    }
+    Ok(())
 }
 
 fn process_path(pid: u32) -> Option<PathBuf> {
