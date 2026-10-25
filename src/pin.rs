@@ -43,6 +43,33 @@ fn can_pin_thread(thread_mask: usize, process_mask: usize, p_core_mask: usize) -
     thread_mask == process_mask && thread_mask != p_core_mask
 }
 
+pub const APO_NUM_CRITICAL_THREADS: usize = 4;
+pub const APO_MIN_DELTA_TICKS: u64 = 500_000;
+
+fn select_critical_threads(
+    candidates: &[(u32, u64, u64, i32)],
+    current_pinned: &[(u32, u64)],
+) -> Vec<(u32, u64, u64)> {
+    let mut ranked: Vec<_> = candidates
+        .iter()
+        .copied()
+        .filter(|(_, _, delta, _)| *delta >= APO_MIN_DELTA_TICKS)
+        .collect();
+    ranked.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| b.3.cmp(&a.3)));
+    for i in APO_NUM_CRITICAL_THREADS..ranked.len() {
+        let (tid, created, delta, _) = ranked[i];
+        if !current_pinned.contains(&(tid, created)) {
+            continue;
+        }
+        if let Some(slot) = ranked[..APO_NUM_CRITICAL_THREADS].iter().rposition(|(t, c, d, _)| {
+            !current_pinned.contains(&(*t, *c)) && *d <= delta.saturating_mul(6) / 5
+        }) {
+            ranked.swap(slot, i);
+        }
+    }
+    ranked.truncate(APO_NUM_CRITICAL_THREADS);
+    ranked.into_iter().map(|(t, c, d, _)| (t, c, d)).collect()
+}
 
 fn p_core_mask() -> Result<usize, String> {
     unsafe {
@@ -131,8 +158,9 @@ struct Pinned {
 pub struct Pinner {
     pub(crate) mask: usize,
     samples: HashMap<(u32, u32), (u64, u64)>,
-    pinned: HashMap<u32, Pinned>,
+    pinned: HashMap<u32, Vec<Pinned>>,
     last: Option<(u32, u32, u64)>,
+    last_poll: Option<(u32, std::time::Instant)>,
     pub auto_yield: bool,
     pub conflict: Option<AffinityConflict>,
 }
@@ -144,6 +172,7 @@ impl Pinner {
             samples: HashMap::new(),
             pinned: HashMap::new(),
             last: None,
+            last_poll: None,
             auto_yield: true,
             conflict: None,
         })
@@ -153,13 +182,14 @@ impl Pinner {
         self.conflict
     }
     pub fn status(&self) -> Option<(u32, u32, u64)> {
-        self.last.filter(|(pid, tid, _)| self.pinned.get(pid).is_some_and(|pin| pin.tid == *tid))
+        self.last.filter(|(pid, tid, _)| {
+            self.pinned
+                .get(pid)
+                .is_some_and(|pins| pins.iter().any(|pin| pin.tid == *tid))
+        })
     }
 
-    fn restore(&mut self, pid: u32) {
-        let Some(pin) = self.pinned.remove(&pid) else {
-            return;
-        };
+    fn restore_pin(pin: &Pinned) {
         unsafe {
             let thread = OpenThread(
                 THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION,
@@ -181,12 +211,22 @@ impl Pinner {
         }
     }
 
+    fn restore(&mut self, pid: u32) {
+        let Some(pins) = self.pinned.remove(&pid) else {
+            return;
+        };
+        for pin in &pins {
+            Self::restore_pin(pin);
+        }
+    }
+
     pub fn update(
         &mut self,
         running: &[Running],
         enabled: &HashSet<PathBuf>,
         keep_windowed: bool,
     ) -> Result<(), String> {
+        let prev_last = self.last;
         self.last = None;
         unsafe {
             let hwnd = GetForegroundWindow();
@@ -218,9 +258,20 @@ impl Pinner {
             }
             let Some(process) = active else {
                 self.samples.clear();
+                self.last_poll = None;
                 self.conflict = None;
                 return Ok(());
             };
+            if process.exe.file_name().is_some_and(|n| n.eq_ignore_ascii_case("AION2.exe"))
+                && self.pinned.contains_key(&process.pid)
+                && self.last_poll.is_some_and(|(pid, t)| {
+                    pid == process.pid && t.elapsed() < std::time::Duration::from_secs(10)
+                })
+            {
+                self.last = prev_last;
+                return Ok(());
+            }
+            self.last_poll = Some((process.pid, std::time::Instant::now()));
             let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process.pid);
             if handle.is_null() {
                 return Err(format!(
@@ -244,9 +295,12 @@ impl Pinner {
             }
             let mut entry: THREADENTRY32 = zeroed();
             entry.dwSize = size_of::<THREADENTRY32>() as u32;
-            let current_pin = self.pinned.get(&process.pid).map(|p| (p.tid, p.created));
-            let mut pinned_delta: Option<u64> = None;
-            let mut best = None;
+            let current_pins: Vec<(u32, u64)> = self
+                .pinned
+                .get(&process.pid)
+                .map(|pins| pins.iter().map(|p| (p.tid, p.created)).collect())
+                .unwrap_or_default();
+            let mut candidates = Vec::new();
             let mut seen = HashSet::new();
             if Thread32First(snapshot, &mut entry) != 0 {
                 loop {
@@ -264,14 +318,12 @@ impl Pinner {
                                     self.samples.insert(key, (created, cpu))
                                 {
                                     if created == old_created && cpu >= old_cpu {
-                                        let delta = cpu - old_cpu;
-                                        if current_pin == Some((entry.th32ThreadID, created)) {
-                                            pinned_delta = Some(delta);
-                                        }
-                                        if best.is_none_or(|(_, _, best_delta)| delta > best_delta)
-                                        {
-                                            best = Some((entry.th32ThreadID, created, delta));
-                                        }
+                                        candidates.push((
+                                            entry.th32ThreadID,
+                                            created,
+                                            cpu - old_cpu,
+                                            entry.tpBasePri,
+                                        ));
                                     }
                                 }
                             }
@@ -285,79 +337,87 @@ impl Pinner {
             }
             CloseHandle(snapshot);
             self.samples.retain(|key, _| seen.contains(key));
-            let Some((mut tid, mut created, mut delta)) = best else {
-                return Ok(());
-            };
-            // Hysteresis (20%): prevent L1/L2 cache thrashing between Main and Render threads
-            if let (Some((p_tid, p_created)), Some(p_delta)) = (current_pin, pinned_delta) {
-                if p_delta >= 50_000 && delta <= p_delta.saturating_mul(6) / 5 {
-                    tid = p_tid;
-                    created = p_created;
-                    delta = p_delta;
-                }
+            let selected = select_critical_threads(&candidates, &current_pins);
+            if let Some(&(top_tid, _, top_delta)) = selected.first() {
+                self.last = Some((process.pid, top_tid, top_delta / 10_000));
             }
-            self.last = Some((process.pid, tid, delta / 10_000));
-            if delta < 100_000 {
-                return Ok(());
-            } // At least 10 ms CPU time between samples.
-            if let Some(pin) = self.pinned.get(&process.pid) {
-                if pin.tid == tid && pin.created == created {
-                    let thread = OpenThread(THREAD_QUERY_INFORMATION, 0, tid);
+            if let Some(pins) = self.pinned.get(&process.pid) {
+                for pin in pins {
+                    let thread = OpenThread(THREAD_QUERY_INFORMATION, 0, pin.tid);
                     if !thread.is_null() {
                         let mut current_affinity: GROUP_AFFINITY = zeroed();
                         if GetThreadGroupAffinity(thread, &mut current_affinity) != 0
                             && current_affinity.Group == 0
+                            && current_affinity.Mask != pin.applied
                         {
-                            if current_affinity.Mask != pin.applied {
-                                let external_mask = current_affinity.Mask;
-                                CloseHandle(thread);
-                                self.conflict = Some(AffinityConflict {
-                                    pid: process.pid,
-                                    tid,
-                                    our_mask: pin.applied,
-                                    external_mask,
-                                });
-                                if self.auto_yield {
-                                    self.pinned.remove(&process.pid);
+                            let (conflict_tid, our_mask, external_mask) =
+                                (pin.tid, pin.applied, current_affinity.Mask);
+                            CloseHandle(thread);
+                            self.conflict = Some(AffinityConflict {
+                                pid: process.pid,
+                                tid: conflict_tid,
+                                our_mask,
+                                external_mask,
+                            });
+                            if self.auto_yield {
+                                if let Some(old_pins) = self.pinned.remove(&process.pid) {
+                                    for other in &old_pins {
+                                        if other.tid != conflict_tid {
+                                            Self::restore_pin(other);
+                                        }
+                                    }
                                 }
-                                return Ok(());
                             }
+                            return Ok(());
                         }
                         CloseHandle(thread);
                     }
-                    self.conflict = None;
-                    return Ok(());
                 }
             }
             if self.conflict.is_some() && self.auto_yield {
                 return Ok(());
             }
-            self.restore(process.pid);
-            let thread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION, 0, tid);
-            if thread.is_null() {
-                return Ok(());
+            self.conflict = None;
+            let mut kept = Vec::new();
+            if let Some(old_pins) = self.pinned.remove(&process.pid) {
+                for pin in old_pins {
+                    if selected.iter().any(|&(tid, created, _)| tid == pin.tid && created == pin.created) {
+                        kept.push(pin);
+                    } else {
+                        Self::restore_pin(&pin);
+                    }
+                }
             }
-            if thread_time(thread).is_some_and(|(current, _)| current == created) {
-                let mut affinity: GROUP_AFFINITY = zeroed();
-                if GetThreadGroupAffinity(thread, &mut affinity) != 0
-                    && affinity.Group == 0
-                    && can_pin_thread(affinity.Mask, process_mask, mask)
-                {
-                    let original = SetThreadAffinityMask(thread, mask);
-                    if original != 0 {
-                        self.pinned.insert(
-                            process.pid,
-                            Pinned {
+            for &(tid, created, _) in &selected {
+                if kept.iter().any(|p| p.tid == tid && p.created == created) {
+                    continue;
+                }
+                let thread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION, 0, tid);
+                if thread.is_null() {
+                    continue;
+                }
+                if thread_time(thread).is_some_and(|(current, _)| current == created) {
+                    let mut affinity: GROUP_AFFINITY = zeroed();
+                    if GetThreadGroupAffinity(thread, &mut affinity) != 0
+                        && affinity.Group == 0
+                        && can_pin_thread(affinity.Mask, process_mask, mask)
+                    {
+                        let original = SetThreadAffinityMask(thread, mask);
+                        if original != 0 {
+                            kept.push(Pinned {
                                 tid,
                                 created,
                                 original,
                                 applied: mask,
-                            },
-                        );
+                            });
+                        }
                     }
                 }
+                CloseHandle(thread);
             }
-            CloseHandle(thread);
+            if !kept.is_empty() {
+                self.pinned.insert(process.pid, kept);
+            }
             Ok(())
         }
     }
@@ -414,17 +474,18 @@ mod tests {
             samples: HashMap::new(),
             pinned: HashMap::new(),
             last: None,
+            last_poll: None,
             auto_yield: true,
             conflict: None,
         };
         pinner.pinned.insert(
             1234,
-            Pinned {
+            vec![Pinned {
                 tid: 5678,
                 created: 100,
                 original: 0xFFFF,
                 applied: 0x00FF,
-            },
+            }],
         );
 
         // Simulate external affinity change (e.g. Intel APO overriding mask to 0xF000)
@@ -447,5 +508,20 @@ mod tests {
         assert_eq!(c.tid, 5678);
         assert_eq!(c.external_mask, 0xF000);
         assert!(pinner.pinned.is_empty(), "Pinned map should be empty after auto-yield");
+    }
+
+    #[test]
+    fn selects_up_to_four_critical_threads_by_utilization_then_priority() {
+        let candidates = [
+            (10, 1, 400_000, 10),
+            (11, 1, 800_000, 8),
+            (12, 1, 800_000, 10),
+            (13, 1, 900_000, 7),
+            (14, 1, 700_000, 9),
+            (15, 1, 750_000, 6),
+        ];
+        let selected = select_critical_threads(&candidates, &[(14, 1)]);
+        let tids: Vec<u32> = selected.iter().map(|(tid, _, _)| *tid).collect();
+        assert_eq!(tids, vec![13, 12, 11, 14]);
     }
 }

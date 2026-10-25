@@ -7,6 +7,7 @@ use std::{
 pub struct Game {
     pub name: String,
     pub directory: PathBuf,
+    pub is_aion2: bool,
 }
 
 #[derive(Debug)]
@@ -163,6 +164,7 @@ pub fn discover(steam_root: &Path) -> Vec<Game> {
             if directory.is_dir() && !games.iter().any(|g: &Game| g.directory == directory) {
                 games.push(Game {
                     name: name.to_owned(),
+                    is_aion2: filename == "appmanifest_3393110.acf",
                     directory,
                 });
             }
@@ -200,6 +202,12 @@ mod tests {
             r#""AppState" { "name" "Real Game" "installdir" "Real Game" }"#,
         )
         .unwrap();
+        fs::create_dir_all(apps.join("common/AION 2")).unwrap();
+        fs::write(
+            apps.join("appmanifest_3393110.acf"),
+            r#""AppState" { "name" "AION 2" "installdir" "AION 2" }"#,
+        )
+        .unwrap();
         fs::write(
             apps.join("appmanifest_43.acf"),
             r#""AppState" { "name" "Missing" "installdir" "Missing" }"#,
@@ -211,8 +219,9 @@ mod tests {
         )
         .unwrap();
         let games = discover(&root);
-        assert_eq!(games.len(), 1);
-        assert_eq!(games[0].name, "Real Game");
+        assert_eq!(games.len(), 2);
+        assert!(games.iter().any(|game| game.is_aion2 && game.name == "AION 2"));
+        assert!(games.iter().any(|game| !game.is_aion2 && game.name == "Real Game"));
         fs::remove_dir_all(root).unwrap();
     }
 }

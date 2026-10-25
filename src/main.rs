@@ -5,6 +5,8 @@ pub mod hardware;
 pub mod intel_dtt;
 pub mod telemetry;
 pub mod tray;
+#[cfg(any(test, windows))]
+mod prefetch;
 #[cfg(windows)]
 mod cpu;
 #[cfg(windows)]
@@ -22,6 +24,7 @@ mod app {
         hardware::{self, CacheTopology},
         intel_dtt::{self, IntelDttReport, IntelDttStatus},
         pin::Pinner,
+        prefetch,
         steam::{self, Game},
         telemetry::TelemetryCollector,
         tray::{self, TrayController},
@@ -31,6 +34,7 @@ mod app {
     use std::{
         collections::{HashMap, HashSet},
         path::PathBuf,
+        sync::mpsc::Receiver,
         time::{Duration, Instant},
     };
     use windows_sys::Win32::{
@@ -67,6 +71,9 @@ mod app {
         pub windowed_mode: bool,
         search: String,
         cpu: Monitor,
+        aion2_root: String,
+        aion2_status: String,
+        aion2_worker: Option<Receiver<Result<u64, String>>>,
         cpu_error: String,
         error: String,
         last_refresh: Instant,
@@ -92,6 +99,9 @@ mod app {
                 windowed_mode: false,
                 search: String::new(),
                 error: String::new(),
+                aion2_root: String::new(),
+                aion2_status: String::new(),
+                aion2_worker: None,
                 cpu: Monitor::new(),
                 cpu_error: String::new(),
                 last_refresh: Instant::now() - Duration::from_secs(3),
@@ -112,6 +122,11 @@ mod app {
             match windows::steam_root() {
                 Some(root) => {
                     self.games = steam::discover(&root);
+                    if self.aion2_root.trim().is_empty() {
+                        if let Some(game) = self.games.iter().find(|game| game.is_aion2) {
+                            self.aion2_root = game.directory.display().to_string();
+                        }
+                    }
                     self.auto_games.retain(|directory| {
                         self.games.iter().any(|game| &game.directory == directory)
                     });
@@ -272,6 +287,20 @@ mod app {
                 self.telemetry.refresh(&self.cpu.load, None);
             }
 
+            if let Some(rx) = &self.aion2_worker {
+                if let Ok(result) = rx.try_recv() {
+                    match result {
+                        Ok(bytes) => {
+                            self.aion2_status = format!("Cache aquecido: {:.1} MB lidos (somente leitura)", bytes as f64 / 1048576.0);
+                        }
+                        Err(error) => {
+                            self.aion2_status.clear();
+                            self.error = error;
+                        }
+                    }
+                    self.aion2_worker = None;
+                }
+            }
             self.last_refresh = Instant::now();
         }
     }
@@ -768,6 +797,48 @@ mod app {
                     });
 
                     ui.add_space(10.0);
+                    notmeter_card(ui, |ui| {
+                        ui.label(egui::RichText::new("PERFIL APO SEGURO — AION 2 (UE5 / SEM HOOK)").size(14.0).strong().color(COLOR_TEXT));
+                        ui.label("Baseado nos perfis UE5 de apo.config (HookEnabled=false, IBTSupported=false, AppCompatDatabaseEnabled=false, ECoresEnabled=true, CriticalThreadsAffinitize=4 com limiar 5% e intervalo 10s). O botão abaixo faz prefetch somente leitura de até 4 MB de AION2.exe e 28 MB de .utoc antes de iniciar o jogo.");
+                        ui.horizontal_wrapped(|ui| {
+                            ui.add(
+                                egui::TextEdit::singleline(&mut self.aion2_root)
+                                    .hint_text("Pasta do AION 2 (Steam ou PURPLE)")
+                                    .desired_width(420.0),
+                            );
+                            if ui
+                                .add_enabled(
+                                    self.aion2_worker.is_none() && !self.aion2_root.trim().is_empty(),
+                                    egui::Button::new(if self.aion2_worker.is_some() {
+                                        "Aquecendo..."
+                                    } else {
+                                        "Pré-aquecer AION 2"
+                                    }),
+                                )
+                                .clicked()
+                            {
+                                match windows::aion2_running() {
+                                    Ok(true) => self.error = "Feche o AION 2 antes do prefetch".into(),
+                                    Ok(false) => {
+                                        let root = PathBuf::from(self.aion2_root.trim());
+                                        let (tx, rx) = std::sync::mpsc::channel();
+                                        self.error.clear();
+                                        self.aion2_status = "Aquecendo índices .utoc e AION2.exe...".into();
+                                        self.aion2_worker = Some(rx);
+                                        std::thread::spawn(move || {
+                                            let _ = tx.send(prefetch::prefetch_aion2(&root, windows::aion2_running));
+                                        });
+                                    }
+                                    Err(error) => self.error = error,
+                                }
+                            }
+                        });
+                        if !self.aion2_status.is_empty() {
+                            ui.label(egui::RichText::new(&self.aion2_status).size(11.0).color(COLOR_ACCENT));
+                        }
+                    });
+                    ui.add_space(10.0);
+
 
                     // JOGOS RODANDO (LISTA NOTMETER STYLE)
                     notmeter_card(ui, |ui| {

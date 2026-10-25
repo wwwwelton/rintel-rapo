@@ -68,7 +68,6 @@ pub fn relaunch_elevated() -> Result<(), String> {
     }
     Ok(())
 }
-
 fn process_path(pid: u32) -> Option<PathBuf> {
     if pid <= 4 {
         return None;
@@ -98,7 +97,18 @@ fn game_for_path<'a>(exe: &Path, games: &'a [Game]) -> Option<&'a Game> {
     })
 }
 
+fn is_aion2_image(image: &[u16]) -> bool {
+    image
+        .iter()
+        .take_while(|&&c| c != 0)
+        .map(|&c| u8::try_from(c).unwrap_or_default().to_ascii_lowercase())
+        .eq(b"aion2.exe".iter().copied())
+}
+
 pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
+    if games.is_empty() {
+        return Ok(Vec::new());
+    }
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
@@ -134,6 +144,31 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
         // Sort by thread count descending so the main 3D game engine process is always first
         found.sort_by(|a, b| b.0.cmp(&a.0));
         Ok(found.into_iter().map(|(_, r)| r).collect())
+    }
+}
+
+pub fn aion2_running() -> Result<bool, String> {
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return Err(format!("Não foi possível enumerar processos: {}", std::io::Error::last_os_error()));
+        }
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut found = false;
+        if Process32FirstW(snapshot, &mut entry) != 0 {
+            loop {
+                if is_aion2_image(&entry.szExeFile) {
+                    found = true;
+                    break;
+                }
+                if Process32NextW(snapshot, &mut entry) == 0 {
+                    break;
+                }
+            }
+        }
+        CloseHandle(snapshot);
+        Ok(found)
     }
 }
 
@@ -308,8 +343,15 @@ mod tests {
         let games = vec![Game {
             name: "Game".into(),
             directory: PathBuf::from(r"C:\Steam\common\Game"),
+            is_aion2: false,
         }];
         assert!(game_for_path(Path::new(r"C:\Steam\common\Game\bin\game.exe"), &games).is_some());
         assert!(game_for_path(Path::new(r"C:\Steam\common\Game 2\game.exe"), &games).is_none());
+    }
+
+    #[test]
+    fn aion2_image_matches_only_game_executable() {
+        assert!(is_aion2_image(&"Aion2.EXE\0".encode_utf16().collect::<Vec<_>>()));
+        assert!(!is_aion2_image(&"AION2.exe.old\0".encode_utf16().collect::<Vec<_>>()));
     }
 }
