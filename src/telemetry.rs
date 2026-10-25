@@ -11,10 +11,12 @@ pub struct ProcessTelemetry {
     pub target_name: String,
     pub target_pid: u32,
     pub cpu_usage_pct: f32,
+    pub sys_cpu_pct: f32,
     pub gpu_usage_pct: f32,
     pub mem_used_mb: f32,
     pub mem_usage_pct: f32,
     pub disk_read_mbs: f32,
+    pub disk_total_read_gb: f32,
     pub net_usage_kbs: f32,
     pub ping_ms: u32,
 }
@@ -162,7 +164,7 @@ fn ft_to_u64(ft: windows_sys::Win32::Foundation::FILETIME) -> u64 {
 #[derive(Clone, Copy, Default)]
 struct ProcSample {
     cpu_ticks: u64,
-    read_bytes: u64,
+    disk_bytes: u64,
     other_bytes: u64,
     timestamp: Option<Instant>,
 }
@@ -195,7 +197,6 @@ impl TelemetryCollector {
         let remote_ip_clone = Arc::clone(&target_remote_ip);
         let stop_clone = Arc::clone(&stop_flag);
 
-        // Background thread to measure game server ping (or gateway DNS fallback) without blocking UI
         std::thread::spawn(move || {
             let fallbacks: [std::net::SocketAddr; 2] = [
                 "1.1.1.1:53".parse().unwrap(),
@@ -260,7 +261,7 @@ impl TelemetryCollector {
 
             if win_ffi::PdhOpenQueryW(std::ptr::null(), 0, &mut query) == 0 && query != 0 {
                 let gpu_path = to_wide("\\GPU Engine(*)\\Utilization Percentage");
-                let disk_path = to_wide("\\PhysicalDisk(_Total)\\Disk Read Bytes/sec");
+                let disk_path = to_wide("\\PhysicalDisk(_Total)\\Disk Bytes/sec");
                 let net_in_path = to_wide("\\Network Interface(*)\\Bytes Received/sec");
                 let net_out_path = to_wide("\\Network Interface(*)\\Bytes Sent/sec");
 
@@ -293,7 +294,7 @@ impl TelemetryCollector {
     }
 
     #[cfg(windows)]
-    unsafe fn read_gpu_usage_for_pid(counter: isize, target_pid: Option<u32>) -> f32 {
+    unsafe fn read_gpu_usage_for_pids(counter: isize, target_pids: &[u32]) -> f32 {
         if counter == 0 {
             return 0.0;
         }
@@ -326,7 +327,7 @@ impl TelemetryCollector {
             item_count as usize,
         );
 
-        let pid_prefix = target_pid.map(|pid| format!("pid_{pid}_"));
+        let prefixes: Vec<String> = target_pids.iter().map(|pid| format!("pid_{pid}_")).collect();
         let mut pid_sum = 0.0f64;
         let mut total_sum = 0.0f64;
 
@@ -335,22 +336,20 @@ impl TelemetryCollector {
                 let val = item.fmt_value.double_value;
                 total_sum += val;
 
-                if let Some(prefix) = &pid_prefix {
-                    if !item.sz_name.is_null() {
-                        let mut len = 0usize;
-                        while *item.sz_name.add(len) != 0 && len < 128 {
-                            len += 1;
-                        }
-                        let name = String::from_utf16_lossy(std::slice::from_raw_parts(item.sz_name, len));
-                        if name.starts_with(prefix) {
-                            pid_sum += val;
-                        }
+                if !prefixes.is_empty() && !item.sz_name.is_null() {
+                    let mut len = 0usize;
+                    while *item.sz_name.add(len) != 0 && len < 128 {
+                        len += 1;
+                    }
+                    let name = String::from_utf16_lossy(std::slice::from_raw_parts(item.sz_name, len));
+                    if prefixes.iter().any(|p| name.starts_with(p)) {
+                        pid_sum += val;
                     }
                 }
             }
         }
 
-        if target_pid.is_some() && pid_sum > 0.0 {
+        if !target_pids.is_empty() && pid_sum > 0.0 {
             (pid_sum as f32).clamp(0.0, 100.0)
         } else {
             (total_sum as f32).clamp(0.0, 100.0)
@@ -420,7 +419,7 @@ impl TelemetryCollector {
     }
 
     #[cfg(windows)]
-    unsafe fn find_remote_ip_for_pid(pid: u32) -> Option<u32> {
+    unsafe fn find_remote_ip_for_pids(pids: &[u32]) -> Option<u32> {
         let mut size: u32 = 0;
         let _ = win_ffi::GetExtendedTcpTable(std::ptr::null_mut(), &mut size, 0, 2, 4, 0);
         if size == 0 {
@@ -439,7 +438,7 @@ impl TelemetryCollector {
         let rows = std::slice::from_raw_parts(rows_ptr, num_entries.min(max_rows));
 
         for row in rows {
-            if row.dw_owning_pid == pid && row.dw_state == 5 {
+            if pids.contains(&row.dw_owning_pid) && row.dw_state == 5 {
                 let ip = std::net::Ipv4Addr::from(u32::from_be(row.dw_remote_addr));
                 if !ip.is_loopback() && !ip.is_private() && !ip.is_unspecified() {
                     return Some(row.dw_remote_addr);
@@ -449,27 +448,35 @@ impl TelemetryCollector {
         None
     }
 
-    pub fn refresh(&mut self, cpu_loads: &[f32], target_game: Option<(u32, &str)>) {
+    pub fn refresh(&mut self, cpu_loads: &[f32], target_game: Option<(&str, &[u32])>) {
         let num_cpus = cpu_loads.len().max(1) as f64;
+        let sys_cpu = if cpu_loads.is_empty() {
+            0.0
+        } else {
+            (cpu_loads.iter().sum::<f32>() / cpu_loads.len() as f32 * 100.0).clamp(0.0, 100.0)
+        };
+        self.metrics.sys_cpu_pct = sys_cpu;
         self.metrics.ping_ms = self.ping_ms.load(Ordering::Relaxed);
 
         let prev_pid = self.metrics.target_pid;
-        match target_game {
-            Some((pid, name)) => {
+        let target_pids: &[u32] = match target_game {
+            Some((name, pids)) if !pids.is_empty() => {
                 self.metrics.has_target = true;
-                self.metrics.target_pid = pid;
+                self.metrics.target_pid = pids[0];
                 if self.metrics.target_name != name {
                     self.metrics.target_name = name.to_string();
                 }
+                pids
             }
-            None => {
+            _ => {
                 self.metrics.has_target = false;
                 self.metrics.target_pid = 0;
                 if self.metrics.target_name != "Sistema Global" {
                     self.metrics.target_name = "Sistema Global".into();
                 }
+                &[]
             }
-        }
+        };
 
         #[cfg(windows)]
         unsafe {
@@ -485,8 +492,7 @@ impl TelemetryCollector {
                 let _ = win_ffi::PdhCollectQueryData(self.pdh_query);
             }
 
-            let target_pid = target_game.map(|(pid, _)| pid);
-            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pid(self.counter_gpu, target_pid);
+            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, target_pids);
 
             let sys_disk_mbs =
                 (Self::read_pdh_single(self.counter_disk_read) / (1024.0 * 1024.0)).max(0.0) as f32;
@@ -495,21 +501,33 @@ impl TelemetryCollector {
                 / 1024.0)
                 .max(0.0) as f32;
 
-            if let Some(pid) = target_pid {
-                if pid != prev_pid || self.target_remote_ip.load(Ordering::Relaxed) == 0 {
-                    if let Some(remote_ip) = Self::find_remote_ip_for_pid(pid) {
+            if !target_pids.is_empty() {
+                if self.metrics.target_pid != prev_pid || self.target_remote_ip.load(Ordering::Relaxed) == 0 {
+                    if let Some(remote_ip) = Self::find_remote_ip_for_pids(target_pids) {
                         self.target_remote_ip.store(remote_ip, Ordering::Relaxed);
                     }
                 }
 
-                let handle = windows_sys::Win32::System::Threading::OpenProcess(
-                    windows_sys::Win32::System::Threading::PROCESS_QUERY_LIMITED_INFORMATION,
-                    0,
-                    pid,
-                );
+                let now = Instant::now();
+                let mut total_cpu_pct = 0.0f32;
+                let mut total_mem_bytes = 0usize;
+                let mut total_disk_rate_mbs = 0.0f32;
+                let mut total_disk_read_bytes = 0u64;
+                let mut total_net_rate_kbs = 0.0f32;
+                let mut primary_pid = target_pids[0];
+                let mut max_proc_mem = 0usize;
+                let mut any_handle_opened = false;
 
-                if !handle.is_null() {
-                    let now = Instant::now();
+                for &pid in target_pids {
+                    let handle = windows_sys::Win32::System::Threading::OpenProcess(
+                        windows_sys::Win32::System::Threading::PROCESS_QUERY_LIMITED_INFORMATION,
+                        0,
+                        pid,
+                    );
+                    if handle.is_null() {
+                        continue;
+                    }
+                    any_handle_opened = true;
 
                     // 1. Process CPU %
                     let (mut created, mut exited, mut kernel, mut user) = (
@@ -536,15 +554,18 @@ impl TelemetryCollector {
                         ..Default::default()
                     };
                     if win_ffi::K32GetProcessMemoryInfo(handle, &mut pmc, pmc.cb) != 0 {
-                        self.metrics.mem_used_mb = pmc.working_set_size as f32 / (1024.0 * 1024.0);
-                        self.metrics.mem_usage_pct =
-                            ((pmc.working_set_size as f64 / total_phys_bytes as f64) * 100.0)
-                                .clamp(0.0, 100.0) as f32;
+                        total_mem_bytes = total_mem_bytes.saturating_add(pmc.working_set_size);
+                        if pmc.working_set_size > max_proc_mem {
+                            max_proc_mem = pmc.working_set_size;
+                            primary_pid = pid;
+                        }
                     }
 
-                    // 3. Process Disk Read (MB/s) & Network/Socket I/O (KB/s)
+                    // 3. Process Disk Read/Write & Network/Socket I/O
                     let mut io = win_ffi::IoCounters::default();
                     let _ = win_ffi::GetProcessIoCounters(handle, &mut io);
+                    let disk_bytes = io.read_transfer_count.saturating_add(io.write_transfer_count);
+                    total_disk_read_bytes = total_disk_read_bytes.saturating_add(io.read_transfer_count);
 
                     if let Some(prev) = self.proc_samples.get(&pid) {
                         if let Some(prev_time) = prev.timestamp {
@@ -553,69 +574,73 @@ impl TelemetryCollector {
                             if cpu_ticks >= prev.cpu_ticks {
                                 let delta_ticks = (cpu_ticks - prev.cpu_ticks) as f64;
                                 let wall_ticks = elapsed_secs * 10_000_000.0 * num_cpus;
-                                self.metrics.cpu_usage_pct =
-                                    ((delta_ticks / wall_ticks) * 100.0).clamp(0.0, 100.0) as f32;
+                                total_cpu_pct += ((delta_ticks / wall_ticks) * 100.0) as f32;
                             }
 
-                            if io.read_transfer_count >= prev.read_bytes {
-                                let delta_read = (io.read_transfer_count - prev.read_bytes) as f64;
-                                self.metrics.disk_read_mbs =
-                                    (delta_read / (1024.0 * 1024.0) / elapsed_secs) as f32;
+                            if disk_bytes >= prev.disk_bytes {
+                                let delta_disk = (disk_bytes - prev.disk_bytes) as f64;
+                                total_disk_rate_mbs +=
+                                    (delta_disk / (1024.0 * 1024.0) / elapsed_secs) as f32;
                             }
 
                             if io.other_transfer_count >= prev.other_bytes {
                                 let delta_other = (io.other_transfer_count - prev.other_bytes) as f64;
-                                let proc_net_kbs = (delta_other / 1024.0 / elapsed_secs) as f32;
-                                self.metrics.net_usage_kbs = if proc_net_kbs > 0.1 {
-                                    proc_net_kbs
-                                } else {
-                                    sys_net_kbs
-                                };
-                            } else {
-                                self.metrics.net_usage_kbs = sys_net_kbs;
+                                total_net_rate_kbs += (delta_other / 1024.0 / elapsed_secs) as f32;
                             }
                         }
-                    } else {
-                        self.metrics.net_usage_kbs = sys_net_kbs;
                     }
 
                     self.proc_samples.insert(
                         pid,
                         ProcSample {
                             cpu_ticks,
-                            read_bytes: io.read_transfer_count,
+                            disk_bytes,
                             other_bytes: io.other_transfer_count,
                             timestamp: Some(now),
                         },
                     );
 
                     windows_sys::Win32::Foundation::CloseHandle(handle);
+                }
+
+                if any_handle_opened {
+                    self.metrics.target_pid = primary_pid;
+                    self.metrics.cpu_usage_pct = if total_cpu_pct > 0.1 {
+                        total_cpu_pct.clamp(0.0, 100.0)
+                    } else {
+                        sys_cpu
+                    };
+                    self.metrics.mem_used_mb = total_mem_bytes as f32 / (1024.0 * 1024.0);
+                    self.metrics.mem_usage_pct =
+                        ((total_mem_bytes as f64 / total_phys_bytes as f64) * 100.0)
+                            .clamp(0.0, 100.0) as f32;
+                    self.metrics.disk_read_mbs = total_disk_rate_mbs.max(sys_disk_mbs);
+                    self.metrics.disk_total_read_gb =
+                        (total_disk_read_bytes as f64 / (1024.0 * 1024.0 * 1024.0)) as f32;
+                    self.metrics.net_usage_kbs = if total_net_rate_kbs > 0.5 {
+                        total_net_rate_kbs.max(sys_net_kbs)
+                    } else {
+                        sys_net_kbs
+                    };
                     return;
                 }
             }
 
             // Fallback when no game is running: show global system telemetry
             self.target_remote_ip.store(0, Ordering::Relaxed);
-            self.metrics.cpu_usage_pct = if cpu_loads.is_empty() {
-                0.0
-            } else {
-                (cpu_loads.iter().sum::<f32>() / cpu_loads.len() as f32 * 100.0).clamp(0.0, 100.0)
-            };
+            self.metrics.cpu_usage_pct = sys_cpu;
             let used_bytes = total_phys_bytes.saturating_sub(mem_status.ull_avail_phys);
             self.metrics.mem_used_mb = used_bytes as f32 / (1024.0 * 1024.0);
             self.metrics.mem_usage_pct = mem_status.dw_memory_load as f32;
             self.metrics.disk_read_mbs = sys_disk_mbs;
+            self.metrics.disk_total_read_gb = 0.0;
             self.metrics.net_usage_kbs = sys_net_kbs;
         }
 
         #[cfg(not(windows))]
         {
             let _ = num_cpus;
-            self.metrics.cpu_usage_pct = if cpu_loads.is_empty() {
-                0.0
-            } else {
-                (cpu_loads.iter().sum::<f32>() / cpu_loads.len() as f32 * 100.0).clamp(0.0, 100.0)
-            };
+            self.metrics.cpu_usage_pct = sys_cpu;
         }
     }
 }
@@ -640,10 +665,10 @@ mod tests {
     fn test_process_telemetry_collection() {
         let mut collector = TelemetryCollector::new();
         let pid = std::process::id();
-        collector.refresh(&[0.25, 0.50], Some((pid, "TestGame.exe")));
+        let pids = [pid];
+        collector.refresh(&[0.25, 0.50], Some(("TestGame.exe", &pids)));
         std::thread::sleep(std::time::Duration::from_millis(200));
-        collector.refresh(&[0.25, 0.50], Some((pid, "TestGame.exe")));
-        println!("Collected Process Telemetry: {:?}", collector.metrics);
+        collector.refresh(&[0.25, 0.50], Some(("TestGame.exe", &pids)));
         assert!(collector.metrics.has_target);
         assert_eq!(collector.metrics.target_pid, pid);
         #[cfg(windows)]

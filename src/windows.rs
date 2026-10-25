@@ -80,12 +80,15 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
             loop {
                 if let Some(exe) = process_path(entry.th32ProcessID) {
                     if let Some(game) = game_for_path(&exe, games) {
-                        found.push(Running {
-                            pid: entry.th32ProcessID,
-                            game: game.name.clone(),
-                            directory: game.directory.clone(),
-                            exe,
-                        });
+                        found.push((
+                            entry.cntThreads,
+                            Running {
+                                pid: entry.th32ProcessID,
+                                game: game.name.clone(),
+                                directory: game.directory.clone(),
+                                exe,
+                            },
+                        ));
                     }
                 }
                 if Process32NextW(snapshot, &mut entry) == 0 {
@@ -94,7 +97,9 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
             }
         }
         CloseHandle(snapshot);
-        Ok(found)
+        // Sort by thread count descending so the main 3D game engine process is always first
+        found.sort_by(|a, b| b.0.cmp(&a.0));
+        Ok(found.into_iter().map(|(_, r)| r).collect())
     }
 }
 

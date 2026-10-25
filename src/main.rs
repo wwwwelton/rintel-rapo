@@ -229,10 +229,18 @@ mod app {
                 self.cpu_error.clear();
             }
 
-            let target_game = active_process
-                .or_else(|| self.running.first())
-                .map(|p| (p.pid, p.game.as_str()));
-            self.telemetry.refresh(&self.cpu.load, target_game);
+            if let Some(target_proc) = active_process.or_else(|| self.running.first()) {
+                let game_pids: Vec<u32> = self
+                    .running
+                    .iter()
+                    .filter(|p| p.directory == target_proc.directory)
+                    .map(|p| p.pid)
+                    .collect();
+                self.telemetry
+                    .refresh(&self.cpu.load, Some((target_proc.game.as_str(), &game_pids)));
+            } else {
+                self.telemetry.refresh(&self.cpu.load, None);
+            }
 
             self.last_refresh = Instant::now();
         }
@@ -531,7 +539,7 @@ mod app {
                                     ui.vertical(|ui| {
                                         ui.label(egui::RichText::new("USO DE CPU TOTAL").size(10.0).strong().color(COLOR_MUTED));
                                         ui.label(egui::RichText::new(format!("{:.1}%", tm.cpu_usage_pct)).size(22.0).strong().color(COLOR_ACCENT));
-                                        ui.label(egui::RichText::new(if tm.has_target { "Processo do Jogo" } else { "Global CPU" }).size(10.0).color(COLOR_MUTED_2));
+                                        ui.label(egui::RichText::new(format!("Sistema: {:.1}%", tm.sys_cpu_pct)).size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
 
@@ -578,7 +586,12 @@ mod app {
                                     ui.vertical(|ui| {
                                         ui.label(egui::RichText::new("LEITURA DE DISCO").size(10.0).strong().color(COLOR_MUTED));
                                         ui.label(egui::RichText::new(format!("{:.2} MB/s", tm.disk_read_mbs)).size(22.0).strong().color(COLOR_YELLOW));
-                                        ui.label(egui::RichText::new("Taxa de Leitura I/O").size(10.0).color(COLOR_MUTED_2));
+                                        let disk_sub = if tm.disk_total_read_gb > 0.01 {
+                                            format!("Total: {:.2} GB lidos", tm.disk_total_read_gb)
+                                        } else {
+                                            "Taxa de Leitura I/O".to_string()
+                                        };
+                                        ui.label(egui::RichText::new(disk_sub).size(10.0).color(COLOR_MUTED_2));
                                     });
                                 });
 
