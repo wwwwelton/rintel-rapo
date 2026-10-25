@@ -1,0 +1,77 @@
+name: Build / Test / Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-release:
+    name: Build, Test & Release (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: 1. Build (Windows Release Binary)
+        run: cargo build --release
+
+      - name: 2. Test (Windows Unit & Integration Suite)
+        run: cargo test
+
+      - name: Sign executable with Authenticode SHA-256 & DigiCert Timestamp
+        shell: pwsh
+        run: |
+          $exePath = "target\release\rintel-rapo.exe"
+          $cerPath = "target\release\rintel-rapo.cer"
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=Rintel RAPO Open Source, O=Rintel Project, C=BR" `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256 `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -NotAfter (Get-Date).AddYears(5)
+
+          Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
+
+          $sig = Set-AuthenticodeSignature `
+            -FilePath $exePath `
+            -Certificate $cert `
+            -HashAlgorithm SHA256 `
+            -TimestampServer "http://timestamp.digicert.com"
+
+          if (-not $sig.SignerCertificate) {
+            Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256 | Out-Null
+          }
+
+          Get-AuthenticodeSignature -FilePath $exePath | Select-Object Status, SignerCertificate, TimeStamperCertificate | Format-List
+
+      - name: Generate SHA-256 checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "target\release\rintel-rapo.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  rintel-rapo.exe" | Out-File -FilePath "target\release\rintel-rapo.exe.sha256" -Encoding ascii
+
+      - name: 3. Release (Publish GitHub Release on Push)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: "Rintel RAPO v0.1.${{ github.run_number }} (${{ github.sha }})"
+          generate_release_notes: true
+          make_latest: "true"
+          files: |
+            target/release/rintel-rapo.exe
+            target/release/rintel-rapo.exe.sha256
+            target/release/rintel-rapo.cer
