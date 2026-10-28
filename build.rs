@@ -23,7 +23,7 @@ fn main() {
     if gnu {
         build
             .flag("-include")
-            .flag("native/windows_compat.hpp")
+            .flag("windows_compat.hpp")
             .cpp_link_stdlib("stdc++")
             .cpp_link_stdlib_static(true);
         let output = build
@@ -48,7 +48,7 @@ fn main() {
             path.parent().unwrap().display()
         );
     } else {
-        build.flag("/EHsc").flag("/FInative/windows_compat.hpp");
+        build.flag("/EHsc").flag("/FIwindows_compat.hpp");
     }
     for source in [
         "Debug.cpp",
@@ -180,9 +180,11 @@ fn generate_figma_ui_and_tokens() {
 
     // Copy to target directories if present so bin can find it beside itself
     for target_dir in ["release", "debug"] {
-        let bin_dir = root.join("target/x86_64-pc-windows-gnu").join(target_dir);
-        if bin_dir.is_dir() {
-            write_if_changed(&bin_dir.join("ui.json"), &json_str);
+        for base in [root.join("target"), root.join("target/x86_64-pc-windows-gnu")] {
+            let bin_dir = base.join(target_dir);
+            if bin_dir.is_dir() {
+                write_if_changed(&bin_dir.join("ui.json"), &json_str);
+            }
         }
     }
 
@@ -380,9 +382,11 @@ fn generate_figma_ui_and_tokens() {
 "##;
     write_if_changed(&root.join("ui_figma.svg"), svg_content);
     for target_dir in ["release", "debug"] {
-        let bin_dir = root.join("target/x86_64-pc-windows-gnu").join(target_dir);
-        if bin_dir.is_dir() {
-            write_if_changed(&bin_dir.join("ui_figma.svg"), svg_content);
+        for base in [root.join("target"), root.join("target/x86_64-pc-windows-gnu")] {
+            let bin_dir = base.join(target_dir);
+            if bin_dir.is_dir() {
+                write_if_changed(&bin_dir.join("ui_figma.svg"), svg_content);
+            }
         }
     }
 }
