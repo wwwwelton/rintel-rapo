@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicPtr, AtomicU32, Ordering},
     Arc,
 };
 use std::time::Instant;
@@ -154,21 +154,77 @@ fn read_rate_mbs(previous: u64, current: u64, elapsed_secs: f64) -> f32 {
     })
 }
 
+#[derive(Clone, PartialEq, Eq)]
+struct Target {
+    name: String,
+    pids: Vec<u32>,
+}
+
+struct Request {
+    generation: u64,
+    target: Option<Target>,
+    num_cpus: usize,
+    sys_cpu: f32,
+}
+
+struct Snapshot {
+    generation: u64,
+    metrics: ProcessTelemetry,
+}
+
+// Each slot owns a Box; only the thread swapping a pointer out may reclaim it.
+#[derive(Default)]
+struct Mailbox {
+    request: AtomicPtr<Request>,
+    snapshot: AtomicPtr<Snapshot>,
+}
+
+impl Mailbox {
+    fn request(&self, request: Request) {
+        let previous = self.request.swap(Box::into_raw(Box::new(request)), Ordering::AcqRel);
+        if !previous.is_null() {
+            // A swap transfers exclusive ownership of the displaced allocation.
+            drop(unsafe { Box::from_raw(previous) });
+        }
+    }
+
+    fn take_request(&self) -> Option<Box<Request>> {
+        let request = self.request.swap(std::ptr::null_mut(), Ordering::AcqRel);
+        if request.is_null() { None } else { Some(unsafe { Box::from_raw(request) }) }
+    }
+
+    fn snapshot(&self, snapshot: Snapshot) {
+        let previous = self.snapshot.swap(Box::into_raw(Box::new(snapshot)), Ordering::AcqRel);
+        if !previous.is_null() {
+            drop(unsafe { Box::from_raw(previous) });
+        }
+    }
+
+    fn take_snapshot(&self) -> Option<Box<Snapshot>> {
+        let snapshot = self.snapshot.swap(std::ptr::null_mut(), Ordering::AcqRel);
+        if snapshot.is_null() { None } else { Some(unsafe { Box::from_raw(snapshot) }) }
+    }
+}
+
+impl Drop for Mailbox {
+    fn drop(&mut self) {
+        drop(self.take_request());
+        drop(self.take_snapshot());
+    }
+}
+
+/// Hands off samples without waiting for native collection. Until a matching sample
+/// completes, a changed target displays cleared global metrics rather than old game data.
+/// One pending request and one completed snapshot are retained; newer values replace older ones.
+/// Drop only signals cancellation; the worker closes PDH after any in-flight call returns.
 pub struct TelemetryCollector {
     pub metrics: ProcessTelemetry,
     ping_ms: Arc<AtomicU32>,
     stop_flag: Arc<AtomicBool>,
-    proc_samples: HashMap<u32, ProcSample>,
-    #[cfg(windows)]
-    pdh_query: isize,
-    #[cfg(windows)]
-    counter_gpu: isize,
-    #[cfg(windows)]
-    counter_disk_read: isize,
-    #[cfg(windows)]
-    counter_net_recv: isize,
-    #[cfg(windows)]
-    counter_net_sent: isize,
+    mailbox: Arc<Mailbox>,
+    worker: std::thread::Thread,
+    target: Option<Target>,
+    generation: u64,
 }
 
 impl TelemetryCollector {
@@ -209,6 +265,111 @@ impl TelemetryCollector {
             }
         });
 
+        let mailbox = Arc::new(Mailbox::default());
+        let worker_mailbox = Arc::clone(&mailbox);
+        let worker_stop = Arc::clone(&stop_flag);
+        let worker = std::thread::spawn(move || {
+            // The worker alone constructs, uses, and closes the native query.
+            let mut sampler = Sampler::new();
+            while !worker_stop.load(Ordering::Relaxed) {
+                let request = worker_mailbox.take_request();
+                let Some(request) = request else {
+                    std::thread::park();
+                    continue;
+                };
+                sampler.refresh(
+                    request.num_cpus,
+                    request.sys_cpu,
+                    request.target.as_ref().map(|target| (target.name.as_str(), target.pids.as_slice())),
+                );
+                if worker_stop.load(Ordering::Relaxed) {
+                    break;
+                }
+                let snapshot = Snapshot {
+                    generation: request.generation,
+                    metrics: std::mem::take(&mut sampler.metrics),
+                };
+                worker_mailbox.snapshot(snapshot);
+            }
+        }).thread().clone();
+
+        Self {
+            metrics: ProcessTelemetry::default(),
+            ping_ms,
+            stop_flag,
+            mailbox,
+            worker,
+            target: None,
+            generation: 0,
+        }
+    }
+
+    pub fn refresh(&mut self, cpu_loads: &[f32], target_game: Option<(&str, &[u32])>) {
+        let target_game = target_game.filter(|(_, pids)| !pids.is_empty());
+        let same_target = match (&self.target, target_game) {
+            (Some(target), Some((name, pids))) => target.name == name && target.pids.as_slice() == pids,
+            (None, None) => true,
+            _ => false,
+        };
+        if !same_target {
+            self.target = target_game.map(|(name, pids)| Target {
+                name: name.to_owned(),
+                pids: pids.to_vec(),
+            });
+            self.generation = self.generation.wrapping_add(1);
+            self.metrics = ProcessTelemetry::default();
+        }
+        let sys_cpu = if cpu_loads.is_empty() {
+            0.0
+        } else {
+            (cpu_loads.iter().sum::<f32>() / cpu_loads.len() as f32 * 100.0).clamp(0.0, 100.0)
+        };
+        let snapshot = self.mailbox.take_snapshot();
+        self.mailbox.request(Request {
+            generation: self.generation,
+            target: self.target.clone(),
+            num_cpus: cpu_loads.len().max(1),
+            sys_cpu,
+        });
+        self.worker.unpark();
+        if let Some(snapshot) = snapshot.filter(|snapshot| snapshot.generation == self.generation) {
+            self.metrics = snapshot.metrics;
+        }
+        if !self.metrics.has_target {
+            if self.metrics.target_name != "Sistema Global" {
+                self.metrics.target_name = "Sistema Global".into();
+            }
+            self.metrics.cpu_usage_pct = sys_cpu;
+        }
+        self.metrics.sys_cpu_pct = sys_cpu;
+        self.metrics.ping_ms = self.ping_ms.load(Ordering::Relaxed);
+    }
+}
+
+impl Drop for TelemetryCollector {
+    fn drop(&mut self) {
+        self.stop_flag.store(true, Ordering::Relaxed);
+        self.worker.unpark();
+    }
+}
+
+struct Sampler {
+    metrics: ProcessTelemetry,
+    proc_samples: HashMap<u32, ProcSample>,
+    #[cfg(windows)]
+    pdh_query: isize,
+    #[cfg(windows)]
+    counter_gpu: isize,
+    #[cfg(windows)]
+    counter_disk_read: isize,
+    #[cfg(windows)]
+    counter_net_recv: isize,
+    #[cfg(windows)]
+    counter_net_sent: isize,
+}
+
+impl Sampler {
+    fn new() -> Self {
         #[cfg(windows)]
         let (pdh_query, counter_gpu, counter_disk_read, counter_net_recv, counter_net_sent) = unsafe {
             let mut query: isize = 0;
@@ -234,8 +395,6 @@ impl TelemetryCollector {
 
         Self {
             metrics: ProcessTelemetry::default(),
-            ping_ms,
-            stop_flag,
             proc_samples: HashMap::new(),
             #[cfg(windows)]
             pdh_query,
@@ -376,15 +535,9 @@ impl TelemetryCollector {
     }
 
 
-    pub fn refresh(&mut self, cpu_loads: &[f32], target_game: Option<(&str, &[u32])>) {
-        let num_cpus = cpu_loads.len().max(1) as f64;
-        let sys_cpu = if cpu_loads.is_empty() {
-            0.0
-        } else {
-            (cpu_loads.iter().sum::<f32>() / cpu_loads.len() as f32 * 100.0).clamp(0.0, 100.0)
-        };
+    fn refresh(&mut self, num_cpus: usize, sys_cpu: f32, target_game: Option<(&str, &[u32])>) {
+        let num_cpus = num_cpus as f64;
         self.metrics.sys_cpu_pct = sys_cpu;
-        self.metrics.ping_ms = self.ping_ms.load(Ordering::Relaxed);
 
         let target_pids: &[u32] = match target_game {
             Some((name, pids)) if !pids.is_empty() => {
@@ -536,6 +689,7 @@ impl TelemetryCollector {
             }
 
             // No accessible game process: report global metrics, not game metrics.
+            self.metrics.target_name = "Sistema Global".into();
             self.metrics.has_target = false;
             self.metrics.target_pid = 0;
             self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, &[]);
@@ -556,9 +710,8 @@ impl TelemetryCollector {
     }
 }
 
-impl Drop for TelemetryCollector {
+impl Drop for Sampler {
     fn drop(&mut self) {
-        self.stop_flag.store(true, Ordering::Relaxed);
         #[cfg(windows)]
         if self.pdh_query != 0 {
             unsafe {
@@ -578,19 +731,95 @@ mod tests {
         assert_eq!(read_rate_mbs(100, 0, 1.0), 0.0);
     }
 
+    fn wait_for_metrics(
+        collector: &mut TelemetryCollector,
+        target: Option<(&str, &[u32])>,
+        ready: impl Fn(&ProcessTelemetry) -> bool,
+    ) {
+        let deadline = Instant::now() + std::time::Duration::from_secs(20);
+        loop {
+            collector.refresh(&[0.25, 0.50], target);
+            if ready(&collector.metrics) {
+                return;
+            }
+            assert!(Instant::now() < deadline, "No completed telemetry sample: {:?}", collector.metrics);
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+    }
+
     #[test]
     fn test_process_telemetry_collection() {
         let mut collector = TelemetryCollector::new();
-        let pid = std::process::id();
-        let pids = [pid];
-        collector.refresh(&[0.25, 0.50], Some(("TestGame.exe", &pids)));
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        collector.refresh(&[0.25, 0.50], Some(("TestGame.exe", &pids)));
-        assert!(collector.metrics.has_target);
-        assert_eq!(collector.metrics.target_pid, pid);
-        #[cfg(windows)]
-        {
-            assert!(collector.metrics.mem_used_mb > 0.0, "Process RAM should be > 0 MB");
+        let pids = [std::process::id()];
+        wait_for_metrics(&mut collector, Some(("TestGame.exe", &pids)), |metrics| {
+            metrics.has_target && {
+                #[cfg(windows)]
+                { metrics.mem_used_mb > 0.0 }
+                #[cfg(not(windows))]
+                { true }
+            }
+        });
+        assert_eq!(collector.metrics.target_pid, pids[0]);
+        assert_eq!(collector.metrics.target_name, "TestGame.exe");
+        assert_eq!(collector.metrics.sys_cpu_pct, 37.5);
+    }
+
+    #[test]
+    fn mailbox_keeps_only_latest_request() {
+        let mailbox = Mailbox::default();
+        for generation in 0..100 {
+            mailbox.request(Request { generation, target: None, num_cpus: 1, sys_cpu: 0.0 });
+        }
+        assert_eq!(mailbox.take_request().unwrap().generation, 99);
+        assert!(mailbox.take_request().is_none());
+    }
+
+    #[test]
+    fn changed_target_rejects_completed_old_snapshot() {
+        let mut collector = TelemetryCollector::new();
+        let pids = [std::process::id()];
+        let deadline = Instant::now() + std::time::Duration::from_secs(20);
+        loop {
+            collector.refresh(&[0.25, 0.50], Some(("Old.exe", &pids)));
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            if let Some(snapshot) = collector.mailbox.take_snapshot() {
+                assert!(snapshot.metrics.has_target);
+                #[cfg(windows)]
+                assert!(snapshot.metrics.mem_used_mb > 0.0);
+                collector.mailbox.snapshot(*snapshot);
+                break;
+            }
+            assert!(Instant::now() < deadline, "No completed old-target sample");
+        }
+        collector.refresh(&[0.25, 0.50], Some(("New.exe", &pids)));
+        assert!(!collector.metrics.has_target);
+        assert_eq!(collector.metrics.target_name, "Sistema Global");
+        assert_eq!(collector.metrics.mem_used_mb, 0.0);
+        assert_eq!(collector.metrics.disk_total_read_gb, 0.0);
+        wait_for_metrics(&mut collector, Some(("New.exe", &pids)), |metrics| {
+            metrics.has_target && {
+                #[cfg(windows)]
+                { metrics.mem_used_mb > 0.0 }
+                #[cfg(not(windows))]
+                { true }
+            }
+        });
+        assert_eq!(collector.metrics.target_name, "New.exe");
+        assert_eq!(collector.metrics.target_pid, pids[0]);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn inaccessible_target_and_empty_target_complete_as_global() {
+        let mut collector = TelemetryCollector::new();
+        for target in [Some(("Unavailable.exe", &[0u32][..])), Some(("Empty.exe", &[][..])), None] {
+            // A real completed sample must populate RAM; zeros before completion cannot pass.
+            collector.metrics.mem_used_mb = 0.0;
+            wait_for_metrics(&mut collector, target, |metrics| !metrics.has_target && metrics.mem_used_mb > 0.0);
+            assert_eq!(collector.metrics.target_name, "Sistema Global");
+            assert_eq!(collector.metrics.target_pid, 0);
+            assert_eq!(collector.metrics.cpu_usage_pct, 37.5);
+            assert_eq!(collector.metrics.disk_total_read_gb, 0.0);
         }
     }
 }
