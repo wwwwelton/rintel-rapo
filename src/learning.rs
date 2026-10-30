@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+#[path = "flow.rs"]
+mod flow;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Settings {
     pub priority: bool,
@@ -87,6 +90,14 @@ pub struct Search {
     pairs: usize,
     random: u64,
     limits: Limits,
+    model: flow::Flow,
+}
+
+fn features(settings: Settings) -> [f64; 8] {
+    [settings.priority as u8 as f64, settings.qos as u8 as f64,
+        settings.pin as u8 as f64, f64::from(settings.threads) / 64.0,
+        f64::from(settings.cores) / 64.0, f64::from(settings.min_percent) / 20.0,
+        settings.smt as u8 as f64, settings.p_only as u8 as f64]
 }
 impl Search {
     pub fn new(seed: u64, limits: Limits, reference: Settings) -> Self {
@@ -94,6 +105,7 @@ impl Search {
             observations: vec![Observation::new(Settings::default())],
             current: 0, reference: 0, reference_score: None, pending: None,
             completed: 0, pairs: 0, random: seed.max(1), limits,
+            model: flow::Flow::new(seed),
         };
         let reference = search.normalize(reference);
         if reference != Settings::default() {
@@ -153,6 +165,8 @@ impl Search {
             observation.mean = Score::default();
             observation.consecutive_gains = 0;
         }
+        // Paired rewards change meaning when the reference changes.
+        self.model = flow::Flow::new(self.random);
     }
     fn choose_next(&mut self, promising: Option<usize>) {
         if let Some(index) = promising {
@@ -175,6 +189,8 @@ impl Search {
                 return;
             }
         }
+        let mut selected = None;
+        let mut selected_value = f64::NEG_INFINITY;
         for _ in 0..24 {
             let mut candidate = self.observations[self.reference].settings;
             if self.random() % 4 == 0 {
@@ -203,10 +219,19 @@ impl Search {
             }
             let candidate = self.normalize(candidate);
             if !self.observations.iter().any(|o| o.settings == candidate) {
-                self.observations.push(Observation::new(candidate));
-                self.current = self.observations.len() - 1;
-                return;
+                let value = self.model.predict(&features(candidate));
+                if selected.is_none() || value > selected_value {
+                    selected = Some(candidate);
+                    selected_value = value;
+                }
+                // Keep random exploration during cold start and every fourth pair.
+                if self.model.samples < 12 || self.pairs % 4 == 0 { break; }
             }
+        }
+        if let Some(candidate) = selected {
+            self.observations.push(Observation::new(candidate));
+            self.current = self.observations.len() - 1;
+            return;
         }
         self.current = self.observations.iter().enumerate()
             .filter(|(index, o)| *index != self.reference && !o.rejected)
@@ -227,6 +252,9 @@ impl Search {
         if let Some((index, trial)) = self.pending.take() {
             self.pairs += 1;
             let ratio = Score { fps: trial.fps / score.fps, low_fps: trial.low_fps / score.low_fps };
+            let input = features(self.observations[index].settings);
+            // Penalize a regression in either metric, not just average FPS.
+            self.model.train(&input, ratio.fps.min(ratio.low_fps) - 1.0);
             let observation = &mut self.observations[index];
             observation.count = (observation.count + 1).min(5);
             observation.mean.fps += (ratio.fps - observation.mean.fps) / observation.count as f64;

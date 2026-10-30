@@ -3,6 +3,9 @@ use crate::{
     learning::{Limits, Profile, Score, Search, Settings},
 };
 
+#[path = "power.rs"]
+mod power;
+
 struct Training {
     pid: u32,
     exe: PathBuf,
@@ -16,6 +19,7 @@ struct Training {
     winner: Option<(Settings, Score)>,
     saved: Option<Settings>,
     paused: bool,
+    power: power::Power,
 }
 fn foreground_pid() -> u32 {
     unsafe {
@@ -65,6 +69,9 @@ impl App {
                 training.paused = true;
                 self.training_message = "RAPO pausado: aguardando o jogo em foco; candidato e medições confirmadas preservados.".into();
             }
+            if let Err(error) = training.power.update(false) {
+                self.training_message.push_str(&format!("; {error}"));
+            }
         } else {
             let pid = target.unwrap().pid;
             if training.paused || training.pid != pid {
@@ -82,6 +89,9 @@ impl App {
                 self.training_message =
                     "RAPO retomado com o mesmo candidato; medição reiniciada após estabilização."
                         .into();
+                if let Err(error) = training.power.update(true) {
+                    self.training_message.push_str(&format!("; {error}"));
+                }
             }
         }
         self.training = Some(training);
@@ -226,6 +236,7 @@ impl App {
             winner: None,
             saved: None,
             paused: true,
+            power: power::Power::default(),
         };
         if let Err(error) = self.set_settings(&training.exe, Settings::default()) {
             self.restore_training(training, error);
@@ -384,7 +395,7 @@ impl App {
             ui.set_width((ui.ctx().screen_rect().width() - 72.0).max(320.0));
             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
             ui.label(
-                egui::RichText::new(self.tr("txt_learning_panel_title", "APRENDIZADO CONTÍNUO · FPS REAL"))
+                egui::RichText::new(self.tr("txt_learning_panel_title", "Avatarnoia Flow Engine 2.0 · FPS REAL"))
                     .strong()
                     .color(COLOR_TEXT),
             );

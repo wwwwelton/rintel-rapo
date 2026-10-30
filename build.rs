@@ -106,7 +106,7 @@ fn default_ui_tokens() -> Vec<(&'static str, &'static str)> {
         ("badge_priority_boost", "PRIORIDADE ACIMA DO NORMAL"),
         ("badge_qos_memory", "PRIORIDADE DE MEMÓRIA / ECOQOS"),
         ("badge_background_mode", "MODO SEGUNDO PLANO"),
-        ("txt_learning_panel_title", "APRENDIZADO CONTÍNUO · FPS REAL"),
+        ("txt_learning_panel_title", "Avatarnoia Flow Engine 2.0 · FPS REAL"),
         ("btn_stop_training", "Parar aprendizado e manter último perfil salvo"),
         ("btn_disable_rapo", "Desativar RAPO"),
         ("btn_start_training", "Iniciar aprendizado contínuo"),
@@ -223,7 +223,7 @@ fn generate_figma_ui_and_tokens() {
 
   <g id="Card_ContinuousLearning">
     <rect x="36" y="100" width="1108" height="150" rx="10" fill="#091520" stroke="#1E394C"/>
-    <text id="txt_learning_panel_title" x="52" y="130" class="text-card-title">APRENDIZADO CONTÍNUO · FPS REAL</text>
+    <text id="txt_learning_panel_title" x="52" y="130" class="text-card-title">Avatarnoia Flow Engine 2.0 · FPS REAL</text>
     <text id="txt_cpu_detected" x="52" y="152" font-size="12px" fill="#F3F8FB">CPU detectada: 8 núcleos físicos · 16 processadores lógicos · 4 núcleos de maior desempenho · SMT disponível true</text>
     <text id="txt_rapo_running_info" x="52" y="174" font-size="12px" fill="#46E0D5">RAPO ATIVO · medindo o candidato atual — Aion2.exe · PID 1240 · 01:45 · 4 medições</text>
     <g id="btn_stop_training">
