@@ -47,6 +47,17 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
     }
 }
 
+/// Maps training panel events (buttons and target picks by `pid`) to commands.
+pub fn from_training_event(action: &str, pid: Option<u32>) -> Option<Command> {
+    match action {
+        "start_training" => Some(Command::StartTraining),
+        "stop_training" => Some(Command::StopTraining),
+        "disable_rapo" => Some(Command::SetRapo(None)),
+        "select_training_target" => Some(Command::SelectTrainingTarget { pid: pid? }),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -74,5 +85,15 @@ mod tests {
         assert_eq!(from_ui_event("nope", Some("C:/g"), Some(true)), None);
         assert_eq!(from_ui_event("qos", None, Some(true)), None);
         assert_eq!(from_ui_event("qos", Some("C:/g"), None), None);
+    }
+
+    #[test]
+    fn training_events_map_to_commands() {
+        assert_eq!(from_training_event("start_training", None), Some(Command::StartTraining));
+        assert_eq!(from_training_event("stop_training", None), Some(Command::StopTraining));
+        assert_eq!(from_training_event("disable_rapo", None), Some(Command::SetRapo(None)));
+        assert_eq!(from_training_event("select_training_target", Some(7)), Some(Command::SelectTrainingTarget { pid: 7 }));
+        assert_eq!(from_training_event("select_training_target", None), None);
+        assert_eq!(from_training_event("qos", None), None);
     }
 }

@@ -41,16 +41,16 @@ fn asset(path: &str) -> Response<Cow<'static, [u8]>> {
 /// Decodes the JSON posted by `ui-wasm/index.html` into a command.
 fn ui_event(body: &str) -> Option<Command> {
     let event: serde_json::Value = serde_json::from_str(body).ok()?;
-    crate::command::from_ui_event(
-        event.get("action")?.as_str()?,
-        event.get("dir").and_then(|v| v.as_str()),
-        event.get("checked").and_then(|v| v.as_bool()),
-    )
+    let action = event.get("action")?.as_str()?;
+    let dir = event.get("dir").and_then(|v| v.as_str());
+    let checked = event.get("checked").and_then(|v| v.as_bool());
+    let pid = event.get("pid").and_then(|v| v.as_u64()).and_then(|p| u32::try_from(p).ok());
+    crate::command::from_ui_event(action, dir, checked).or_else(|| crate::command::from_training_event(action, pid))
 }
 
 /// Opens a window rendering the header and game list from JSON via wasm.
 /// UI clicks arrive over IPC as JSON with `action` and `dir` fields.
-pub fn run_preview(header_json: &str, games_json: &str) -> wry::Result<()> {
+pub fn run_preview(header_json: &str, games_json: &str, training_json: &str) -> wry::Result<()> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Rintel RAPO (webview preview)")
@@ -61,7 +61,7 @@ pub fn run_preview(header_json: &str, games_json: &str) -> wry::Result<()> {
     let _webview = WebViewBuilder::new()
         .with_custom_protocol("rapo".into(), |_id, req: Request<Vec<u8>>| asset(req.uri().path()))
         .with_url(ORIGIN)
-        .with_initialization_script(&format!("window.INITIAL_HEADER = {header_json}; window.INITIAL_GAMES = {games_json};"))
+        .with_initialization_script(&format!("window.INITIAL_HEADER = {header_json}; window.INITIAL_GAMES = {games_json}; window.INITIAL_TRAINING = {training_json};"))
         .with_ipc_handler(|req| match ui_event(req.body()) {
             Some(command) => eprintln!("ui command: {command:?}"),
             None => eprintln!("ui event ignored: {}", req.body()),

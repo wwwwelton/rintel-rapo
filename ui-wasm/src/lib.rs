@@ -164,6 +164,78 @@ pub fn render_games_json(json: &str) -> Result<String, JsValue> {
     Ok(render_games(&view))
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TargetView {
+    pub pid: u32,
+    pub label: String,
+    pub hint: String,
+    pub selected: bool,
+}
+
+/// Mirrors the serialized `snapshot::TrainingView`; labels are pre-formatted on the host.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrainingView {
+    pub cpu_line: Option<String>,
+    pub active: bool,
+    pub headline: Option<String>,
+    pub target_line: Option<String>,
+    pub progress_line: Option<String>,
+    pub candidate_line: Option<String>,
+    pub best_line: Option<String>,
+    pub armed_line: Option<String>,
+    pub targets: Vec<TargetView>,
+    pub selected_label: Option<String>,
+    pub can_start: bool,
+    pub message: String,
+}
+
+/// Renders the training panel as HTML. Buttons carry `data-action` (and `data-pid`
+/// for target picks) so the host maps them with `from_training_event`.
+pub fn render_training(view: &TrainingView) -> String {
+    let mut html = String::from("<section class=\"training\"><h2>Avatarnoia Flow Engine 2.0 · FPS REAL</h2>");
+    let paragraph = |text: &str| format!("<p>{}</p>", escape(text));
+    if let Some(cpu) = &view.cpu_line {
+        html.push_str(&paragraph(cpu));
+    }
+    if view.active {
+        for line in [&view.headline, &view.target_line, &view.progress_line, &view.candidate_line, &view.best_line].into_iter().flatten() {
+            html.push_str(&paragraph(line));
+        }
+        html.push_str("<button type=\"button\" data-action=\"stop_training\">Parar aprendizado e manter último perfil salvo</button>");
+    } else {
+        if let Some(armed) = &view.armed_line {
+            html.push_str(&paragraph(armed));
+            html.push_str("<button type=\"button\" data-action=\"disable_rapo\">Desativar RAPO</button>");
+        }
+        html.push_str("<ul class=\"targets\">");
+        for target in &view.targets {
+            html.push_str(&format!(
+                "<li><button type=\"button\" data-action=\"select_training_target\" data-pid=\"{}\" aria-pressed=\"{}\" title=\"{}\">{}</button></li>",
+                target.pid,
+                target.selected,
+                escape(&target.hint),
+                escape(&target.label),
+            ));
+        }
+        html.push_str("</ul>");
+        let disabled = if view.can_start { "" } else { " disabled" };
+        html.push_str(&format!("<button type=\"button\" data-action=\"start_training\"{disabled}>Iniciar aprendizado contínuo</button>"));
+    }
+    html.push_str(&paragraph("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."));
+    if !view.message.is_empty() {
+        html.push_str(&paragraph(&view.message));
+    }
+    html.push_str("</section>");
+    html
+}
+
+/// JS entry point for the training panel, mirroring `render_games_json`.
+#[wasm_bindgen]
+pub fn render_training_json(json: &str) -> Result<String, JsValue> {
+    let view: TrainingView = serde_json::from_str(json).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    Ok(render_training(&view))
+}
+
 #[cfg(test)]
 mod games_tests {
     use super::*;
@@ -252,5 +324,55 @@ mod tests {
         let json = r#"{"optimizer_running":false,"dtt":"not_installed","default_config_enabled":true}"#;
         let html = render_header_json(json).unwrap();
         assert!(html.contains("data-action=\"start\""));
+    }
+}
+
+#[cfg(test)]
+mod training_tests {
+    use super::*;
+
+    fn view(active: bool, can_start: bool) -> TrainingView {
+        TrainingView {
+            cpu_line: None,
+            active,
+            headline: active.then(|| "RAPO ATIVO · <medindo>".to_string()),
+            target_line: None,
+            progress_line: None,
+            candidate_line: None,
+            best_line: None,
+            armed_line: None,
+            targets: vec![TargetView { pid: 7, label: "AION 2 · aion.exe · PID 7".into(), hint: "C:/aion.exe".into(), selected: true }],
+            selected_label: None,
+            can_start,
+            message: String::new(),
+        }
+    }
+
+    #[test]
+    fn idle_renders_start_enabled_only_when_allowed() {
+        let html = render_training(&view(false, true));
+        assert!(html.contains("data-action=\"start_training\">Iniciar aprendizado contínuo</button>"));
+        assert!(render_training(&view(false, false)).contains("data-action=\"start_training\" disabled>"));
+    }
+
+    #[test]
+    fn target_buttons_carry_pid_and_selection() {
+        let html = render_training(&view(false, true));
+        assert!(html.contains("data-action=\"select_training_target\" data-pid=\"7\" aria-pressed=\"true\""));
+    }
+
+    #[test]
+    fn active_session_shows_stop_and_escapes_text() {
+        let html = render_training(&view(true, true));
+        assert!(html.contains("data-action=\"stop_training\""));
+        assert!(!html.contains("start_training"));
+        assert!(html.contains("RAPO ATIVO · &lt;medindo&gt;"));
+    }
+
+    #[test]
+    fn parses_snapshot_json_shape() {
+        let json = r#"{"cpu_line":null,"active":false,"headline":null,"target_line":null,"progress_line":null,"candidate_line":null,"best_line":null,"armed_line":null,"targets":[],"selected_label":null,"can_start":false,"message":""}"#;
+        let html = render_training_json(json).unwrap();
+        assert!(html.contains("disabled"));
     }
 }

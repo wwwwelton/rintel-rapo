@@ -1342,7 +1342,8 @@ fn main() -> eframe::Result {
     if std::env::args_os().any(|arg| arg == "--webview-preview") {
         let header = r#"{"optimizer_running":true,"dtt":"stopped","default_config_enabled":true,"strings":{"txt_app_title":"RINTEL RAPO","badge_scheduling":"AGENDAMENTO WINDOWS","badge_status_active":"ATIVO (START)","badge_status_paused":"PAUSADO (STOP)","badge_dtt_stopped":"INTEL DTT DETECTADO","btn_refresh":"Atualizar","btn_scan_steam":"Reexaminar Steam","btn_default_config":"Configuração padrão","btn_stop":"Stop"}}"#;
         let games = r#"{"games":[{"name":"AION 2","directory":"C:\\Steam\\common\\AION2","is_aion2":true,"auto_priority":true,"pcores":false,"qos":false,"rapo":false,"controls_enabled":true},{"name":"Example Game","directory":"C:\\Steam\\common\\Example","is_aion2":false,"auto_priority":false,"pcores":false,"qos":false,"rapo":false,"controls_enabled":true}],"strings":{"chk_game_pcores":"P-cores","chk_game_auto_priority":"Auto Prioridade","chk_rapo_library":"RAPO","btn_apo_profile":"Perfil APO"}}"#;
-        if let Err(error) = webview::run_preview(header, games) {
+        let training = r#"{"cpu_line":null,"active":false,"headline":null,"target_line":null,"progress_line":null,"candidate_line":null,"best_line":null,"armed_line":null,"targets":[{"pid":7,"label":"AION 2 · aion.exe · PID 7","hint":"C:/Steam/AION2/aion.exe","selected":true}],"selected_label":"AION 2 · aion.exe · PID 7","can_start":true,"message":""}"#;
+        if let Err(error) = webview::run_preview(header, games, training) {
             eprintln!("{error}");
             std::process::exit(1);
         }
