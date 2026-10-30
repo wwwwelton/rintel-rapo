@@ -23,6 +23,18 @@
   .game { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
   .name { font-weight: bold; margin-right: auto; } label { display: inline-block; margin: 4px; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .parameters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+  .parameter { border: 1px solid #1e394c; border-radius: 8px; padding: 12px; background: #0c1a27; }
+  .parameter dt { font-size: 12px; color: #8da9bb; } .parameter dd { font-size: 17px; font-weight: 650; margin: 8px 0 0; color: #f3f8fb; }
+  .parameter-on { border-color: #46e0d5; } .parameter-off { border-style: dashed; }
+  .training-live, .profile-applied { border: 2px solid #46e0d5; }
+  .training-paused { border: 2px solid #ffd96b; }
+  .training h3, .profile-summary h3 { font-size: 13px; letter-spacing: .05em; color: #55d7ff; }
+  .training-paused h3 { color: #ffd96b; }
+  .profile-source { font-size: 18px; font-weight: 650; color: #f3f8fb; }
+  .applied-settings { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+  .applied-settings span { padding: 8px 12px; background: #0c1a27; border-radius: 6px; }
+  .best-score { border-left: 3px solid #46e0d5; padding: 10px; color: #46e0d5; font-weight: 650; }
 </style>
 </head>
 <body><main>

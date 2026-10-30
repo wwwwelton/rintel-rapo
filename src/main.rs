@@ -1190,6 +1190,31 @@ mod app {
                     "can_toggle": self.training.is_none() && self.tray.is_optimizer_running()
                 })
             }).collect();
+            let profile_process = self.training.as_ref().and_then(|t| self.running.iter().find(|p| p.pid == t.pid && windows::same_executable(&p.exe, &t.exe)))
+                .or_else(|| self.running.iter().find(|p| p.pid == tm.target_pid))
+                .or_else(|| self.selected_process());
+            let profile = profile_process.map(|p| {
+                let paused = self.training.as_ref().filter(|t| t.pid == p.pid && windows::same_executable(&t.exe, &p.exe)).map(|t| t.paused);
+                let mut configured = self.effective_settings(p);
+                if self.runtime_profile(&p.exe).is_none() && !self.auto_games.contains(&p.directory) {
+                    configured.priority = self.optimizer.enabled(p.pid);
+                }
+                let learned = self.learned_profiles.iter().any(|saved| windows::same_executable(&saved.exe, &p.exe) && saved.settings == configured);
+                let source = match paused {
+                    Some(true) => "RAPO pausado · candidato preservado, sem ajustes de teste",
+                    Some(false) => "RAPO · perfil sob avaliação",
+                    None if learned => "RAPO · perfil aprendido salvo",
+                    None if self.runtime_profile(&p.exe).is_some() => "RAPO · perfil restaurado",
+                    None if configured.bits() != 0 => "Perfil manual / biblioteca Steam",
+                    None => "Windows · sem perfil de ajuste",
+                };
+                serde_json::json!({
+                    "pid": p.pid, "game": p.game, "source": source, "configured": configured,
+                    "priority": self.optimizer.boosted(p.pid),
+                    "pinned_threads": self.pinner.as_ref().map_or(0, |pin| pin.pinned_count(p.pid)),
+                    "qos": self.applied_qos.contains_key(&p.pid)
+                })
+            });
             let rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
             let rows: Vec<_> = rows.into_iter().zip(&self.game_search_names).filter(|(_, name)| crate::view::library_matches(&self.search, name)).map(|(row, _)| row).collect();
             let header = crate::ui_model::header_model(self.tray.is_optimizer_running(), &self.dtt_report.status, self.running.len());
@@ -1215,6 +1240,7 @@ mod app {
                 "training": crate::snapshot::training_view(&self.training_state()),
                 "dashboard": {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
+                    "profile": profile,
                     "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),

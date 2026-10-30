@@ -97,6 +97,8 @@ pub struct TargetChoice {
 pub struct TrainingView {
     pub cpu_line: Option<String>,
     pub active: bool,
+    pub paused: bool,
+    pub candidate: Option<Settings>,
     pub headline: Option<String>,
     pub target_line: Option<String>,
     pub progress_line: Option<String>,
@@ -114,6 +116,8 @@ pub fn training_view(state: &TrainingState) -> TrainingView {
     TrainingView {
         cpu_line: state.cpu_line.clone(),
         active: session.is_some(),
+        paused: session.is_some_and(|s| s.paused),
+        candidate: session.map(|s| s.candidate),
         headline: session.map(|s| {
             String::from(if s.paused {
                 "RAPO PAUSADO · sem otimização do alvo; aguardando o mesmo jogo em foco"

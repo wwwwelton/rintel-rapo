@@ -18,6 +18,7 @@
   "badge_telemetry_global": "SISTEMA GLOBAL",
   "btn_apo_profile": "Perfil APO",
   "btn_apo_profile_tooltip": "Ativa Auto Prioridade, P-cores (4 threads críticas UE5, 5%, 10s), Prioridade de memória / EcoQoS e prefetch somente leitura",
+  "btn_default_config": "Configuração padrão",
   "btn_disable_rapo": "Desativar RAPO",
   "btn_proc_optimize": "Otimizar",
   "btn_proc_restore": "Restaurar",

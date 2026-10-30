@@ -2,6 +2,7 @@ use serde::Deserialize;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 use crate::escape;
+use crate::profile::{ProfileSettings, render_settings};
 
 #[derive(Deserialize)]
 pub struct Dashboard {
@@ -18,6 +19,18 @@ pub struct Dashboard {
     pub library_count: usize,
     pub aion2_status: String,
     pub pin_status: Option<String>,
+    pub profile: Option<AppliedProfile>,
+}
+
+#[derive(Deserialize)]
+pub struct AppliedProfile {
+    pub pid: u32,
+    pub game: String,
+    pub source: String,
+    pub configured: ProfileSettings,
+    pub priority: bool,
+    pub pinned_threads: usize,
+    pub qos: bool,
 }
 
 #[derive(Deserialize)]
@@ -39,6 +52,16 @@ pub fn render(view: &Dashboard) -> String {
         write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(alert)).unwrap();
     }
     if let Some(pin) = &view.pin_status { write!(html, "<p>{}</p>", escape(pin)).unwrap(); }
+    if let Some(profile) = &view.profile {
+        let active = profile.priority || profile.qos || profile.pinned_threads > 0;
+        write!(html, "<section class=\"profile-summary {}\"><h2>PERFIL EM USO · {} · PID {}</h2><p class=\"profile-source\">{}</p><strong>{}</strong><div class=\"applied-settings\">", if active { "profile-applied" } else { "profile-standby" }, escape(&profile.game), profile.pid, escape(&profile.source), if active { "AJUSTES ATIVOS NESTE PROCESSO" } else { "SEM AJUSTES ATIVOS NESTE PROCESSO" }).unwrap();
+        write!(html, "<span>Prioridade: <b>{}</b></span><span>Afinidade: <b>{} threads fixadas</b></span><span>Memória / EcoQoS: <b>{}</b></span></div>", if profile.priority { "Ativa" } else { "Não aplicada" }, profile.pinned_threads, if profile.qos { "Ativa" } else { "Não aplicada" }).unwrap();
+        html.push_str("<h3>CONFIGURAÇÃO SELECIONADA</h3><p>Os campos abaixo são a configuração solicitada. O estado acima mostra os ajustes aplicados pelo RAPO; pausa, falta de foco ou acesso negado podem impedir a aplicação.</p>");
+        render_settings(&mut html, &profile.configured);
+        html.push_str("</section>");
+    } else {
+        html.push_str("<section class=\"profile-summary profile-standby\"><h2>PERFIL EM USO</h2><p>Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO.</p></section>");
+    }
     write!(html, "<section><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><dl class=\"metrics\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
         write!(html, "<div><dt>{}</dt><dd>{}</dd></div>", escape(label), escape(value)).unwrap();
@@ -90,6 +113,7 @@ mod tests {
             alerts: vec!["<img src=x onerror=alert(1)>".into()], subtitle: String::new(), target: String::new(), metrics: vec![], cores: vec![], cache: vec![],
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
+            profile: None,
         };
         let html = render(&view);
         assert!(!html.contains("<script>"));

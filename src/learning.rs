@@ -3,7 +3,7 @@ use std::path::PathBuf;
 #[path = "flow.rs"]
 mod flow;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct Settings {
     pub priority: bool,
     pub pin: bool,
