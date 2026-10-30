@@ -53,7 +53,7 @@ cargo test --workspace
 
 No Windows, instale também o toolchain C++ do Visual Studio/Windows SDK e execute `cargo run --release`. A configuração MSVC x64 usa CRT estático. No Linux/WSL2, instale MinGW-w64 com `x86_64-w64-mingw32-g++`, incluindo as bibliotecas estáticas C++/winpthread, e compile com `cargo build --release --target x86_64-pc-windows-gnu`. O aplicativo gráfico não abre terminal.
 
-A interface padrão usa Rust/wasm em **WebView2**, com estado e comandos executados pelo host Rust nativo (`tao`/`wry`). Requer o [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente presente no Windows 11; não instala nem baixa esse runtime por conta própria. Erros ao abrir a interface exibem uma caixa de diálogo. O caminho anterior egui continua disponível com `rintel-rapo.exe --egui` somente até a validação final no Windows; sua remoção depende desse smoke.
+A interface usa Rust/wasm em **WebView2**, com estado e comandos executados pelo host Rust nativo (`tao`/`wry`). Requer o [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente presente no Windows 11; não instala nem baixa esse runtime por conta própria. Erros ao abrir a interface exibem uma caixa de diálogo. Não há mais caminho egui (`--egui` removido).
 
 HTML, JavaScript, wasm, `ui.json`, `ui_figma.svg` e licença do coletor ficam incorporados no `.exe`; não é necessário distribuir a pasta `ui-wasm/pkg`. A inicialização não lê arquivos laterais. Edite os fontes e recompile para incorporar mudanças. Para extrair cópias de `ui.json` e `ui_figma.svg`, execute `rintel-rapo.exe --export-ui-assets`; arquivos existentes nunca são sobrescritos.
 
