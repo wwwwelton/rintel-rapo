@@ -382,7 +382,13 @@ impl App {
                             self.restore_training(training, error);
                         } else {
                             training.capture_started = Instant::now();
-                            self.training = Some(training);
+                            match Capture::start(training.pid) {
+                                Ok(capture) => {
+                                    training.capture = Some(capture);
+                                    self.training = Some(training);
+                                }
+                                Err(error) => self.restore_training(training, error),
+                            }
                         }
                     }
                     Ok(Some(winner)) => self.queue_winner(training, winner),
