@@ -16,8 +16,9 @@ use windows_sys::Win32::{
         Threading::{
             GetActiveProcessorGroupCount, GetProcessAffinityMask, GetProcessGroupAffinity,
             GetThreadGroupAffinity, GetThreadTimes, OpenProcess,
-            OpenThread, SetProcessAffinityMask, SetThreadAffinityMask, PROCESS_QUERY_LIMITED_INFORMATION,
-            PROCESS_SET_INFORMATION, THREAD_QUERY_LIMITED_INFORMATION, THREAD_SET_INFORMATION,
+            OpenThread, SetProcessAffinityMask, SetThreadAffinityMask, SetThreadIdealProcessor,
+            PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION,
+            THREAD_QUERY_LIMITED_INFORMATION, THREAD_SET_INFORMATION,
         },
     },
     UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId},
@@ -184,6 +185,7 @@ struct Pinned {
     created: u64,
     original: usize,
     applied: usize,
+    original_ideal: Option<u32>,
 }
 
 pub struct Pinner {
@@ -277,6 +279,9 @@ impl Pinner {
                 }
                 if SetThreadAffinityMask(thread, pin.original) == 0 {
                     return Err(format!("Thread {}: falha ao restaurar afinidade: {}", pin.tid, std::io::Error::last_os_error()));
+                }
+                if let Some(ideal) = pin.original_ideal {
+                    SetThreadIdealProcessor(thread, ideal);
                 }
                 Ok(RestoreOutcome::Restored)
             })();
@@ -566,8 +571,9 @@ impl Pinner {
                 if !kept.is_empty() { self.pinned.insert(process.pid, kept); }
                 return restore_error.map_or(Ok(()), Err);
             }
+            let eligible_cores: Vec<u32> = (0..usize::BITS).filter(|bit| (mask >> bit) & 1 == 1).collect();
             let mut apply_error = None;
-            for &(tid, created, _) in &selected {
+            for (idx, &(tid, created, _)) in selected.iter().enumerate() {
                 if kept.iter().any(|p| p.tid == tid && p.created == created) {
                     continue;
                 }
@@ -586,11 +592,19 @@ impl Pinner {
                     } else if affinity.Group == 0 && can_pin_thread(affinity.Mask, process_mask, mask) {
                         let original = SetThreadAffinityMask(thread, mask);
                         if original != 0 {
+                            let mut original_ideal = None;
+                            if let Some(&ideal_core) = eligible_cores.get(idx % eligible_cores.len().max(1)) {
+                                let prev = SetThreadIdealProcessor(thread, ideal_core);
+                                if prev != u32::MAX {
+                                    original_ideal = Some(prev);
+                                }
+                            }
                             kept.push(Pinned {
                                 tid,
                                 created,
                                 original,
                                 applied: mask,
+                                original_ideal,
                             });
                         } else {
                             apply_error.get_or_insert_with(|| format!("Thread {tid}: falha ao aplicar afinidade: {}", std::io::Error::last_os_error()));
@@ -668,9 +682,9 @@ mod tests {
     #[test]
     fn failed_restore_retains_original_mask_until_retry_succeeds() {
         let mut pins = vec![
-            Pinned { tid: 1, created: 10, original: 0xff, applied: 3 },
-            Pinned { tid: 2, created: 20, original: 0xf0, applied: 0x30 },
-            Pinned { tid: 3, created: 30, original: 0x0f, applied: 3 },
+            Pinned { tid: 1, created: 10, original: 0xff, applied: 3, original_ideal: None },
+            Pinned { tid: 2, created: 20, original: 0xf0, applied: 0x30, original_ideal: None },
+            Pinned { tid: 3, created: 30, original: 0x0f, applied: 3, original_ideal: None },
         ];
         let error = Pinner::restore_pins(&mut pins, |pin| match pin.tid {
             1 => Err("access denied".into()),
