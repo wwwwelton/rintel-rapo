@@ -1099,14 +1099,18 @@ mod app {
                     // BIBLIOTECA STEAM COM FILTRO DE BUSCA
                     notmeter_card(ui, |ui| {
                         ui.set_min_width((ui.available_width() - 8.0).max(640.0));
+                        let mut search_text = self.search.clone();
                         ui.horizontal(|ui| {
                             ui.label(egui::RichText::new(format!("{}: {}", tr(strings, "txt_library_title", "BIBLIOTECA STEAM"), self.games.len())).size(14.0).strong().color(COLOR_TEXT));
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut self.search)
+                                let response = ui.add(
+                                    egui::TextEdit::singleline(&mut search_text)
                                         .hint_text(tr(strings, "hint_search_game", "Buscar jogo..."))
                                         .desired_width(220.0),
                                 );
+                                if response.changed() {
+                                    commands.push(crate::command::Command::SetSearch(search_text.clone()));
+                                }
                             });
                         });
                         ui.add_space(8.0);
@@ -1116,7 +1120,7 @@ mod app {
                             for (game, search_name) in
                                 self.games.iter().zip(&self.game_search_names)
                             {
-                                if crate::view::library_matches(&self.search, search_name) {
+                                if crate::view::library_matches(&search_text, search_name) {
                                     egui::Frame::new()
                                         .fill(COLOR_SURFACE_ELEVATED)
                                         .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
@@ -1236,6 +1240,7 @@ mod app {
                     self.refresh();
                 }
                 crate::command::Command::Refresh => self.refresh(),
+                crate::command::Command::SetSearch(text) => self.search = text,
                 crate::command::Command::ScanSteam => {
                     self.scan();
                     self.refresh();
