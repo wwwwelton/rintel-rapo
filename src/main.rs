@@ -8,6 +8,7 @@ mod learning;
 pub mod fps;
 pub mod hardware;
 pub mod intel_dtt;
+pub mod ui_model;
 pub mod telemetry;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -581,6 +582,7 @@ mod app {
             }
 
             let strings_arc = self.ui_strings.clone();
+            let header = crate::ui_model::header_model(current_opt_running, &self.dtt_report.status, self.running.len());
             egui::CentralPanel::default().show(ctx, |ui| {
                 let strings = strings_arc.as_ref();
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -603,14 +605,14 @@ mod app {
                             notmeter_badge(ui, tr(strings, "badge_status_paused", "⏸ PAUSADO (STOP)"), COLOR_YELLOW);
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            match self.dtt_report.status {
-                                IntelDttStatus::ActiveRunning => {
+                            match header.dtt {
+                                crate::ui_model::DttBadge::Running => {
                                     notmeter_badge(ui, tr(strings, "badge_dtt_running", "INTEL DTT EM EXECUÇÃO"), COLOR_YELLOW);
                                 }
-                                IntelDttStatus::InstalledStopped => {
+                                crate::ui_model::DttBadge::Stopped => {
                                     notmeter_badge(ui, tr(strings, "badge_dtt_stopped", "INTEL DTT DETECTADO"), COLOR_MUTED);
                                 }
-                                IntelDttStatus::NotInstalled => {
+                                crate::ui_model::DttBadge::NotInstalled => {
                                     notmeter_badge(ui, tr(strings, "badge_dtt_none", "DTT NÃO DETECTADO"), COLOR_ACCENT);
                                 }
                             }
@@ -622,7 +624,7 @@ mod app {
                                 self.scan();
                                 self.refresh();
                             }
-                            let default_enabled = self.running.is_empty();
+                            let default_enabled = header.default_config_enabled;
                             if ui.add_enabled(default_enabled, egui::Button::new(egui::RichText::new(tr(strings, "btn_default_config", "Configuração padrão")).size(12.0))).clicked() {
                                 self.qos_error.clear();
                                 self.qos_sweep_error = match self.netqos.reset() {
