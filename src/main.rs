@@ -106,6 +106,7 @@ mod app {
         learned_profiles: Vec<crate::learning::Profile>,
         runtime_profiles: HashMap<PathBuf, crate::learning::Settings>,
         learned_pids: HashSet<(u32, PathBuf)>,
+        current_active_profile: Option<String>,
         ui_strings: Arc<HashMap<String, String>>,
     }
 
@@ -165,6 +166,7 @@ mod app {
                 learned_profiles: Vec::new(),
                 runtime_profiles: HashMap::new(),
                 learned_pids: HashSet::new(),
+                current_active_profile: None,
                 ui_strings: Arc::new(load_ui_strings()),
             };
             match crate::learning::load_profiles() {
