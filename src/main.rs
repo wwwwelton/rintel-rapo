@@ -624,19 +624,14 @@ mod app {
                             }
 
                             if ui.button(egui::RichText::new(tr(strings, "btn_refresh", "Atualizar")).size(12.0)).clicked() {
-                                self.refresh();
+                                commands.push(crate::command::Command::Refresh);
                             }
                             if ui.button(egui::RichText::new(tr(strings, "btn_scan_steam", "Reexaminar Steam")).size(12.0)).clicked() {
-                                self.scan();
-                                self.refresh();
+                                commands.push(crate::command::Command::ScanSteam);
                             }
                             let default_enabled = header.default_config_enabled;
                             if ui.add_enabled(default_enabled, egui::Button::new(egui::RichText::new(tr(strings, "btn_default_config", "Configuração padrão")).size(12.0))).clicked() {
-                                self.qos_error.clear();
-                                self.qos_sweep_error = match self.netqos.reset() {
-                                    Ok(()) => String::new(),
-                                    Err(error) => error,
-                                };
+                                commands.push(crate::command::Command::ResetNetQos);
                             }
                             let toggle_label = if current_opt_running { tr(strings, "btn_stop", "⏹ Stop") } else { tr(strings, "btn_start", "▶ Start") };
                             if ui.button(egui::RichText::new(toggle_label).size(12.0).strong()).clicked() {
@@ -1005,9 +1000,7 @@ mod app {
                                 .on_hover_text(tr(strings, "chk_auto_yield_tooltip", "Cede afinidade se outro programa mudar a máscara de uma thread já fixada"))
                                 .changed()
                             {
-                                if let Some(pinner) = &mut self.pinner {
-                                    pinner.auto_yield = auto_yield;
-                                }
+                                commands.push(crate::command::Command::SetAutoYield(auto_yield));
                             }
 
                             ui.checkbox(&mut self.windowed_mode, egui::RichText::new(tr(strings, "chk_windowed_mode", "Manter ajustes em segundo plano")).color(COLOR_TEXT))
@@ -1019,7 +1012,7 @@ mod app {
                                 .on_hover_text(tr(strings, "chk_minimize_tray_tooltip", "Ao minimizar a janela, oculta da barra de tarefas e mantém o ícone interativo na bandeja do relógio (com menu Start/Stop)"))
                                 .changed()
                             {
-                                self.tray.set_minimize_to_tray(min_tray);
+                                commands.push(crate::command::Command::SetMinimizeToTray(min_tray));
                             }
 
                             if ui.button(tr(strings, "btn_reopen_admin", "Reabrir como administrador"))
@@ -1117,9 +1110,6 @@ mod app {
                         });
                         ui.add_space(8.0);
 
-                        let mut needs_refresh = false;
-                        let mut manual_directories = Vec::new();
-                        let mut rapo_change = None;
 
                         egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
                             for (game, search_name) in
@@ -1163,22 +1153,10 @@ mod app {
                                                     if ui.checkbox(&mut rapo, tr(strings, "chk_rapo_library", "RAPO"))
                                                         .on_hover_text(tr(strings, "chk_rapo_tooltip", "Aprendizado adaptativo; pausa ao sair e retoma o mesmo candidato ao voltar. Um jogo por vez."))
                                                         .changed() {
-                                                        rapo_change = Some(if rapo { Some(game.directory.clone()) } else { None });
+                                                        commands.push(crate::command::Command::SetRapo(if rapo { Some(game.directory.clone()) } else { None }));
                                                     }
                                                     if game.is_aion2 && ui.add_enabled(self.training.is_none(), egui::Button::new(tr(strings, "btn_apo_profile", "Perfil APO"))).on_hover_text(tr(strings, "btn_apo_profile_tooltip", "Ativa Auto Prioridade, P-cores (4 threads críticas UE5, 5%, 10s), Prioridade de memória / EcoQoS e prefetch somente leitura")).clicked() {
-                                                        manual_directories.push(game.directory.clone());
-                                                        if self.pinner.is_none() {
-                                                            if let Ok(pinner) = Pinner::new() {
-                                                                self.pinner = Some(pinner);
-                                                            }
-                                                        }
-                                                        self.auto_games.insert(game.directory.clone());
-                                                        if self.pinner.is_some() {
-                                                            self.pin_games.insert(game.directory.clone());
-                                                        }
-                                                        self.qos_games.insert(game.directory.clone());
-                                                        self.aion2_prefetched = false;
-                                                        needs_refresh = true;
+                                                        commands.push(crate::command::Command::ApplyAion2Profile { directory: game.directory.clone() });
                                                     }
                                                 });
                                             });
@@ -1187,17 +1165,6 @@ mod app {
                                 }
                             }
                         });
-                        for directory in manual_directories {
-                            self.clear_runtime_profiles(&directory);
-                        }
-                        if let Some(directory) = rapo_change {
-                            self.select_rapo(directory);
-                            needs_refresh = true;
-                        }
-
-                        if needs_refresh {
-                            self.refresh();
-                        }
                     });
                 });
             });
@@ -1264,6 +1231,43 @@ mod app {
                             }
                         }
                     }
+                    self.clear_runtime_profiles(&directory);
+                    self.refresh();
+                }
+                crate::command::Command::Refresh => self.refresh(),
+                crate::command::Command::ScanSteam => {
+                    self.scan();
+                    self.refresh();
+                }
+                crate::command::Command::ResetNetQos => {
+                    self.qos_error.clear();
+                    self.qos_sweep_error = match self.netqos.reset() {
+                        Ok(()) => String::new(),
+                        Err(error) => error,
+                    };
+                }
+                crate::command::Command::SetAutoYield(auto_yield) => {
+                    if let Some(pinner) = &mut self.pinner {
+                        pinner.auto_yield = auto_yield;
+                    }
+                }
+                crate::command::Command::SetMinimizeToTray(on) => self.tray.set_minimize_to_tray(on),
+                crate::command::Command::SetRapo(directory) => {
+                    self.select_rapo(directory);
+                    self.refresh();
+                }
+                crate::command::Command::ApplyAion2Profile { directory } => {
+                    if self.pinner.is_none() {
+                        if let Ok(pinner) = Pinner::new() {
+                            self.pinner = Some(pinner);
+                        }
+                    }
+                    self.auto_games.insert(directory.clone());
+                    if self.pinner.is_some() {
+                        self.pin_games.insert(directory.clone());
+                    }
+                    self.qos_games.insert(directory.clone());
+                    self.aion2_prefetched = false;
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }

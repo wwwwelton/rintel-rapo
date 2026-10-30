@@ -7,7 +7,15 @@ use std::path::PathBuf;
 pub enum Command {
     /// Desired optimizer state, computed from the state the frame was drawn with.
     SetOptimizerRunning(bool),
+    Refresh,
+    ScanSteam,
+    ResetNetQos,
+    SetAutoYield(bool),
+    SetMinimizeToTray(bool),
     SetQos { directory: PathBuf, on: bool },
     SetPin { directory: PathBuf, on: bool },
     SetAuto { directory: PathBuf, on: bool },
+    /// `None` clears the RAPO game.
+    SetRapo(Option<PathBuf>),
+    ApplyAion2Profile { directory: PathBuf },
 }
