@@ -2,6 +2,7 @@
 //! produced by `scripts/build-ui.sh` before `cargo build`.
 
 use std::borrow::Cow;
+use crate::command::Command;
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -37,6 +38,16 @@ fn asset(path: &str) -> Response<Cow<'static, [u8]>> {
         .expect("static asset response")
 }
 
+/// Decodes the JSON posted by `ui-wasm/index.html` into a command.
+fn ui_event(body: &str) -> Option<Command> {
+    let event: serde_json::Value = serde_json::from_str(body).ok()?;
+    crate::command::from_ui_event(
+        event.get("action")?.as_str()?,
+        event.get("dir").and_then(|v| v.as_str()),
+        event.get("checked").and_then(|v| v.as_bool()),
+    )
+}
+
 /// Opens a window rendering the header and game list from JSON via wasm.
 /// UI clicks arrive over IPC as JSON with `action` and `dir` fields.
 pub fn run_preview(header_json: &str, games_json: &str) -> wry::Result<()> {
@@ -51,7 +62,10 @@ pub fn run_preview(header_json: &str, games_json: &str) -> wry::Result<()> {
         .with_custom_protocol("rapo".into(), |_id, req: Request<Vec<u8>>| asset(req.uri().path()))
         .with_url(ORIGIN)
         .with_initialization_script(&format!("window.INITIAL_HEADER = {header_json}; window.INITIAL_GAMES = {games_json};"))
-        .with_ipc_handler(|req| eprintln!("ui event: {}", req.body()))
+        .with_ipc_handler(|req| match ui_event(req.body()) {
+            Some(command) => eprintln!("ui command: {command:?}"),
+            None => eprintln!("ui event ignored: {}", req.body()),
+        })
         .build(&window)?;
 
     event_loop.run(move |event, _, control_flow| {
