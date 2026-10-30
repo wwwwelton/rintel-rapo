@@ -587,7 +587,8 @@ mod app {
             }
 
             let strings_arc = self.ui_strings.clone();
-            let header = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len()).header;
+            let game_rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
+            let header = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len(), game_rows).header;
             let mut commands: Vec<crate::command::Command> = Vec::new();
             egui::CentralPanel::default().show(ctx, |ui| {
                 let strings = strings_arc.as_ref();
