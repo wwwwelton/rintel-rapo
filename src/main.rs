@@ -8,6 +8,8 @@ mod learning;
 pub mod fps;
 pub mod hardware;
 pub mod intel_dtt;
+#[cfg(windows)]
+mod webview;
 pub mod ui_model;
 pub mod telemetry;
 pub mod tray;
@@ -1275,6 +1277,15 @@ fn export_ui_assets() -> std::io::Result<()> {
 
 #[cfg(windows)]
 fn main() -> eframe::Result {
+    #[cfg(windows)]
+    if std::env::args_os().any(|arg| arg == "--webview-preview") {
+        let header = r#"{"optimizer_running":true,"dtt":"stopped","default_config_enabled":true,"strings":{"txt_app_title":"RINTEL RAPO","badge_scheduling":"AGENDAMENTO WINDOWS","badge_status_active":"ATIVO (START)","badge_status_paused":"PAUSADO (STOP)","badge_dtt_stopped":"INTEL DTT DETECTADO","btn_refresh":"Atualizar","btn_scan_steam":"Reexaminar Steam","btn_default_config":"Configuração padrão","btn_stop":"Stop"}}"#;
+        if let Err(error) = webview::run_preview(header) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     if std::env::args_os().any(|arg| arg == "--export-ui-assets") {
         if let Err(error) = export_ui_assets() {
             eprintln!("{error}");

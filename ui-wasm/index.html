@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Rintel RAPO</title>
+<style>
+  body { margin: 0; background: #0f1115; color: #e6e6e6; font-family: "Segoe UI", sans-serif; }
+  .rapo-header { display: flex; align-items: center; gap: 12px; padding: 16px; flex-wrap: wrap; }
+  .rapo-header h1 { font-size: 22px; margin: 0; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid currentColor; }
+  .badge-accent { color: #4fc3f7; }
+  .badge-warning { color: #ffd54f; }
+  .badge-muted { color: #9e9e9e; }
+  .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  button { background: #1c1f26; color: inherit; border: 1px solid #333; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+  button:disabled { opacity: 0.4; cursor: default; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+  import init, { render_header_json } from "./rapo_ui.js";
+  await init();
+  document.getElementById("app").innerHTML = render_header_json(JSON.stringify(window.INITIAL_HEADER));
+</script>
+</body>
+</html>
