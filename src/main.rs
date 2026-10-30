@@ -22,6 +22,8 @@ mod steam;
 mod windows;
 #[cfg(windows)]
 mod release;
+#[cfg(windows)]
+mod netqos;
 
 #[cfg(windows)]
 mod app {
@@ -107,6 +109,9 @@ mod app {
         runtime_profiles: HashMap<PathBuf, crate::learning::Settings>,
         learned_pids: HashSet<(u32, PathBuf)>,
         current_active_profile: Option<String>,
+        netqos: super::netqos::NetQos,
+        qos_error: String,
+        qos_sweep_error: String,
         ui_strings: Arc<HashMap<String, String>>,
     }
 
@@ -167,11 +172,17 @@ mod app {
                 runtime_profiles: HashMap::new(),
                 learned_pids: HashSet::new(),
                 current_active_profile: None,
+                netqos: super::netqos::NetQos::default(),
+                qos_error: String::new(),
+                qos_sweep_error: String::new(),
                 ui_strings: Arc::new(load_ui_strings()),
             };
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
                 Err(error) => app.training_message = error,
+            }
+            if let Err(error) = super::netqos::clear_all() {
+                app.qos_sweep_error = error;
             }
             app.scan();
             app.refresh();
@@ -286,6 +297,15 @@ mod app {
                 }
             }
 
+            let active: Vec<&std::path::Path> = if optimizer_active {
+                self.running.iter().filter(|p| self.optimizer.enabled(p.pid)).map(|p| p.exe.as_path()).collect()
+            } else {
+                Vec::new()
+            };
+            match self.netqos.sync(&active) {
+                Ok(()) => self.qos_error.clear(),
+                Err(error) => self.qos_error = error,
+            }
             let stale: Vec<u32> = self.applied_qos.keys().copied().filter(|pid| {
                 !optimizer_active || !self.running.iter().any(|p|
                     p.pid == *pid && self.effective_settings(p).qos)
@@ -604,6 +624,14 @@ mod app {
                                 self.scan();
                                 self.refresh();
                             }
+                            let default_enabled = self.running.is_empty();
+                            if ui.add_enabled(default_enabled, egui::Button::new(egui::RichText::new(tr(strings, "btn_default_config", "Configuração padrão")).size(12.0))).clicked() {
+                                self.qos_error.clear();
+                                self.qos_sweep_error = match self.netqos.reset() {
+                                    Ok(()) => String::new(),
+                                    Err(error) => error,
+                                };
+                            }
                             let toggle_label = if current_opt_running { tr(strings, "btn_stop", "⏹ Stop") } else { tr(strings, "btn_start", "▶ Start") };
                             if ui.button(egui::RichText::new(toggle_label).size(12.0).strong()).clicked() {
                                 self.tray.set_optimizer_running(!current_opt_running);
@@ -641,6 +669,14 @@ mod app {
                             ui.colored_label(COLOR_DANGER, &self.error);
                         });
                         ui.add_space(8.0);
+                    }
+                    for alert in [&self.qos_error, &self.qos_sweep_error] {
+                        if !alert.is_empty() {
+                            notmeter_card(ui, |ui| {
+                                ui.colored_label(COLOR_DANGER, alert);
+                            });
+                            ui.add_space(8.0);
+                        }
                     }
 
                     // HERO CARD: PROCESSO SENDO OTIMIZADO ATIVAMENTE
