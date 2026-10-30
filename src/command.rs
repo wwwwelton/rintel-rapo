@@ -1,8 +1,13 @@
 //! UI intents. The render only records them; `App::apply` runs the side effects
 //! after the frame, so the render itself stays read-only.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     /// Desired optimizer state, computed from the state the frame was drawn with.
     SetOptimizerRunning(bool),
+    SetQos { directory: PathBuf, on: bool },
+    SetPin { directory: PathBuf, on: bool },
+    SetAuto { directory: PathBuf, on: bool },
 }

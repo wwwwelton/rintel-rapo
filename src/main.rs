@@ -1144,62 +1144,19 @@ mod app {
                                                     ui.add_enabled_ui(self.training.is_none(), |ui| {
                                                     let mut qos = self.qos_games.contains(&game.directory);
                                                     if ui.checkbox(&mut qos, egui::RichText::new("Prioridade de memória / EcoQoS").color(COLOR_TEXT)).changed() {
-                                                        manual_directories.push(game.directory.clone());
-                                                        if qos {
-                                                            self.qos_games.insert(game.directory.clone());
-                                                        } else {
-                                                            self.qos_games.remove(&game.directory);
-                                                        }
-                                                        needs_refresh = true;
+                                                        commands.push(crate::command::Command::SetQos { directory: game.directory.clone(), on: qos });
                                                     }
 
                                                     // Toggle P-cores
                                                     let mut pin = self.pin_games.contains(&game.directory);
                                                     if ui.checkbox(&mut pin, egui::RichText::new(tr(strings, "chk_game_pcores", "P-cores")).color(COLOR_TEXT)).changed() {
-                                                        manual_directories.push(game.directory.clone());
-                                                        needs_refresh = true;
-                                                        if pin {
-                                                            if self.pinner.is_none() {
-                                                                match Pinner::new() {
-                                                                    Ok(pinner) => self.pinner = Some(pinner),
-                                                                    Err(error) => self.error = error,
-                                                                }
-                                                            }
-                                                            if self.pinner.is_some() {
-                                                                self.pin_games.insert(game.directory.clone());
-                                                            }
-                                                        } else {
-                                                            self.pin_games.remove(&game.directory);
-                                                            if let Some(pinner) = &mut self.pinner {
-                                                                if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode, &self.runtime_profiles) {
-                                                                    self.error = error;
-                                                                }
-                                                            }
-                                                        }
+                                                        commands.push(crate::command::Command::SetPin { directory: game.directory.clone(), on: pin });
                                                     }
 
                                                     // Toggle Auto Prioridade
                                                     let mut auto = self.auto_games.contains(&game.directory);
                                                     if ui.checkbox(&mut auto, egui::RichText::new(tr(strings, "chk_game_auto_priority", "Auto Prioridade")).color(COLOR_TEXT)).changed() {
-                                                        manual_directories.push(game.directory.clone());
-                                                        if auto {
-                                                            self.auto_games.insert(game.directory.clone());
-                                                            if self.tray.is_optimizer_running() {
-                                                                for process in &self.running {
-                                                                    if process.directory == game.directory && !self.optimizer.enabled(process.pid) {
-                                                                        if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
-                                                                    }
-                                                                }
-                                                                if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() { self.error = error; }
-                                                            }
-                                                        } else {
-                                                            self.auto_games.remove(&game.directory);
-                                                            for process in &self.running {
-                                                                if process.directory == game.directory && self.optimizer.enabled(process.pid) {
-                                                                    if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
-                                                                }
-                                                            }
-                                                        }
+                                                        commands.push(crate::command::Command::SetAuto { directory: game.directory.clone(), on: auto });
                                                     }
                                                     });
                                                     let mut rapo = self.rapo_game.as_ref() == Some(&game.directory);
@@ -1255,6 +1212,59 @@ mod app {
             match command {
                 crate::command::Command::SetOptimizerRunning(running) => {
                     self.tray.set_optimizer_running(running);
+                    self.refresh();
+                }
+                crate::command::Command::SetQos { directory, on } => {
+                    if on {
+                        self.qos_games.insert(directory.clone());
+                    } else {
+                        self.qos_games.remove(&directory);
+                    }
+                    self.clear_runtime_profiles(&directory);
+                    self.refresh();
+                }
+                crate::command::Command::SetPin { directory, on } => {
+                    if on {
+                        if self.pinner.is_none() {
+                            match Pinner::new() {
+                                Ok(pinner) => self.pinner = Some(pinner),
+                                Err(error) => self.error = error,
+                            }
+                        }
+                        if self.pinner.is_some() {
+                            self.pin_games.insert(directory.clone());
+                        }
+                    } else {
+                        self.pin_games.remove(&directory);
+                        if let Some(pinner) = &mut self.pinner {
+                            if let Err(error) = pinner.update(&self.running, &self.pin_games, self.windowed_mode, &self.runtime_profiles) {
+                                self.error = error;
+                            }
+                        }
+                    }
+                    self.clear_runtime_profiles(&directory);
+                    self.refresh();
+                }
+                crate::command::Command::SetAuto { directory, on } => {
+                    if on {
+                        self.auto_games.insert(directory.clone());
+                        if self.tray.is_optimizer_running() {
+                            for process in &self.running {
+                                if process.directory == directory && !self.optimizer.enabled(process.pid) {
+                                    if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                }
+                            }
+                            if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() { self.error = error; }
+                        }
+                    } else {
+                        self.auto_games.remove(&directory);
+                        for process in &self.running {
+                            if process.directory == directory && self.optimizer.enabled(process.pid) {
+                                if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                            }
+                        }
+                    }
+                    self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }
             }
