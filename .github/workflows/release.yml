@@ -30,6 +30,13 @@ jobs:
       - name: 2. Test (Windows Unit & Integration Suite)
         run: cargo test
 
+      - name: 📋 Show build environment
+        run: |
+          echo "=== Windows Build Environment ==="
+          rustc --version
+          cargo --version
+          echo "=== Target Configuration ==="
+          cargo build --release --message-format=json 2>&1 | jq '.executable' | head -5
       - name: Sign executable with Authenticode SHA-256 & DigiCert Timestamp
         shell: pwsh
         run: |
@@ -57,12 +64,40 @@ jobs:
           }
 
           Get-AuthenticodeSignature -FilePath $exePath | Select-Object Status, SignerCertificate, TimeStamperCertificate | Format-List
+      - name: 🔍 Verify executable & assets
+        shell: pwsh
+        run: |
+          Write-Host "=== Built Artifacts ===" -ForegroundColor Cyan
+          Get-Item "target\release\rintel-rapo.exe" | ForEach-Object { Write-Host "✓ $_"; Write-Host "  Size: $([math]::Round($_.Length / 1MB, 2)) MB" }
+          Write-Host "`n=== Signed certificate ===" -ForegroundColor Cyan
+          Get-AuthenticodeSignature "target\release\rintel-rapo.exe" | ForEach-Object {
+            Write-Host "Status: $($_.Status)"
+            Write-Host "Signer: $($_.SignerCertificate.Subject)"
+            if ($_.TimeStamperCertificate) { Write-Host "Timestamp: $($_.TimeStamperCertificate.Subject)" }
+          }
 
       - name: Generate SHA-256 checksum
         shell: pwsh
         run: |
           $hash = & "target\release\rintel-rapo.exe" --generate-sha256
           "$hash" | Out-File -FilePath "target\release\rintel-rapo.exe.sha256" -Encoding ascii
+      - name: 📦 Release artifacts ready
+        shell: pwsh
+        run: |
+          Write-Host "=== Release Package ===" -ForegroundColor Green
+          @(
+            "target/release/rintel-rapo.exe",
+            "target/release/rintel-rapo.exe.sha256",
+            "target/release/rintel-rapo.cer"
+          ) | ForEach-Object {
+            if (Test-Path $_) {
+              $item = Get-Item $_
+              Write-Host "✓ $($item.Name) - $([math]::Round($item.Length / 1KB, 1)) KB"
+            } else {
+              Write-Host "✗ $_ - MISSING" -ForegroundColor Red
+            }
+          }
+          Write-Host "`nTagging release: v0.2.${{ github.run_number }}" -ForegroundColor Yellow
 
       - name: 3. Release (Publish GitHub Release on Push)
         uses: softprops/action-gh-release@v2
