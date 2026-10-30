@@ -75,5 +75,3 @@ jobs:
             target/release/rintel-rapo.exe
             target/release/rintel-rapo.exe.sha256
             target/release/rintel-rapo.cer
-            ui.json
-            ui_figma.svg

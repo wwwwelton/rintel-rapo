@@ -1,6 +1,7 @@
 fn main() {
-    println!("cargo:rerun-if-changed=native");
-    println!("cargo:rerun-if-changed=vendor/presentmon");
+    for path in ["native", "vendor/presentmon", "ui.json", "ui_figma.svg"] {
+        println!("cargo:rerun-if-changed={path}");
+    }
     generate_figma_ui_and_tokens();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
@@ -67,7 +68,6 @@ fn main() {
     for library in ["advapi32", "tdh", "version"] {
         println!("cargo:rustc-link-lib={library}");
     }
-    generate_figma_ui_and_tokens();
 }
 
 fn write_if_changed(path: &std::path::Path, content: &str) {
@@ -178,18 +178,8 @@ fn generate_figma_ui_and_tokens() {
     json_str.push_str("}\n");
     write_if_changed(&json_path, &json_str);
 
-    // Copy to target directories if present so bin can find it beside itself
-    for target_dir in ["release", "debug"] {
-        for base in [root.join("target"), root.join("target/x86_64-pc-windows-gnu")] {
-            let bin_dir = base.join(target_dir);
-            if bin_dir.is_dir() {
-                write_if_changed(&bin_dir.join("ui.json"), &json_str);
-            }
-        }
-    }
-
-    // 2. Generate ui_figma.svg with semantic layer IDs
-    let svg_content = r##"<svg width="1180" height="1520" viewBox="0 0 1180 1520" fill="none" xmlns="http://www.w3.org/2000/svg">
+    // Seed editable Figma source once; rebuilds embed the current file unchanged.
+    let generated_svg = r##"<svg width="1180" height="1520" viewBox="0 0 1180 1520" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
     .text-title { font-size: 24px; font-weight: 700; fill: #F3F8FB; }
@@ -380,13 +370,7 @@ fn generate_figma_ui_and_tokens() {
   </g>
 </svg>
 "##;
-    write_if_changed(&root.join("ui_figma.svg"), svg_content);
-    for target_dir in ["release", "debug"] {
-        for base in [root.join("target"), root.join("target/x86_64-pc-windows-gnu")] {
-            let bin_dir = base.join(target_dir);
-            if bin_dir.is_dir() {
-                write_if_changed(&bin_dir.join("ui_figma.svg"), svg_content);
-            }
-        }
-    }
+    let svg_path = root.join("ui_figma.svg");
+    let svg_content = std::fs::read_to_string(&svg_path).unwrap_or_else(|_| generated_svg.to_string());
+    write_if_changed(&svg_path, &svg_content);
 }

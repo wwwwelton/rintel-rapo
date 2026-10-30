@@ -109,24 +109,13 @@ mod app {
 
     fn load_ui_strings() -> HashMap<String, String> {
         let mut map = HashMap::new();
-        let candidates = [
-            std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("ui.json"))),
-            Some(PathBuf::from("ui.json")),
-        ];
-        for path in candidates.into_iter().flatten() {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                for line in content.lines() {
-                    let line = line.trim().trim_end_matches(',');
-                    if let Some((k, v)) = line.split_once(':') {
-                        let k = k.trim().trim_matches('"');
-                        let v = v.trim().trim_matches('"');
-                        if !k.is_empty() && !v.is_empty() {
-                            map.insert(k.to_string(), v.replace("\\n", "\n").replace("\\\"", "\""));
-                        }
-                    }
-                }
-                if !map.is_empty() {
-                    break;
+        for line in include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui.json")).lines() {
+            let line = line.trim().trim_end_matches(',');
+            if let Some((k, v)) = line.split_once(':') {
+                let k = k.trim().trim_matches('"');
+                let v = v.trim().trim_matches('"');
+                if !k.is_empty() && !v.is_empty() {
+                    map.insert(k.to_string(), v.replace("\\n", "\n").replace("\\\"", "\""));
                 }
             }
         }
@@ -1219,8 +1208,39 @@ mod app {
     }
 }
 
+fn export_ui_assets() -> std::io::Result<()> {
+    use std::io::Write;
+    let dir = std::env::current_exe()?
+        .parent()
+        .ok_or_else(|| std::io::Error::other("Executable path has no parent"))?
+        .to_path_buf();
+    for (name, content) in [
+        ("ui.json", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui.json"))),
+        ("ui_figma.svg", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui_figma.svg"))),
+    ] {
+        let mut file = match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(dir.join(name))
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        };
+        file.write_all(content.as_bytes())?;
+    }
+    Ok(())
+}
+
 #[cfg(windows)]
 fn main() -> eframe::Result {
+    if std::env::args_os().any(|arg| arg == "--export-ui-assets") {
+        if let Err(error) = export_ui_assets() {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     if let Err(error) = windows::wait_for_parent() {
         eprintln!("{error}");
         return Ok(());
