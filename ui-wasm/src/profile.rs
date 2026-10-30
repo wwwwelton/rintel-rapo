@@ -11,6 +11,7 @@ pub struct ProfileSettings {
     pub cores: u8,
     pub smt: bool,
     pub p_only: bool,
+    pub park_cores: bool,
 }
 
 fn field(html: &mut String, label: &str, value: impl Display, relevant: bool) {
@@ -32,5 +33,38 @@ pub fn render_settings(html: &mut String, settings: &ProfileSettings) {
     field(html, "Limiar de CPU (%)", settings.min_percent, settings.pin);
     field(html, "Núcleos elegíveis", if settings.p_only { "Somente P-cores" } else { "Todos os núcleos" }, settings.pin);
     field(html, "Permitir irmãos SMT / HT", on(settings.smt), settings.pin);
+    field(html, "Desligar núcleos ociosos (reserva de cache)", on(settings.park_cores), settings.pin);
     html.push_str("</dl>");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn renders_park_cores_parameter_card_active_and_inactive() {
+        let mut html_active = String::new();
+        let settings_active = ProfileSettings {
+            priority: true,
+            pin: true,
+            qos: false,
+            threads: 4,
+            min_percent: 5,
+            cores: 8,
+            smt: true,
+            p_only: true,
+            park_cores: true,
+        };
+        render_settings(&mut html_active, &settings_active);
+        assert!(html_active.contains("<div class=\"parameter parameter-on\"><dt>Desligar núcleos ociosos (reserva de cache)</dt><dd>Ativado</dd></div>"));
+
+        let mut html_standby = String::new();
+        let settings_standby = ProfileSettings {
+            pin: false,
+            park_cores: false,
+            ..settings_active
+        };
+        render_settings(&mut html_standby, &settings_standby);
+        assert!(html_standby.contains("<div class=\"parameter parameter-off\"><dt>Desligar núcleos ociosos (reserva de cache)</dt><dd>Desativado</dd><small>Sem efeito neste perfil</small></div>"));
+    }
 }

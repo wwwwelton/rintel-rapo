@@ -91,9 +91,9 @@ impl TrainingStatus {
 /// One-line summary of the candidate settings, identical to the RAPO hero line.
 pub fn candidate_summary(candidate: Settings) -> String {
     format!(
-        "Candidato: prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · limiar {}% · memória {}",
+        "Candidato: prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · desligar núcleos {} · limiar {}% · memória {}",
         candidate.priority, candidate.pin, candidate.cores, candidate.threads,
-        candidate.smt, candidate.p_only, candidate.min_percent, candidate.qos
+        candidate.smt, candidate.p_only, candidate.park_cores, candidate.min_percent, candidate.qos
     )
 }
 
@@ -167,7 +167,7 @@ mod tests {
         let s = candidate_summary(Settings { priority: true, pin: false, qos: true, cores: 6, threads: 4, smt: false, p_only: true, ..Settings::default() });
         assert_eq!(
             s,
-            "Candidato: prioridade true · afinidade false · até 6 núcleos físicos · até 4 threads críticas · SMT false · somente P-cores true · limiar 5% · memória true"
+            "Candidato: prioridade true · afinidade false · até 6 núcleos físicos · até 4 threads críticas · SMT false · somente P-cores true · desligar núcleos false · limiar 5% · memória true"
         );
     }
 

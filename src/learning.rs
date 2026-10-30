@@ -13,6 +13,7 @@ pub struct Settings {
     pub cores: u8,
     pub smt: bool,
     pub p_only: bool,
+    pub park_cores: bool,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -25,6 +26,7 @@ impl Default for Settings {
             cores: 64,
             smt: true,
             p_only: true,
+            park_cores: false,
         }
     }
 }
@@ -93,11 +95,12 @@ pub struct Search {
     model: flow::Flow,
 }
 
-fn features(settings: Settings) -> [f64; 8] {
+fn features(settings: Settings) -> [f64; 9] {
     [settings.priority as u8 as f64, settings.qos as u8 as f64,
         settings.pin as u8 as f64, f64::from(settings.threads) / 64.0,
         f64::from(settings.cores) / 64.0, f64::from(settings.min_percent) / 20.0,
-        settings.smt as u8 as f64, settings.p_only as u8 as f64]
+        settings.smt as u8 as f64, settings.p_only as u8 as f64,
+        settings.park_cores as u8 as f64]
 }
 impl Search {
     pub fn new(seed: u64, limits: Limits, reference: Settings) -> Self {
@@ -126,12 +129,14 @@ impl Search {
             if !settings.smt {
                 settings.threads = settings.threads.min(settings.cores);
             }
+            settings.park_cores &= settings.pin && self.limits.cores > 1;
         } else {
             settings.threads = 4;
             settings.min_percent = 5;
             settings.cores = 64;
             settings.smt = true;
             settings.p_only = true;
+            settings.park_cores = false;
         }
         settings
     }
@@ -202,11 +207,12 @@ impl Search {
                 candidate.pin = bits & 4 != 0;
                 candidate.smt = bits & 8 != 0;
                 candidate.p_only = bits & 16 != 0;
+                candidate.park_cores = bits & 32 != 0;
                 candidate.cores = 1 + (self.random() % u64::from(self.limits.cores.max(1))) as u8;
                 candidate.threads = 1 + (self.random() % u64::from(self.limits.threads.max(1))) as u8;
                 candidate.min_percent = 1 + (self.random() % 20) as u8;
             } else {
-                match self.random() % if self.limits.threads > 0 { 8 } else { 2 } {
+                match self.random() % if self.limits.threads > 0 { 9 } else { 2 } {
                     0 => candidate.priority = !candidate.priority,
                     1 => candidate.qos = !candidate.qos,
                     2 => candidate.pin = !candidate.pin,
@@ -215,6 +221,7 @@ impl Search {
                     5 => { candidate.pin = true; candidate.cores = 1 + (self.random() % u64::from(self.limits.cores.max(1))) as u8; }
                     6 if self.limits.smt => { candidate.pin = true; candidate.smt = !candidate.smt; }
                     7 if self.limits.p_cores < self.limits.cores => { candidate.pin = true; candidate.p_only = !candidate.p_only; }
+                    8 => { candidate.pin = true; candidate.park_cores = !candidate.park_cores; }
                     _ => continue,
                 }
             }
@@ -296,10 +303,11 @@ pub fn save_profile(profile: &Profile) -> Result<(), String> {
         .create_subkey("Software\\RintelRAPO\\LearnedProfiles")
         .map_err(|e| e.to_string())?;
     let value = format!(
-        "3|{}|{}|{}|{}|{}|{}",
+        "4|{}|{}|{}|{}|{}|{}",
         profile.settings.bits()
             | ((profile.settings.smt as u8) << 3)
-            | ((profile.settings.p_only as u8) << 4),
+            | ((profile.settings.p_only as u8) << 4)
+            | ((profile.settings.park_cores as u8) << 5),
         profile.settings.threads,
         profile.settings.min_percent,
         profile.settings.cores,
@@ -330,8 +338,10 @@ pub fn load_profiles() -> Result<Vec<Profile>, String> {
 fn decode(exe: PathBuf, text: &str) -> Result<Profile, String> {
     let invalid = || "Perfil salvo inválido".to_string();
     let parts: Vec<_> = text.split('|').collect();
-    let legacy = parts.len() == 6 && parts[0] == "2";
-    if !legacy && !(parts.len() == 7 && parts[0] == "3") {
+    let legacy2 = parts.len() == 6 && parts[0] == "2";
+    let legacy3 = parts.len() == 7 && parts[0] == "3";
+    let format4 = parts.len() == 7 && parts[0] == "4";
+    if !legacy2 && !legacy3 && !format4 {
         return Err(invalid());
     }
     let bits: u8 = parts[1].parse().map_err(|_| invalid())?;
@@ -341,23 +351,24 @@ fn decode(exe: PathBuf, text: &str) -> Result<Profile, String> {
         qos: bits & 4 != 0,
         threads: parts[2].parse().map_err(|_| invalid())?,
         min_percent: parts[3].parse().map_err(|_| invalid())?,
-        cores: if legacy {
+        cores: if legacy2 {
             64
         } else {
             parts[4].parse().map_err(|_| invalid())?
         },
-        smt: legacy || bits & 8 != 0,
-        p_only: legacy || bits & 16 != 0,
+        smt: legacy2 || bits & 8 != 0,
+        p_only: legacy2 || bits & 16 != 0,
+        park_cores: format4 && bits & 32 != 0,
     };
     let score = Score {
-        fps: parts[if legacy { 4 } else { 5 }]
+        fps: parts[if legacy2 { 4 } else { 5 }]
             .parse()
             .map_err(|_| invalid())?,
-        low_fps: parts[if legacy { 5 } else { 6 }]
+        low_fps: parts[if legacy2 { 5 } else { 6 }]
             .parse()
             .map_err(|_| invalid())?,
     };
-    if bits > if legacy { 7 } else { 31 } || !settings.valid() || !score.valid() {
+    if bits > if legacy2 { 7 } else if legacy3 { 31 } else { 63 } || !settings.valid() || !score.valid() {
         return Err(invalid());
     }
     Ok(Profile {
@@ -557,6 +568,30 @@ mod tests {
     }
 
     #[test]
+    fn park_cores_normalization_and_exploration_invariants() {
+        let limits_multi = Limits { threads: 8, cores: 4, p_cores: 4, smt: true };
+        let mut search = Search::new(42, limits_multi, Settings::default());
+        let mut park_explored = false;
+        for _ in 0..1000 {
+            let current = search.current();
+            if current.park_cores {
+                assert!(current.pin);
+                park_explored = true;
+            }
+            search.record(Score { fps: 60.0, low_fps: 40.0 }).unwrap();
+        }
+        assert!(park_explored, "search must explore parking cores when cores > 1");
+
+        let limits_single = Limits { threads: 1, cores: 1, p_cores: 1, smt: false };
+        let search_single = Search::new(42, limits_single, Settings {
+            pin: true,
+            park_cores: true,
+            ..Settings::default()
+        });
+        assert!(!search_single.current().park_cores, "single-core system must not park cores");
+    }
+
+    #[test]
     fn profiles_validate_stored_boundary() {
         assert_eq!(
             decode(PathBuf::from("遊戲.exe"), "2|5|3|8|120|80")
@@ -571,7 +606,15 @@ mod tests {
         assert_eq!(extended.exe, PathBuf::from("game.exe"));
         assert_eq!(extended.score.fps, 120.0);
         assert_eq!(extended.score.low_fps, 80.0);
+        let format4 = decode(PathBuf::from("game4.exe"), "4|35|4|5|4|144|95").unwrap();
+        assert!(format4.settings.priority);
+        assert!(format4.settings.pin);
+        assert!(format4.settings.park_cores);
+        assert_eq!(format4.settings.cores, 4);
+        assert_eq!(format4.score.fps, 144.0);
+        assert_eq!(format4.score.low_fps, 95.0);
         for bad in [
+            "4|64|4|5|2|60|40",
             "3|0|4|5|60|40",
             "2|8|4|5|60|40",
             "2|0|0|5|60|40",
@@ -599,6 +642,7 @@ mod tests {
                 cores: 2,
                 smt: false,
                 p_only: false,
+                park_cores: true,
                 ..Settings::default()
             },
             score: Score {

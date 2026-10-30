@@ -711,7 +711,7 @@ mod app {
                                 tr(strings, "badge_rapo_candidate", "RAPO ATIVO — medindo candidato")
                             }).size(16.0).strong().color(if training.paused { COLOR_YELLOW } else { COLOR_ACCENT }));
                             ui.label(format!("{} · PID {} · {} medições confirmadas", training.exe.display(), training.pid, training.search.completed()));
-                            ui.label(format!("Prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · memória/EcoQoS {}", candidate.priority, candidate.pin, candidate.cores, candidate.threads, candidate.smt, candidate.p_only, candidate.qos));
+                            ui.label(format!("Prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · desligar núcleos {} · memória/EcoQoS {}", candidate.priority, candidate.pin, candidate.cores, candidate.threads, candidate.smt, candidate.p_only, candidate.park_cores, candidate.qos));
                             if training.paused {
                                 ui.label(tr(strings, "txt_rapo_paused_note", "Sem captura e sem ajustes de teste no alvo. Volte ao mesmo jogo e mantenha a otimização em Start para retomar este candidato."));
                             }

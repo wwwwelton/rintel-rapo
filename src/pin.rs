@@ -16,8 +16,8 @@ use windows_sys::Win32::{
         Threading::{
             GetActiveProcessorGroupCount, GetProcessAffinityMask, GetProcessGroupAffinity,
             GetThreadGroupAffinity, GetThreadTimes, OpenProcess,
-            OpenThread, SetThreadAffinityMask, PROCESS_QUERY_LIMITED_INFORMATION,
-            THREAD_QUERY_LIMITED_INFORMATION, THREAD_SET_INFORMATION,
+            OpenThread, SetProcessAffinityMask, SetThreadAffinityMask, PROCESS_QUERY_LIMITED_INFORMATION,
+            PROCESS_SET_INFORMATION, THREAD_QUERY_LIMITED_INFORMATION, THREAD_SET_INFORMATION,
         },
     },
     UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId},
@@ -29,7 +29,7 @@ fn ticks(t: FILETIME) -> u64 {
 
 // Do not replace an affinity chosen by the game or another scheduler.
 fn can_pin_thread(thread_mask: usize, process_mask: usize, p_core_mask: usize) -> bool {
-    thread_mask == process_mask && thread_mask != p_core_mask
+    (thread_mask == process_mask || (thread_mask & !p_core_mask) == 0) && thread_mask != p_core_mask
 }
 
 fn select_critical_threads(
@@ -196,6 +196,7 @@ pub struct Pinner {
     last_poll: Option<(u32, std::time::Instant)>,
     pub auto_yield: bool,
     pub conflict: Option<AffinityConflict>,
+    process_masks: HashMap<u32, usize>,
 }
 
 impl Pinner {
@@ -216,6 +217,7 @@ impl Pinner {
             last_poll: None,
             auto_yield: true,
             conflict: None,
+            process_masks: HashMap::new(),
         })
     }
     pub fn limits(&self) -> Limits {
@@ -300,10 +302,23 @@ impl Pinner {
     }
 
     fn restore(&mut self, pid: u32) -> Result<(), String> {
-        let Some(pins) = self.pinned.get_mut(&pid) else { return Ok(()); };
-        let result = Self::restore_pins(pins, Self::restore_pin);
-        if pins.is_empty() { self.pinned.remove(&pid); }
-        result
+        if let Some(original_mask) = self.process_masks.remove(&pid) {
+            unsafe {
+                let handle = OpenProcess(PROCESS_SET_INFORMATION, 0, pid);
+                if !handle.is_null() {
+                    SetProcessAffinityMask(handle, original_mask);
+                    CloseHandle(handle);
+                }
+            }
+        }
+        let pins_result = if let Some(pins) = self.pinned.get_mut(&pid) {
+            let res = Self::restore_pins(pins, Self::restore_pin);
+            if pins.is_empty() { self.pinned.remove(&pid); }
+            res
+        } else {
+            Ok(())
+        };
+        pins_result
     }
 
     pub fn update(
@@ -404,9 +419,24 @@ impl Pinner {
             if ok == 0 {
                 return Err("Não foi possível ler afinidade do processo".into());
             }
-            let mask = affinity_mask(&self.cores, settings, process_mask);
+            let base_process_mask = self.process_masks.get(&process.pid).copied().unwrap_or(process_mask);
+            let mask = affinity_mask(&self.cores, settings, base_process_mask);
             if mask == 0 {
                 return Err("Nenhum núcleo elegível na afinidade permitida pelo jogo".into());
+            }
+            if settings.park_cores {
+                let set_handle = OpenProcess(PROCESS_SET_INFORMATION, 0, process.pid);
+                if !set_handle.is_null() {
+                    self.process_masks.entry(process.pid).or_insert(process_mask);
+                    SetProcessAffinityMask(set_handle, mask);
+                    CloseHandle(set_handle);
+                }
+            } else if let Some(original_mask) = self.process_masks.remove(&process.pid) {
+                let set_handle = OpenProcess(PROCESS_SET_INFORMATION, 0, process.pid);
+                if !set_handle.is_null() {
+                    SetProcessAffinityMask(set_handle, original_mask);
+                    CloseHandle(set_handle);
+                }
             }
             let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
             if snapshot == INVALID_HANDLE_VALUE {
@@ -584,7 +614,7 @@ impl Pinner {
 
 impl Drop for Pinner {
     fn drop(&mut self) {
-        let pids: Vec<_> = self.pinned.keys().copied().collect();
+        let pids: Vec<_> = self.pinned.keys().copied().chain(self.process_masks.keys().copied()).collect();
         for pid in pids {
             if let Err(error) = self.restore(pid) { eprintln!("{error}"); }
         }

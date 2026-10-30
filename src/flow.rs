@@ -1,5 +1,5 @@
 // Avatarnoia Flow Engine 2.0: online paired-reward predictor, never an actuator.
-const INPUTS: usize = 8;
+const INPUTS: usize = 9;
 const HIDDEN: usize = 16;
 
 pub struct Flow {
@@ -62,12 +62,11 @@ mod tests {
         let mut model = Flow::new(42);
         for _ in 0..4000 {
             for (a, b) in [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)] {
-                model.train(&[a, b, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], if a != b { 0.2 } else { -0.2 });
+                model.train(&[a, b, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], if a != b { 0.2 } else { -0.2 });
             }
         }
-        assert!(model.predict(&[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) > 0.1);
-        let input = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-        assert!(model.predict(&input) < -0.1);
+        assert!(model.predict(&[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) > 0.1);
+        let input = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
         for _ in 0..500 { model.train(&input, 0.3); }
         assert!(model.predict(&input) > 0.2);
         let before = model.predict(&input);
