@@ -30,10 +30,10 @@ enum PropertyStatus {
 
 struct EventDataDesc {
     wchar_t const* name_;   // Property name
-    void* data_;            // OUT pointer to property data
-    uint32_t size_;         // OUT size of a property data element
-    uint32_t count_;        // OUT number of elements (if it's an array property)
-    uint32_t status_;       // OUT PropertyStatus result of search
+    void* data_ = nullptr;   // OUT pointer to property data
+    uint32_t size_ = 0;      // OUT size of a property data element
+    uint32_t count_ = 0;     // OUT number of elements (if it's an array property)
+    uint32_t status_ = 0;    // OUT PropertyStatus result of search
 
     template<typename T> T GetData() const
     {

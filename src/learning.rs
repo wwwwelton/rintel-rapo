@@ -139,9 +139,10 @@ impl Search {
         self.observations[self.current].settings
     }
     pub fn completed(&self) -> usize { self.completed }
+    #[cfg(windows)]
     pub fn explored(&self) -> usize { self.observations.len() }
+    #[cfg(windows)]
     pub fn reject_current(&mut self) {
-        self.observations[self.current].rejected = true;
         self.pending = None;
         if self.current == self.reference {
             self.reference = 0;
@@ -173,11 +174,11 @@ impl Search {
             self.current = index;
             return;
         }
-        if self.pairs % 7 == 0 && self.reference != 0 && !self.observations[0].rejected {
+        if self.pairs.is_multiple_of(7) && self.reference != 0 && !self.observations[0].rejected {
             self.current = 0;
             return;
         }
-        if self.pairs % 3 == 0 {
+        if self.pairs.is_multiple_of(3) {
             if let Some((index, _)) = self.observations.iter().enumerate()
                 .filter(|(index, observation)| *index != self.reference && !observation.rejected)
                 .max_by(|(_, a), (_, b)| {
@@ -193,7 +194,7 @@ impl Search {
         let mut selected_value = f64::NEG_INFINITY;
         for _ in 0..24 {
             let mut candidate = self.observations[self.reference].settings;
-            if self.random() % 4 == 0 {
+            if self.random().is_multiple_of(4) {
                 // Whole candidates escape combinations that single-setting hill climbing cannot reach.
                 let bits = self.random();
                 candidate.priority = bits & 1 != 0;
@@ -225,7 +226,7 @@ impl Search {
                     selected_value = value;
                 }
                 // Keep random exploration during cold start and every fourth pair.
-                if self.model.samples < 12 || self.pairs % 4 == 0 { break; }
+                if self.model.samples < 12 || self.pairs.is_multiple_of(4) { break; }
             }
         }
         if let Some(candidate) = selected {

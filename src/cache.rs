@@ -168,6 +168,7 @@ pub unsafe fn restore_memory_qos(handle: HANDLE, state: &MemoryQosState) -> Resu
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
     use super::*;
 
     #[cfg(windows)]

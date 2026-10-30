@@ -66,7 +66,8 @@ bool controllerExited(uint32_t pid, uint64_t expectedCreation) {
 }
 
 ULONG recoverOrphans(bool (*cancelled)(void const*), void const* context) {
-    struct Properties : EVENT_TRACE_PROPERTIES {
+    struct Properties {
+        EVENT_TRACE_PROPERTIES trace;
         wchar_t name[1025];
         wchar_t file[1025];
     };
@@ -78,10 +79,10 @@ ULONG recoverOrphans(bool (*cancelled)(void const*), void const* context) {
         entries.resize(storage.size());
         for (size_t i = 0; i != storage.size(); ++i) {
             storage[i] = {};
-            storage[i].Wnode.BufferSize = sizeof(Properties);
-            storage[i].LoggerNameOffset = offsetof(Properties, name);
-            storage[i].LogFileNameOffset = offsetof(Properties, file);
-            entries[i] = &storage[i];
+            storage[i].trace.Wnode.BufferSize = sizeof(Properties);
+            storage[i].trace.LoggerNameOffset = offsetof(Properties, name);
+            storage[i].trace.LogFileNameOffset = offsetof(Properties, file);
+            entries[i] = &storage[i].trace;
         }
         const auto status = QueryAllTracesW(entries.data(), static_cast<ULONG>(entries.size()), &count);
         if (status == ERROR_SUCCESS) break;
@@ -98,16 +99,16 @@ ULONG recoverOrphans(bool (*cancelled)(void const*), void const* context) {
         if (!number(text, pid) || *text++ != L'-' || !number(text, created) || *text != L'\0' ||
             pid == 0 || pid > (std::numeric_limits<uint32_t>::max)() || created == 0) continue;
         const auto guid = sessionGuid(static_cast<uint32_t>(pid), created);
-        if (!IsEqualGUID(storage[i].Wnode.Guid, guid) ||
-            storage[i].LogFileMode != EVENT_TRACE_REAL_TIME_MODE ||
+        if (!IsEqualGUID(storage[i].trace.Wnode.Guid, guid) ||
+            storage[i].trace.LogFileMode != EVENT_TRACE_REAL_TIME_MODE ||
             !controllerExited(static_cast<uint32_t>(pid), created)) continue;
         // Names alone cannot establish ownership of legacy/third-party sessions.
         Properties properties{};
-        properties.Wnode.BufferSize = sizeof(Properties);
-        properties.Wnode.Guid = guid;
-        properties.LoggerNameOffset = offsetof(Properties, name);
-        properties.LogFileNameOffset = offsetof(Properties, file);
-        const auto status = ControlTraceW(0, name.data(), &properties, EVENT_TRACE_CONTROL_STOP);
+        properties.trace.Wnode.BufferSize = sizeof(Properties);
+        properties.trace.Wnode.Guid = guid;
+        properties.trace.LoggerNameOffset = offsetof(Properties, name);
+        properties.trace.LogFileNameOffset = offsetof(Properties, file);
+        const auto status = ControlTraceW(0, name.data(), &properties.trace, EVENT_TRACE_CONTROL_STOP);
         if (status != ERROR_SUCCESS && status != ERROR_WMI_INSTANCE_NOT_FOUND &&
             status != ERROR_MORE_DATA && status != ERROR_ACTIVE_CONNECTIONS) return status;
     }

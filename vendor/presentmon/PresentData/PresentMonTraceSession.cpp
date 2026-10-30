@@ -4,6 +4,7 @@
 #include "Debug.hpp"
 #include "PresentMonTraceConsumer.hpp"
 #include "PresentMonTraceSession.hpp"
+#include <cstring>
 
 #include "ETW/Microsoft_Windows_D3D9.h"
 #include "ETW/Microsoft_Windows_Dwm_Core.h"
@@ -19,7 +20,8 @@
 
 namespace {
 
-struct TraceProperties : public EVENT_TRACE_PROPERTIES {
+struct TraceProperties {
+    EVENT_TRACE_PROPERTIES properties;
     wchar_t mSessionName[MAX_PATH];
 };
 
@@ -213,7 +215,10 @@ ULONG EnableProviders(
     {
         auto hmodule = LoadLibraryExA("ntdll.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
         if (hmodule != NULL) {
-            auto pRtlGetVersion = (LONG (WINAPI*)(RTL_OSVERSIONINFOW*)) GetProcAddress(hmodule, "RtlGetVersion");
+            auto address = GetProcAddress(hmodule, "RtlGetVersion");
+            LONG (WINAPI* pRtlGetVersion)(RTL_OSVERSIONINFOW*) = nullptr;
+            static_assert(sizeof(pRtlGetVersion) == sizeof(address));
+            std::memcpy(&pRtlGetVersion, &address, sizeof(pRtlGetVersion));
             if (pRtlGetVersion != nullptr) {
                 RTL_OSVERSIONINFOW info = {};
                 info.dwOSVersionInfoSize = sizeof(info);
@@ -390,16 +395,15 @@ ULONG EnableProviders(
 
 void DisableProviders(TRACEHANDLE sessionHandle)
 {
-    ULONG status = 0;
-    status = EnableTraceEx2(sessionHandle, &Intel_PresentMon::GUID,                 EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_D3D9::GUID,           EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_DXGI::GUID,           EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_Dwm_Core::GUID,       EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_Dwm_Core::Win7::GUID, EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_DxgKrnl::GUID,        EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_DxgKrnl::Win7::GUID,  EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_Kernel_Process::GUID, EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
-    status = EnableTraceEx2(sessionHandle, &Microsoft_Windows_Win32k::GUID,         EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Intel_PresentMon::GUID,                 EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_D3D9::GUID,           EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_DXGI::GUID,           EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_Dwm_Core::GUID,       EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_Dwm_Core::Win7::GUID, EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_DxgKrnl::GUID,        EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_DxgKrnl::Win7::GUID,  EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_Kernel_Process::GUID, EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
+    EnableTraceEx2(sessionHandle, &Microsoft_Windows_Win32k::GUID,         EVENT_CONTROL_CODE_DISABLE_PROVIDER, 0, 0, 0, 0, nullptr);
 }
 
 template<
@@ -412,8 +416,6 @@ void CALLBACK EventRecordCallback(EVENT_RECORD* pEventRecord)
     auto session = (PMTraceSession*) pEventRecord->UserContext;
     auto const& hdr = pEventRecord->EventHeader;
 
-    #pragma warning(push)
-    #pragma warning(disable: 4984) // c++17 extension
 
     if constexpr (!IS_REALTIME_SESSION) {
         if (session->mStartTimestamp.QuadPart == 0) {
@@ -495,7 +497,6 @@ void CALLBACK EventRecordCallback(EVENT_RECORD* pEventRecord)
         }
     }
 
-    #pragma warning(pop)
 }
 
 template<bool... Ts>
@@ -556,20 +557,20 @@ ULONG PMTraceSession::Start(
     // required providers enabled.
     if (mIsRealtimeSession) {
         TraceProperties sessionProps = {};
-        sessionProps.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
-        if (sessionGuid) sessionProps.Wnode.Guid = *sessionGuid;
-        sessionProps.Wnode.ClientContext = mTimestampType;          // Clock resolution to use when logging the timestamp for each event
-        sessionProps.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-        sessionProps.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;      // We have a realtime consumer, not writing to a log file
-        sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);  // Location of session name; will be written by StartTrace()
+        sessionProps.properties.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
+        if (sessionGuid) sessionProps.properties.Wnode.Guid = *sessionGuid;
+        sessionProps.properties.Wnode.ClientContext = mTimestampType; // Clock resolution
+        sessionProps.properties.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
+        sessionProps.properties.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
+        sessionProps.properties.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
 
-        auto status = StartTraceW(&mSessionHandle, sessionName, &sessionProps);
+        auto status = StartTraceW(&mSessionHandle, sessionName, &sessionProps.properties);
         if (status != ERROR_SUCCESS) {
             mSessionHandle = 0;
             return status;
         }
 
-        status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid, mPMConsumer, cancelled, cancelContext);
+        status = EnableProviders(mSessionHandle, sessionProps.properties.Wnode.Guid, mPMConsumer, cancelled, cancelContext);
         if (status != ERROR_SUCCESS) {
             Stop();
             return status;
@@ -671,14 +672,14 @@ ULONG PMTraceSession::Stop()
         DisableProviders(mSessionHandle);
 
         TraceProperties sessionProps = {};
-        sessionProps.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
-        sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
+        sessionProps.properties.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
+        sessionProps.properties.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
 
         // STOP flushes the final buffers; a preceding QUERY misses losses during shutdown.
-        status = ControlTraceW(mSessionHandle, nullptr, &sessionProps, EVENT_TRACE_CONTROL_STOP);
+        status = ControlTraceW(mSessionHandle, nullptr, &sessionProps.properties, EVENT_TRACE_CONTROL_STOP);
         if (status == ERROR_SUCCESS) {
-            mNumEventsLost = sessionProps.EventsLost;
-            mNumBuffersLost = uint64_t(sessionProps.LogBuffersLost) + sessionProps.RealTimeBuffersLost;
+            mNumEventsLost = sessionProps.properties.EventsLost;
+            mNumBuffersLost = uint64_t(sessionProps.properties.LogBuffersLost) + sessionProps.properties.RealTimeBuffersLost;
         }
         if (status == ERROR_SUCCESS || status == ERROR_MORE_DATA ||
             status == ERROR_WMI_INSTANCE_NOT_FOUND || status == ERROR_ACTIVE_CONNECTIONS) {
@@ -703,9 +704,9 @@ ULONG PMTraceSession::Stop()
 ULONG StopNamedTraceSession(wchar_t const* sessionName)
 {
     TraceProperties sessionProps = {};
-    sessionProps.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
-    sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
-    return ControlTraceW((TRACEHANDLE) 0, sessionName, &sessionProps, EVENT_TRACE_CONTROL_STOP);
+    sessionProps.properties.Wnode.BufferSize = (ULONG) sizeof(TraceProperties);
+    sessionProps.properties.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
+    return ControlTraceW((TRACEHANDLE) 0, sessionName, &sessionProps.properties, EVENT_TRACE_CONTROL_STOP);
 }
 
 double PMTraceSession::TimestampDeltaToMilliSeconds(uint64_t timestampDelta) const

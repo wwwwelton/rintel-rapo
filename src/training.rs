@@ -72,8 +72,8 @@ impl App {
             if let Err(error) = training.power.update(false) {
                 self.training_message.push_str(&format!("; {error}"));
             }
-        } else {
-            let pid = target.unwrap().pid;
+        } else if let Some(target) = target {
+            let pid = target.pid;
             if training.paused || training.pid != pid {
                 training.pid = pid;
                 training.capture = None;
@@ -97,7 +97,7 @@ impl App {
         self.training = Some(training);
     }
 
-    fn clear_runtime_profiles(&mut self, directory: &PathBuf) {
+    fn clear_runtime_profiles(&mut self, directory: &std::path::Path) {
         let removed: Vec<_> = self
             .running
             .iter()
@@ -123,12 +123,12 @@ impl App {
                 ..Settings::default()
             })
     }
-    fn set_settings(&mut self, exe: &PathBuf, settings: Settings) -> Result<(), String> {
+    fn set_settings(&mut self, exe: &std::path::Path, settings: Settings) -> Result<(), String> {
         if settings.pin && self.pinner.is_none() {
             self.pinner = Some(Pinner::new()?);
         }
         self.runtime_profiles.retain(|path, _| !windows::same_executable(path, exe));
-        self.runtime_profiles.insert(exe.clone(), settings);
+        self.runtime_profiles.insert(exe.to_path_buf(), settings);
         for process in self.running.iter().filter(|p| windows::same_executable(&p.exe, exe)) {
             if self.optimizer.enabled(process.pid) != settings.priority {
                 self.optimizer.toggle(process)?;

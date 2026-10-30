@@ -648,6 +648,12 @@ void PMTraceConsumer::HandleDxgkPresentHistory(
             presentEvent->DxgkPresentHistoryTokenData = tokenData;
         }
         break;
+    case PresentMode::Hardware_Legacy_Flip:
+    case PresentMode::Hardware_Independent_Flip:
+    case PresentMode::Composed_Flip:
+    case PresentMode::Composed_Copy_GPU_GDI:
+    case PresentMode::Hardware_Composed_Independent_Flip:
+        break;
     }
 
     // If we are not tracking further GPU/display-related events, complete the
@@ -1624,7 +1630,7 @@ void PMTraceConsumer::HandleWin32kEvent(EVENT_RECORD* pEventRecord)
                 }
             }
             else {
-                MouseClickData data = { mLastInputDeviceReadTime, xFormQPCTime , 0, 0 };
+                MouseClickData data = { mLastInputDeviceReadTime, xFormQPCTime, 0, 0, 0 };
                 mReceivedMouseClickByHwnd.emplace(hWnd, data);
             }
 
@@ -2383,6 +2389,8 @@ void PMTraceConsumer::RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hd
             visible = true;
         }
         break;
+    case Runtime::Other:
+        break;
     }
 
     if (!visible) {
@@ -2829,7 +2837,8 @@ void PMTraceConsumer::HandleIntelPresentMonEvent(EVENT_RECORD* pEventRecord)
             auto InputType = desc[0].GetData<uint8_t>();
             auto Time      = desc[1].GetData<uint64_t>();
 
-            (void) InputType, Time;
+            (void) InputType;
+            (void) Time;
             // TODO
 
         }   return;

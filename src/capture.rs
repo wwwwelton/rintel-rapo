@@ -265,6 +265,7 @@ mod integrated {
                 .map_err(|error| error.to_string())?;
             Ok(Self { cancel, events, started: None })
         }
+        #[cfg(test)]
         pub fn elapsed(&self) -> Option<Duration> {
             self.started.map(|started| started.elapsed())
         }

@@ -258,7 +258,7 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
         }
         CloseHandle(snapshot);
         // Sort by thread count descending so the main 3D game engine process is always first
-        found.sort_by(|a, b| b.0.cmp(&a.0));
+        found.sort_by_key(|(threads, _)| std::cmp::Reverse(*threads));
         Ok(found.into_iter().map(|(_, r)| r).collect())
     }
 }

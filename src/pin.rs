@@ -78,7 +78,7 @@ fn affinity_mask(cores: &[Core], settings: Settings, process_mask: usize) -> usi
             mask | if settings.smt {
                 core
             } else {
-                core & core.wrapping_neg()
+                core.isolate_lowest_one()
             }
         })
 }
@@ -90,7 +90,7 @@ fn cpu_cores() -> Result<Vec<Core>, String> {
         if bytes == 0 {
             return Err("Windows não informou CPU sets".into());
         }
-        let mut buffer = vec![0u64; (bytes as usize + 7) / 8];
+        let mut buffer = vec![0u64; (bytes as usize).div_ceil(8)];
         if GetSystemCpuSetInformation(
             buffer.as_mut_ptr().cast(),
             bytes,

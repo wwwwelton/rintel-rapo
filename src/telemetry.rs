@@ -1,3 +1,4 @@
+#[cfg(windows)]
 use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, AtomicPtr, AtomicU32, Ordering},
@@ -139,6 +140,7 @@ fn ft_to_u64(ft: windows_sys::Win32::Foundation::FILETIME) -> u64 {
     ((ft.dwHighDateTime as u64) << 32) | (ft.dwLowDateTime as u64)
 }
 
+#[cfg(windows)]
 #[derive(Clone, Copy, Default)]
 struct ProcSample {
     created: u64,
@@ -225,6 +227,10 @@ pub struct TelemetryCollector {
     worker: std::thread::Thread,
     target: Option<Target>,
     generation: u64,
+}
+
+impl Default for TelemetryCollector {
+    fn default() -> Self { Self::new() }
 }
 
 impl TelemetryCollector {
@@ -355,6 +361,7 @@ impl Drop for TelemetryCollector {
 
 struct Sampler {
     metrics: ProcessTelemetry,
+    #[cfg(windows)]
     proc_samples: HashMap<u32, ProcSample>,
     #[cfg(windows)]
     pdh_query: isize,
@@ -395,6 +402,7 @@ impl Sampler {
 
         Self {
             metrics: ProcessTelemetry::default(),
+            #[cfg(windows)]
             proc_samples: HashMap::new(),
             #[cfg(windows)]
             pdh_query,
@@ -557,6 +565,8 @@ impl Sampler {
                 &[]
             }
         };
+        #[cfg(not(windows))]
+        let _ = target_pids;
 
         #[cfg(windows)]
         self.proc_samples.retain(|pid, _| target_pids.contains(pid));

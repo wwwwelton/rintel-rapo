@@ -8,6 +8,10 @@ pub struct FpsTracker {
     p1_low_fps: f32,
 }
 
+impl Default for FpsTracker {
+    fn default() -> Self { Self::new() }
+}
+
 impl FpsTracker {
     pub fn new() -> Self {
         Self {

@@ -315,9 +315,9 @@ mod app {
                                 }
                             }
                         }
-                        if !self.applied_qos.contains_key(&process.pid) {
+                        if let std::collections::hash_map::Entry::Vacant(entry) = self.applied_qos.entry(process.pid) {
                             match cache::apply_memory_qos(handle) {
-                                Ok(state) => { self.applied_qos.insert(process.pid, state); }
+                                Ok(state) => { entry.insert(state); }
                                 Err(error) => self.error = error,
                             }
                         }
@@ -959,7 +959,7 @@ mod app {
                         ui.add_space(6.0);
 
                         ui.horizontal_wrapped(|ui| {
-                            let mut auto_yield = self.pinner.as_ref().map_or(true, |p| p.auto_yield);
+                            let mut auto_yield = self.pinner.as_ref().is_none_or(|p| p.auto_yield);
                             if ui.checkbox(&mut auto_yield, egui::RichText::new(tr(strings, "chk_auto_yield", "Auto-Yield (afinidade)")).color(COLOR_TEXT))
                                 .on_hover_text(tr(strings, "chk_auto_yield_tooltip", "Cede afinidade se outro programa mudar a máscara de uma thread já fixada"))
                                 .changed()
@@ -1208,6 +1208,7 @@ mod app {
     }
 }
 
+#[cfg(windows)]
 fn export_ui_assets() -> std::io::Result<()> {
     use std::io::Write;
     let dir = std::env::current_exe()?

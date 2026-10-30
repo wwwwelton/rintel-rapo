@@ -170,7 +170,7 @@ pub fn discover(steam_root: &Path) -> Vec<Game> {
             }
         }
     }
-    games.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    games.sort_by_cached_key(|game| game.name.to_lowercase());
     games
 }
 

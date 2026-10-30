@@ -91,10 +91,10 @@ fn check_running_dtt_processes() -> Vec<String> {
                     .collect::<String>()
                     .to_lowercase();
 
-                if name == "ipfsvc.exe" || name == "ipf_helper.exe" || name == "dttservice.exe" {
-                    if !found.contains(&name) {
-                        found.push(name);
-                    }
+                if (name == "ipfsvc.exe" || name == "ipf_helper.exe" || name == "dttservice.exe")
+                    && !found.contains(&name)
+                {
+                    found.push(name);
                 }
 
                 if Process32Next(snapshot, &mut entry) == 0 {

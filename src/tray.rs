@@ -132,7 +132,7 @@ mod win_tray {
                     } else {
                         // Stopped/Paused: Amber/Slate ring (#ffd96b) + pause bars
                         let is_pause_bar =
-                            (y >= 10 && y <= 21) && ((x >= 11 && x <= 14) || (x >= 17 && x <= 20));
+                            (10..=21).contains(&y) && ((11..=14).contains(&x) || (17..=20).contains(&x));
                         if dist >= 11.5 || is_pause_bar {
                             xor_pixels[idx] = 107; // B
                             xor_pixels[idx + 1] = 217; // G
@@ -332,7 +332,7 @@ mod win_tray {
 
                     // Keep background optimization loop ticking once per second while hidden in tray
                     tick_counter = tick_counter.wrapping_add(1);
-                    if hidden_in_tray && tick_counter % 20 == 0 {
+                    if hidden_in_tray && tick_counter.is_multiple_of(20) {
                         PostMessageW(main_hwnd, WM_PAINT, 0, 0);
                     }
                 }
@@ -450,6 +450,10 @@ mod win_tray {
     }
 }
 
+impl Default for TrayController {
+    fn default() -> Self { Self::new() }
+}
+
 impl TrayController {
     pub fn new() -> Self {
         let minimize_to_tray = Arc::new(AtomicBool::new(true));
@@ -533,7 +537,7 @@ pub fn build_window_icon_rgba(active: bool) -> (Vec<u8>, u32, u32) {
                     }
                 } else {
                     let is_pause_bar =
-                        (y >= 10 && y <= 21) && ((x >= 11 && x <= 14) || (x >= 17 && x <= 20));
+                        (10..=21).contains(&y) && ((11..=14).contains(&x) || (17..=20).contains(&x));
                     if dist >= 11.5 || is_pause_bar {
                         rgba[idx] = 255; // R (#ffd96b)
                         rgba[idx + 1] = 217; // G

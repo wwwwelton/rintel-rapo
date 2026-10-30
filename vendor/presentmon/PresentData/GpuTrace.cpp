@@ -461,7 +461,9 @@ void GpuTrace::CompleteQueuePacket(uint64_t hContext, uint32_t sequenceId, uint6
         if (context->mIsHwQueue) {
             auto trackedWorkWasCompleted = CompleteWork(context, sequenceId, timestamp);
 
+            #ifdef _MSC_VER
             #pragma warning(suppress: 4127) // conditional expression is constant in release build
+            #endif
             if (IsVerboseTraceEnabled() && trackedWorkWasCompleted) {
                 PrintRunningContexts();
             }
