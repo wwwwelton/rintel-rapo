@@ -37,19 +37,21 @@ fn asset(path: &str) -> Response<Cow<'static, [u8]>> {
         .expect("static asset response")
 }
 
-/// Opens a window rendering the header from `header_json` via wasm.
-pub fn run_preview(header_json: &str) -> wry::Result<()> {
+/// Opens a window rendering the header and game list from JSON via wasm.
+/// UI clicks arrive over IPC as JSON with `action` and `dir` fields.
+pub fn run_preview(header_json: &str, games_json: &str) -> wry::Result<()> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Rintel RAPO (webview preview)")
-        .with_inner_size(tao::dpi::LogicalSize::new(960.0, 180.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(960.0, 360.0))
         .build(&event_loop)
         .expect("create window");
 
     let _webview = WebViewBuilder::new()
         .with_custom_protocol("rapo".into(), |_id, req: Request<Vec<u8>>| asset(req.uri().path()))
         .with_url(ORIGIN)
-        .with_initialization_script(&format!("window.INITIAL_HEADER = {header_json};"))
+        .with_initialization_script(&format!("window.INITIAL_HEADER = {header_json}; window.INITIAL_GAMES = {games_json};"))
+        .with_ipc_handler(|req| eprintln!("ui event: {}", req.body()))
         .build(&window)?;
 
     event_loop.run(move |event, _, control_flow| {
