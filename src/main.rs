@@ -15,6 +15,7 @@ pub mod view;
 pub mod snapshot;
 pub mod command;
 pub mod telemetry;
+pub mod process_ping;
 pub mod tray;
 #[cfg(any(test, windows))]
 mod prefetch;
@@ -539,7 +540,7 @@ mod app {
             let rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
             let rows: Vec<_> = rows.into_iter().zip(&self.game_search_names).filter(|(_, name)| crate::view::library_matches(&self.search, name)).map(|(row, _)| row).collect();
             let header = crate::ui_model::header_model(self.tray.is_optimizer_running(), &self.dtt_report.status, self.running.len());
-            let metrics = vec![
+            let mut metrics = vec![
                 ("FPS DA INTERFACE", format!("{:.0} FPS · Média {:.0} · 1% baixo {:.0}", self.fps.current_fps(), self.fps.avg_fps(), self.fps.p1_low_fps())),
                 ("USO DE CPU TOTAL", format!("{:.1}% · Sistema {:.1}%", tm.cpu_usage_pct, tm.sys_cpu_pct)),
                 ("USO DE GPU", format!("{:.1}% · Engines PDH (estimativa)", tm.gpu_usage_pct)),
@@ -548,6 +549,10 @@ mod app {
                 ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
                 ("RTT TCP (EXTERNO)", format!("{} · TCP até DNS público; não é ping do jogo", if tm.ping_ms > 0 { format!("{} ms", tm.ping_ms) } else { "-- ms".into() })),
             ];
+            metrics.push(("ICMP · IPs TCP DO PROCESSO", format!("{} · Não identifica servidor de partida; UDP não expõe destino na tabela Windows", tm.process_ping.summary)));
+            for endpoint in &tm.process_ping.endpoints {
+                metrics.push(("ICMP · DESTINO OBSERVADO", format!("{} · {}", endpoint.outcome.label(), endpoint.destination)));
+            }
             let cores: Vec<_> = self.cpu.load.iter().enumerate().map(|(index, load)| {
                 (index, *load, index < usize::BITS as usize && self.pinner.as_ref().is_some_and(|p| p.mask & (1usize << index) != 0))
             }).collect();

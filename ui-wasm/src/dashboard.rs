@@ -77,6 +77,7 @@ pub fn render(view: &Dashboard) -> String {
         }
         html.push_str("</ul><p>DSCP 46 configurado no Windows; não confirma marcação dos pacotes nem redução do ping. Depende do suporte do roteador e da operadora.</p>");
     }
+    html.push_str("<p>Sem limitador de taxa configurado. QoS nativo limita somente saída com taxa explícita; não é SQM/CAKE e não controla filas da operadora. Nenhuma taxa ou interface é ajustada automaticamente.</p>");
     html.push_str("</section>");
     if let Some(profile) = &view.profile {
         let active = profile.priority || profile.qos || profile.pinned_threads > 0;
@@ -156,7 +157,8 @@ mod tests {
     #[test]
     fn protected_process_controls_and_untrusted_text() {
         let view = Dashboard {
-            alerts: vec!["<img src=x onerror=alert(1)>".into()], subtitle: String::new(), target: String::new(), metrics: vec![], cores: vec![], cache: vec![],
+            alerts: vec!["<img src=x onerror=alert(1)>".into()], subtitle: String::new(), target: String::new(),
+            metrics: vec![("ICMP · DESTINO OBSERVADO".into(), "Timeout · <img src=x> & destino".into())], cores: vec![], cache: vec![],
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
             profile: None,
@@ -171,5 +173,7 @@ mod tests {
         assert!(html.contains("&lt;script&gt;energia&lt;/script&gt;"), "a failed read must keep the last plan visible");
         assert!(html.contains("Última leitura mantida; a consulta atual falhou: &lt;b&gt;falha&lt;/b&gt;"));
         assert!(html.contains("<li>game&lt;&amp;&gt;.exe</li>"));
+        assert!(html.contains("&lt;img src=x&gt; &amp; destino"));
+        assert!(html.contains("Sem limitador de taxa configurado"));
     }
 }

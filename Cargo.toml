@@ -17,6 +17,9 @@ cc = "1"
 winreg = "0.55"
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_Networking_WinSock",
+    "Win32_System_IO",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Memory",
     "Win32_System_Performance",

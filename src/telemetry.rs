@@ -20,6 +20,7 @@ pub struct ProcessTelemetry {
     pub disk_total_read_gb: f32,
     pub net_usage_kbs: f32,
     pub ping_ms: u32,
+    pub process_ping: crate::process_ping::ProcessPing,
 }
 
 #[cfg(windows)]
@@ -277,16 +278,26 @@ impl TelemetryCollector {
         let worker = std::thread::spawn(move || {
             // The worker alone constructs, uses, and closes the native query.
             let mut sampler = Sampler::new();
+            let mut process_ping = crate::process_ping::ProcessPingSampler::default();
+            let mut ping_generation = 0;
             while !worker_stop.load(Ordering::Relaxed) {
                 let request = worker_mailbox.take_request();
                 let Some(request) = request else {
                     std::thread::park();
                     continue;
                 };
+                if ping_generation != request.generation {
+                    process_ping = crate::process_ping::ProcessPingSampler::default();
+                    ping_generation = request.generation;
+                }
                 sampler.refresh(
                     request.num_cpus,
                     request.sys_cpu,
                     request.target.as_ref().map(|target| (target.name.as_str(), target.pids.as_slice())),
+                );
+                sampler.metrics.process_ping = process_ping.sample(
+                    request.target.as_ref().filter(|_| sampler.metrics.has_target)
+                        .map_or(&[][..], |target| target.pids.as_slice()),
                 );
                 if worker_stop.load(Ordering::Relaxed) {
                     break;
@@ -792,10 +803,14 @@ mod tests {
         loop {
             collector.refresh(&[0.25, 0.50], Some(("Old.exe", &pids)));
             std::thread::sleep(std::time::Duration::from_millis(20));
-            if let Some(snapshot) = collector.mailbox.take_snapshot() {
+            if let Some(mut snapshot) = collector.mailbox.take_snapshot() {
                 assert!(snapshot.metrics.has_target);
                 #[cfg(windows)]
                 assert!(snapshot.metrics.mem_used_mb > 0.0);
+                snapshot.metrics.process_ping.endpoints.push(crate::process_ping::EndpointPing {
+                    destination: "192.0.2.42".into(),
+                    outcome: crate::process_ping::EchoOutcome::Reply(42),
+                });
                 collector.mailbox.snapshot(*snapshot);
                 break;
             }
@@ -806,6 +821,7 @@ mod tests {
         assert_eq!(collector.metrics.target_name, "Sistema Global");
         assert_eq!(collector.metrics.mem_used_mb, 0.0);
         assert_eq!(collector.metrics.disk_total_read_gb, 0.0);
+        assert!(collector.metrics.process_ping.endpoints.is_empty());
         wait_for_metrics(&mut collector, Some(("New.exe", &pids)), |metrics| {
             metrics.has_target && {
                 #[cfg(windows)]
@@ -830,6 +846,7 @@ mod tests {
             assert_eq!(collector.metrics.target_pid, 0);
             assert_eq!(collector.metrics.cpu_usage_pct, 37.5);
             assert_eq!(collector.metrics.disk_total_read_gb, 0.0);
+            assert!(collector.metrics.process_ping.endpoints.is_empty());
         }
     }
 }
