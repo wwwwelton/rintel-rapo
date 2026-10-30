@@ -1003,8 +1003,13 @@ mod app {
                                 commands.push(crate::command::Command::SetAutoYield(auto_yield));
                             }
 
-                            ui.checkbox(&mut self.windowed_mode, egui::RichText::new(tr(strings, "chk_windowed_mode", "Manter ajustes em segundo plano")).color(COLOR_TEXT))
-                                .on_hover_text(tr(strings, "chk_windowed_mode_tooltip", "Mantém prioridade e afinidade do jogo mesmo fora de foco; pode prejudicar outros aplicativos"));
+                            let mut windowed = self.windowed_mode;
+                            if ui.checkbox(&mut windowed, egui::RichText::new(tr(strings, "chk_windowed_mode", "Manter ajustes em segundo plano")).color(COLOR_TEXT))
+                                .on_hover_text(tr(strings, "chk_windowed_mode_tooltip", "Mantém prioridade e afinidade do jogo mesmo fora de foco; pode prejudicar outros aplicativos"))
+                                .changed()
+                            {
+                                commands.push(crate::command::Command::SetWindowed(windowed));
+                            }
 
 
                             let mut min_tray = self.tray.is_minimize_to_tray();
@@ -1073,12 +1078,7 @@ mod app {
                                                 self.training.is_none() && self.tray.is_optimizer_running(),
                                                 egui::Button::new(if enabled { tr(strings, "btn_proc_restore", "Restaurar") } else { tr(strings, "btn_proc_optimize", "Otimizar") }),
                                             ).clicked() {
-                                                self.runtime_profiles.retain(|exe, _| !windows::same_executable(exe, &process.exe));
-                                                if let Err(e) = self.optimizer.toggle(process) {
-                                                    self.error = e;
-                                                } else if let Some(e) = self.optimizer.update(self.windowed_mode).into_iter().next() {
-                                                    self.error = e;
-                                                }
+                                                commands.push(crate::command::Command::ToggleProcess { pid: process.pid });
                                             }
 
                                             if has_qos {
@@ -1270,6 +1270,18 @@ mod app {
                     self.aion2_prefetched = false;
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
+                }
+                crate::command::Command::SetWindowed(on) => self.windowed_mode = on,
+                crate::command::Command::ToggleProcess { pid } => {
+                    let Some(process) = self.running.iter().find(|p| p.pid == pid).cloned() else {
+                        return;
+                    };
+                    self.runtime_profiles.retain(|exe, _| !windows::same_executable(exe, &process.exe));
+                    if let Err(e) = self.optimizer.toggle(&process) {
+                        self.error = e;
+                    } else if let Some(e) = self.optimizer.update(self.windowed_mode).into_iter().next() {
+                        self.error = e;
+                    }
                 }
             }
         }
