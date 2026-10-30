@@ -33,7 +33,7 @@ fn budget_for_available_ram(available: u64) -> u64 {
     (available / 4).clamp(MIN_PREFETCH_BUDGET, MAX_PREFETCH_BUDGET)
 }
 
-#[cfg(any(test, windows))]
+#[cfg(windows)]
 fn dynamic_budget() -> u64 {
     #[cfg(windows)]
     {
@@ -54,10 +54,6 @@ fn dynamic_budget() -> u64 {
             }
         }
         budget_for_available_ram(status.ull_avail_phys)
-    }
-    #[cfg(not(windows))]
-    {
-        0
     }
 }
 
@@ -202,7 +198,7 @@ pub fn prefetch_aion2_ram(
 
 /// Uses one quarter of currently available physical RAM, bounded to 512 MiB–4 GiB.
 /// The budget is sampled before every read, so pressure can stop the worker early.
-#[cfg(any(test, windows))]
+#[cfg(windows)]
 pub fn prefetch_aion2_dynamic(
     root: &Path,
     control: impl Fn() -> PrefetchControl,

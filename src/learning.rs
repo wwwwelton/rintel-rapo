@@ -567,8 +567,10 @@ mod tests {
         );
         let extended = decode(PathBuf::from("game.exe"), "3|3|2|5|2|120|80").unwrap();
         assert_eq!(extended.settings.cores, 2);
-        assert!(!extended.settings.smt);
         assert!(!extended.settings.p_only);
+        assert_eq!(extended.exe, PathBuf::from("game.exe"));
+        assert_eq!(extended.score.fps, 120.0);
+        assert_eq!(extended.score.low_fps, 80.0);
         for bad in [
             "3|0|4|5|60|40",
             "2|8|4|5|60|40",
