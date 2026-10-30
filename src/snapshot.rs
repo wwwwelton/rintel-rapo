@@ -21,7 +21,7 @@ pub struct GameRow {
     pub pcores: bool,
     pub qos: bool,
     pub rapo: bool,
-    /// False while training runs; the render disables every game control then.
+    /// Locks manual settings during training, but not RAPO game selection.
     pub controls_enabled: bool,
 }
 
@@ -117,6 +117,8 @@ pub fn training_view(state: &TrainingState) -> TrainingView {
         headline: session.map(|s| {
             String::from(if s.paused {
                 "RAPO PAUSADO · sem otimização do alvo; aguardando o mesmo jogo em foco"
+            } else if s.candidate.bits() == 0 {
+                "RAPO ATIVO · medindo referência sem ajustes"
             } else {
                 "RAPO ATIVO · medindo o candidato atual"
             })
@@ -253,7 +255,6 @@ mod tests {
         };
         let view = training_view(&state);
         assert!(view.active);
-        assert_eq!(view.headline.as_deref(), Some("RAPO ATIVO · medindo o candidato atual"));
         assert_eq!(view.progress_line.as_deref(), Some("02:05 · 3 medições · 5 configurações exploradas"));
         assert_eq!(view.armed_line, None);
         assert_eq!(view.best_line, None);

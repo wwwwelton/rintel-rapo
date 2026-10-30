@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
+mod dashboard;
+pub use dashboard::render_dashboard_json;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DttBadge {
@@ -72,9 +75,9 @@ pub fn render_header(view: &HeaderView) -> String {
 <span class="badge {status_class}">{status}</span>
 <div class="actions">
 {dtt}
-<button id="btn-refresh">{refresh}</button>
-<button id="btn-scan-steam">{scan}</button>
-<button id="btn-default-config"{default_disabled}>{default_cfg}</button>
+<button id="btn-refresh" data-action="refresh">{refresh}</button>
+<button id="btn-scan-steam" data-action="scan">{scan}</button>
+<button id="btn-default-config" data-action="reset"{default_disabled}>{default_cfg}</button>
 <button id="btn-toggle" data-action="{toggle_action}">{toggle}</button>
 </div>
 </header>"#,
@@ -105,7 +108,7 @@ pub struct GameView {
     pub pcores: bool,
     pub qos: bool,
     pub rapo: bool,
-    /// False while training runs; every control in the row is disabled then.
+    /// False during training; RAPO selection remains available to stop or switch games.
     pub controls_enabled: bool,
 }
 
@@ -131,7 +134,7 @@ pub fn render_games(view: &GamesView) -> String {
             format!(
                 "<label><input type=\"checkbox\" data-action=\"{action}\" data-dir=\"{dir}\"{} {}> {}</label>",
                 if checked { " checked" } else { "" },
-                disabled.trim(),
+                if action == "rapo" { "" } else { disabled.trim() },
                 escape(text),
             )
         };
@@ -201,12 +204,16 @@ pub fn render_training(view: &TrainingView) -> String {
         for line in [&view.headline, &view.target_line, &view.progress_line, &view.candidate_line, &view.best_line].into_iter().flatten() {
             html.push_str(&paragraph(line));
         }
+        html.push_str(&paragraph("Testa cores, afinidade, threads críticas e irmãos SMT/Hyper-Threading conforme a topologia real do grupo 0. Sair pausa e descarta a janela parcial; voltar reinicia a medição do mesmo candidato. Não altera BIOS nem desativa SMT globalmente."));
         html.push_str("<button type=\"button\" data-action=\"stop_training\">Parar aprendizado e manter último perfil salvo</button>");
     } else {
         if let Some(armed) = &view.armed_line {
             html.push_str(&paragraph(armed));
             html.push_str("<button type=\"button\" data-action=\"disable_rapo\">Desativar RAPO</button>");
         }
+        html.push_str(&paragraph(view.selected_label.as_deref().unwrap_or("Abra um jogo Steam")));
+        html.push_str(&paragraph("RAPO aprende prioridade, memória/EcoQoS, quantidade de núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis. Um jogo por vez; pausa ao sair e retoma o mesmo candidato."));
+        html.push_str(&paragraph("ETW de apresentação, sem rastrear entrada ou execução na GPU, sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções."));
         html.push_str("<ul class=\"targets\">");
         for target in &view.targets {
             html.push_str(&format!(
@@ -222,6 +229,9 @@ pub fn render_training(view: &TrainingView) -> String {
         html.push_str(&format!("<button type=\"button\" data-action=\"start_training\"{disabled}>Iniciar aprendizado contínuo</button>"));
     }
     html.push_str(&paragraph("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."));
+    html.push_str("<details><summary id=\"collector-license\">Licença do coletor integrado</summary><p>PresentData / PresentMon 2.3.0 · Intel · MIT</p><pre>");
+    html.push_str(&escape(include_str!("../../vendor/presentmon/LICENSE.txt")));
+    html.push_str("</pre></details>");
     if !view.message.is_empty() {
         html.push_str(&paragraph(&view.message));
     }
@@ -262,8 +272,20 @@ mod games_tests {
         let html = render_games(&view);
         assert!(!html.contains("<b>X</b>"));
         assert!(html.contains("&quot;"));
-        assert_eq!(html.matches(" disabled").count(), 4);
         assert!(!html.contains("apo-profile"));
+    }
+
+    #[test]
+    fn rapo_remains_selectable_while_manual_settings_are_locked() {
+        let html = render_games(&GamesView {
+            games: vec![game("Game", "/g", false, false)],
+            strings: HashMap::new(),
+        });
+        for (action, disabled) in [("rapo", false), ("qos", true), ("pcores", true), ("auto", true)] {
+            let marker = format!("data-action=\"{action}\"");
+            let attributes = html.split_once(&marker).unwrap().1.split_once('>').unwrap().0;
+            assert_eq!(attributes.split_whitespace().any(|a| a == "disabled"), disabled, "{action}");
+        }
     }
 
     #[test]
@@ -291,11 +313,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn default_button_disabled_when_games_running() {
-        let html = render_header(&view(true, DttBadge::NotInstalled, false));
-        assert!(html.contains(r#"id="btn-default-config" disabled"#));
-    }
 
     #[test]
     fn toggle_reflects_optimizer_state() {

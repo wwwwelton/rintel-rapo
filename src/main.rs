@@ -474,6 +474,9 @@ mod app {
 
     impl Drop for App {
         fn drop(&mut self) {
+            if let Some(training) = self.training.take() {
+                self.restore_training(training, "Aplicativo encerrado; ajustes de teste restaurados.".into());
+            }
             if let Some(cancel) = &self.aion2_cancel {
                 cancel.store(true, Ordering::Relaxed);
             }
@@ -525,7 +528,11 @@ mod app {
     impl eframe::App for App {
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
             let minimized = ctx.input(|input| input.viewport().minimized == Some(true));
-            ctx.request_repaint_after(self.tick(minimized));
+            let interval = self.tick(minimized);
+            if interval == Duration::from_millis(8) {
+                self.record_ui_frame();
+            }
+            ctx.request_repaint_after(interval);
 
             if !self.theme_applied {
                 let mut visuals = egui::Visuals::dark();
@@ -1154,14 +1161,72 @@ mod app {
                 });
             });
             for command in commands {
-                self.apply(ctx, command);
+                if self.apply(command) {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
             }
         }
     }
 
     impl App {
+        pub fn webview_state(&self) -> serde_json::Value {
+            let pin_status = self.pinner.as_ref().and_then(Pinner::status);
+            let tm = &self.telemetry.metrics;
+            let mut alerts: Vec<String> = [&self.error, &self.cpu_error, &self.qos_error, &self.qos_sweep_error]
+                .into_iter().filter(|s| !s.is_empty()).cloned().collect();
+            if let Some(c) = self.pinner.as_ref().and_then(|p| p.conflict()) {
+                alerts.push(format!("DISPUTA DE AFINIDADE: Thread {}:{} afinidade externa {:#x}; aplicada {:#x}.", c.pid, c.tid, c.external_mask, c.our_mask));
+            }
+            let running: Vec<_> = self.running.iter().map(|p| {
+                let enabled = self.optimizer.enabled(p.pid);
+                let qos = self.applied_qos.contains_key(&p.pid);
+                let pinned = pin_status.is_some_and(|(pid, _, _)| pid == p.pid);
+                let paused = self.training.as_ref().filter(|t| t.pid == p.pid && windows::same_executable(&t.exe, &p.exe)).map(|t| t.paused);
+                serde_json::json!({
+                    "pid": p.pid, "game": p.game, "exe": p.exe.display().to_string(),
+                    "state": crate::view::process_state(paused, self.optimizer.boosted(p.pid), pinned, qos, enabled).label(),
+                    "enabled": enabled, "auto": self.auto_games.contains(&p.directory), "qos": qos,
+                    "priority": self.optimizer.boosted(p.pid),
+                    "can_toggle": self.training.is_none() && self.tray.is_optimizer_running()
+                })
+            }).collect();
+            let rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
+            let rows: Vec<_> = rows.into_iter().zip(&self.game_search_names).filter(|(_, name)| crate::view::library_matches(&self.search, name)).map(|(row, _)| row).collect();
+            let header = crate::ui_model::header_model(self.tray.is_optimizer_running(), &self.dtt_report.status, self.running.len());
+            let metrics = vec![
+                ("FPS DA INTERFACE", format!("{:.0} FPS · Média {:.0} · 1% baixo {:.0}", self.fps.current_fps(), self.fps.avg_fps(), self.fps.p1_low_fps())),
+                ("USO DE CPU TOTAL", format!("{:.1}% · Sistema {:.1}%", tm.cpu_usage_pct, tm.sys_cpu_pct)),
+                ("USO DE GPU", format!("{:.1}% · Engines PDH (estimativa)", tm.gpu_usage_pct)),
+                ("USO DE MEMÓRIA", format!("{} · {:.1}% da RAM", crate::view::memory_label(tm.mem_used_mb), tm.mem_usage_pct)),
+                (if tm.has_target { "I/O DE LEITURA (PROCESSO)" } else { "LEITURA DE DISCO (SISTEMA)" }, format!("{:.2} MB/s · Total {:.2} GB (inclui cache no processo)", tm.disk_read_mbs, tm.disk_total_read_gb)),
+                ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
+                ("RTT TCP (EXTERNO)", format!("{} · TCP até DNS público; não é ping do jogo", if tm.ping_ms > 0 { format!("{} ms", tm.ping_ms) } else { "-- ms".into() })),
+            ];
+            let cores: Vec<_> = self.cpu.load.iter().enumerate().map(|(index, load)| {
+                (index, *load, index < usize::BITS as usize && self.pinner.as_ref().is_some_and(|p| p.mask & (1usize << index) != 0))
+            }).collect();
+            let mut cache: Vec<_> = self.cache_topo.levels.iter().map(|l| format!("L{} {} {}KB ({}x)", l.level, l.cache_type, l.size_kb, l.count)).collect();
+            if self.cache_topo.total_l3_kb > 0 {
+                cache.push(format!("L3 SMART CACHE {:.0}MB", self.cache_topo.total_l3_kb as f32 / 1024.0));
+            }
+            serde_json::json!({
+                "header": { "optimizer_running": header.optimizer_running, "dtt": header.dtt, "default_config_enabled": header.default_config_enabled, "strings": &*self.ui_strings },
+                "games": { "games": rows, "strings": &*self.ui_strings },
+                "training": crate::snapshot::training_view(&self.training_state()),
+                "dashboard": {
+                    "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
+                    "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
+                    "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
+                    "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),
+                    "search": self.search, "library_count": self.games.len(), "aion2_status": self.aion2_status,
+                    "subtitle": self.tr("txt_app_subtitle", "APO e RAPO para jogos Steam"),
+                    "pin_status": pin_status.map(|(pid, tid, ms)| format!("AFINIDADE ATIVA · PID {pid} · TID {tid} · {ms}ms · {} threads", self.pinner.as_ref().map_or(0, |p| p.pinned_count(pid))))
+                }
+            })
+        }
+
         /// Advances refresh and FPS sampling without egui; returns how soon the next frame is needed.
-        fn tick(&mut self, minimized: bool) -> Duration {
+        pub fn tick(&mut self, minimized: bool) -> Duration {
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
             }
@@ -1170,7 +1235,6 @@ mod app {
                 self.fps.pause_sampling();
             }
             if !minimized && !pause_requested && !self.running.is_empty() {
-                self.fps.record_frame_instant(Instant::now());
                 Duration::from_millis(8)
             } else {
                 if self.running.is_empty() {
@@ -1182,7 +1246,18 @@ mod app {
             }
         }
 
-        fn apply(&mut self, ctx: &egui::Context, command: crate::command::Command) {
+        pub fn next_refresh(&self) -> Instant {
+            self.last_refresh + Duration::from_secs(1)
+        }
+
+        pub fn record_ui_frame(&mut self) {
+            if !self.running.is_empty() {
+                self.fps.record_frame_instant(Instant::now());
+            }
+        }
+
+        /// Returns true only after a successful elevated replacement has started.
+        pub fn apply(&mut self, command: crate::command::Command) -> bool {
             match command {
                 crate::command::Command::SetOptimizerRunning(running) => {
                     self.tray.set_optimizer_running(running);
@@ -1244,7 +1319,7 @@ mod app {
                 crate::command::Command::Refresh => self.refresh(),
                 crate::command::Command::SetSearch(text) => self.search = text,
                 crate::command::Command::RelaunchElevated => match windows::relaunch_elevated() {
-                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Ok(()) => return true,
                     Err(error) => self.error = error,
                 },
                 crate::command::Command::ScanSteam => {
@@ -1286,7 +1361,7 @@ mod app {
                 crate::command::Command::SetWindowed(on) => self.windowed_mode = on,
                 crate::command::Command::ToggleProcess { pid } => {
                     let Some(process) = self.running.iter().find(|p| p.pid == pid).cloned() else {
-                        return;
+                        return false;
                     };
                     self.runtime_profiles.retain(|exe, _| !windows::same_executable(exe, &process.exe));
                     if let Err(e) = self.optimizer.toggle(&process) {
@@ -1311,6 +1386,7 @@ mod app {
                     }
                 }
             }
+            false
         }
     }
 }
@@ -1341,18 +1417,7 @@ fn export_ui_assets() -> std::io::Result<()> {
 }
 
 #[cfg(windows)]
-fn main() -> eframe::Result {
-    #[cfg(windows)]
-    if std::env::args_os().any(|arg| arg == "--webview-preview") {
-        let header = r#"{"optimizer_running":true,"dtt":"stopped","default_config_enabled":true,"strings":{"txt_app_title":"RINTEL RAPO","badge_scheduling":"AGENDAMENTO WINDOWS","badge_status_active":"ATIVO (START)","badge_status_paused":"PAUSADO (STOP)","badge_dtt_stopped":"INTEL DTT DETECTADO","btn_refresh":"Atualizar","btn_scan_steam":"Reexaminar Steam","btn_default_config":"Configuração padrão","btn_stop":"Stop"}}"#;
-        let games = r#"{"games":[{"name":"AION 2","directory":"C:\\Steam\\common\\AION2","is_aion2":true,"auto_priority":true,"pcores":false,"qos":false,"rapo":false,"controls_enabled":true},{"name":"Example Game","directory":"C:\\Steam\\common\\Example","is_aion2":false,"auto_priority":false,"pcores":false,"qos":false,"rapo":false,"controls_enabled":true}],"strings":{"chk_game_pcores":"P-cores","chk_game_auto_priority":"Auto Prioridade","chk_rapo_library":"RAPO","btn_apo_profile":"Perfil APO"}}"#;
-        let training = r#"{"cpu_line":null,"active":false,"headline":null,"target_line":null,"progress_line":null,"candidate_line":null,"best_line":null,"armed_line":null,"targets":[{"pid":7,"label":"AION 2 · aion.exe · PID 7","hint":"C:/Steam/AION2/aion.exe","selected":true}],"selected_label":"AION 2 · aion.exe · PID 7","can_start":true,"message":""}"#;
-        if let Err(error) = webview::run_preview(header, games, training) {
-            eprintln!("{error}");
-            std::process::exit(1);
-        }
-        return Ok(());
-    }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args_os().any(|arg| arg == "--export-ui-assets") {
         if let Err(error) = export_ui_assets() {
             eprintln!("{error}");
@@ -1376,6 +1441,20 @@ fn main() -> eframe::Result {
         eprintln!("{error}");
         return Ok(());
     }
+    if !std::env::args_os().any(|arg| arg == "--egui") {
+        let result = webview::run();
+        if let Err(error) = &result {
+            let message: Vec<u16> = format!("Não foi possível abrir a interface WebView2: {error}\nVerifique a instalação do Microsoft Edge WebView2 Runtime.").encode_utf16().chain(Some(0)).collect();
+            let title: Vec<u16> = "Rintel RAPO".encode_utf16().chain(Some(0)).collect();
+            unsafe {
+                windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW(
+                    std::ptr::null_mut(), message.as_ptr(), title.as_ptr(),
+                    windows_sys::Win32::UI::WindowsAndMessaging::MB_OK | windows_sys::Win32::UI::WindowsAndMessaging::MB_ICONERROR,
+                );
+            }
+        }
+        return result;
+    }
     let (rgba, width, height) = tray::build_window_icon_rgba(true);
     eframe::run_native(
         "Rintel RAPO",
@@ -1388,7 +1467,7 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(|_| Ok(Box::new(app::App::new()))),
-    )
+    ).map_err(|error| error.to_string().into())
 }
 
 #[cfg(not(windows))]

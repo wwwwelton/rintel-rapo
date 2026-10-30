@@ -40,8 +40,28 @@ Versões anteriores podiam alterar os valores globais do Windows `NetworkThrottl
 
 ## Compilar e executar
 
-No Windows, instale Rust e o toolchain C++ do Visual Studio/Windows SDK: `cargo run --release`. A configuração MSVC x64 usa CRT estático para dispensar instalação de runtime C++ adicional. No Linux/WSL2, instale MinGW-w64 com `x86_64-w64-mingw32-g++`, incluindo as bibliotecas estáticas C++/winpthread, e gere o executável com `cargo build --release --target x86_64-pc-windows-gnu`. O aplicativo gráfico não abre um terminal ao ser executado no Windows.
+Instale Rust, o target `wasm32-unknown-unknown` e `wasm-bindgen-cli` **0.2.130**. Gere a interface antes do binário:
 
-O executável é standalone: `ui.json` e `ui_figma.svg` são incorporados na compilação; a inicialização não lê arquivos laterais. Edite `ui.json` e `ui_figma.svg` na raiz do repositório e recompile para incorporar mudanças. Para extrair cópias editáveis do binário, execute `rintel-rapo.exe --export-ui-assets`; arquivos existentes nunca são sobrescritos. As releases distribuem o `.exe` e os arquivos de assinatura/checksum, não os assets como dependências.
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --version 0.2.130 --locked
+bash scripts/build-ui.sh
+cargo test --workspace
+```
+
+No Windows, instale também o toolchain C++ do Visual Studio/Windows SDK e execute `cargo run --release`. A configuração MSVC x64 usa CRT estático. No Linux/WSL2, instale MinGW-w64 com `x86_64-w64-mingw32-g++`, incluindo as bibliotecas estáticas C++/winpthread, e compile com `cargo build --release --target x86_64-pc-windows-gnu`. O aplicativo gráfico não abre terminal.
+
+A interface padrão usa Rust/wasm em **WebView2**, com estado e comandos executados pelo host Rust nativo (`tao`/`wry`). Requer o [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente presente no Windows 11; não instala nem baixa esse runtime por conta própria. Erros ao abrir a interface exibem uma caixa de diálogo. O caminho anterior egui continua disponível com `rintel-rapo.exe --egui` somente até a validação final no Windows; sua remoção depende desse smoke.
+
+HTML, JavaScript, wasm, `ui.json`, `ui_figma.svg` e licença do coletor ficam incorporados no `.exe`; não é necessário distribuir a pasta `ui-wasm/pkg`. A inicialização não lê arquivos laterais. Edite os fontes e recompile para incorporar mudanças. Para extrair cópias de `ui.json` e `ui_figma.svg`, execute `rintel-rapo.exe --export-ui-assets`; arquivos existentes nunca são sobrescritos.
+
+### Validar o pacote no Windows
+
+1. Abra o `.exe` sem argumentos. Verifique cabeçalho, telemetria, núcleos, opções, busca e biblioteca Steam.
+2. Exercite Start/Stop, Atualizar, Reexaminar Steam, seleção de PID e controles manuais. Sem jogos, o aprendizado deve ficar indisponível. Com um jogo, confirme pausa/retomada de RAPO ao mudar o foco e restauração ao parar/fechar.
+3. Minimize para a bandeja, restaure a janela e use Start/Stop e Sair no menu. Teste UAC cancelado e aceito separadamente; ao aceitar, a instância anterior deve fechar.
+4. Confira o SHA-256 do `.exe` final assinado com `Get-FileHash .\\rintel-rapo.exe -Algorithm SHA256`. A assinatura atual é autoassinada: não implica confiança pública nem elimina avisos do SmartScreen.
+
+O workflow de release só aceita disparo manual (`workflow_dispatch`); nenhum push publica release. Execute-o apenas depois da validação final no Windows. Ele gera `.exe`, certificado `.cer` e checksum; ausência de qualquer arquivo interrompe a publicação. O build cruzado e o smoke do wasm no navegador não substituem esse teste do WebView2 e dos ajustes em processos reais.
 
 O núcleo incorporado em `vendor/presentmon` vem do [PresentMon v2.3.0](https://github.com/GameTechDev/PresentMon/tree/v2.3.0/PresentData), commit `8170aab2b770556b0c4a190602c4448b0cda4a47`, sob licença MIT preservada em `vendor/presentmon/LICENSE.txt` e incluída no executável. Somente a biblioteca de coleta/análise é incorporada, não o aplicativo ou serviço PresentMon. Alterações locais de portabilidade: GUIDs constantes no lugar de `__uuidof`, desambiguação do enum `Keyword`, correção de maiúsculas no include `ETW`, declarações do SDK ausentes no MinGW em `native/windows_compat.hpp` e sinalização de perda na fila interna de frames. A ponte `native/presentmon_capture.cpp` mantém sessão e worker sob a mesma propriedade; não injeta código no jogo nem instala driver de kernel.
