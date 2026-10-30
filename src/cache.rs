@@ -69,8 +69,11 @@ fn power_throttling(handle: HANDLE) -> Result<PROCESS_POWER_THROTTLING_STATE, St
     Ok(power)
 }
 
+/// # Safety
+/// `handle` must remain a valid process handle with query and set-information
+/// access for the entire call; the caller must not close it concurrently.
 #[cfg(windows)]
-pub fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String> {
+pub unsafe fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String> {
     let created = process_created(handle)?;
     let original_memory = memory_priority(handle)?;
     let original_power = power_throttling(handle)?;
@@ -118,8 +121,11 @@ pub fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String> {
     })
 }
 
+/// # Safety
+/// `handle` must remain a valid process handle with query and set-information
+/// access for the entire call; the caller must not close it concurrently.
 #[cfg(windows)]
-pub fn restore_memory_qos(handle: HANDLE, state: &MemoryQosState) -> Result<(), String> {
+pub unsafe fn restore_memory_qos(handle: HANDLE, state: &MemoryQosState) -> Result<(), String> {
     if !matches_process(handle, state)? {
         return Ok(()); // PID reused: never write to a different process.
     }
@@ -171,14 +177,14 @@ mod tests {
         let handle = unsafe { GetCurrentProcess() };
         let before = memory_priority(handle).unwrap().MemoryPriority;
         let power_before = power_throttling(handle).unwrap();
-        let state = apply_memory_qos(handle).expect("apply_memory_qos on current process");
+        let state = unsafe { apply_memory_qos(handle) }.expect("apply_memory_qos on current process");
         assert_eq!(power_throttling(handle).unwrap().StateMask & PROCESS_POWER_THROTTLING_EXECUTION_SPEED, 0);
         let mut recycled = state;
         recycled.created += 1;
         assert!(!matches_process(handle, &recycled).unwrap());
-        restore_memory_qos(handle, &recycled).unwrap();
+        unsafe { restore_memory_qos(handle, &recycled) }.unwrap();
         assert_eq!(memory_priority(handle).unwrap().MemoryPriority, 5);
-        restore_memory_qos(handle, &state).expect("restore_memory_qos");
+        unsafe { restore_memory_qos(handle, &state) }.expect("restore_memory_qos");
         assert_eq!(memory_priority(handle).unwrap().MemoryPriority, before);
         let power_after = power_throttling(handle).unwrap();
         assert_eq!((power_after.ControlMask, power_after.StateMask),
