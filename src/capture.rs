@@ -22,11 +22,11 @@ impl Samples {
             return Err("Relógio ETW inválido".into());
         }
         let start = frequency
-            .checked_mul(15)
+            .checked_mul(4)
             .and_then(|delta| origin.checked_add(delta))
             .ok_or("Relógio ETW inválido")?;
         let end = frequency
-            .checked_mul(45)
+            .checked_mul(12)
             .and_then(|delta| origin.checked_add(delta))
             .ok_or("Relógio ETW inválido")?;
         Ok(Self {
@@ -70,9 +70,9 @@ impl Samples {
             .max_by_key(Vec::len)
             .ok_or("Nenhum frame do processo selecionado; mantenha o jogo renderizando")?;
         let span = times.last().unwrap() - times[0];
-        if times.len() < 121 || span as f64 / (self.frequency as f64) < 25.0 {
+        if times.len() < 40 || span as f64 / (self.frequency as f64) < 6.0 {
             return Err(
-                "Captura insuficiente: mantenha o jogo renderizando por 30 segundos".into(),
+                "Captura insuficiente: mantenha o jogo renderizando por 8 segundos".into(),
             );
         }
         for index in (1..times.len()).rev() {
@@ -212,7 +212,7 @@ mod integrated {
             return Err("Captura cancelada".into());
         }
         let mut frames = [NativeFrame::default(); 1024];
-        while started.elapsed() < Duration::from_secs(45) {
+        while started.elapsed() < Duration::from_secs(12) {
             if cancel.load(Ordering::Acquire) {
                 return Err("Captura cancelada".into());
             }
@@ -401,17 +401,18 @@ mod tests {
     #[test]
     fn measures_dominant_swapchain_without_hiding_stutters() {
         let mut samples = Samples::new(0, 1000).unwrap();
-        let mut timestamp = 15_000;
-        for i in 0..3001 {
+        let mut timestamp = 4_000;
+        for i in 0..801 {
+            if timestamp >= 12_000 { break; }
             samples.record(frame(1, timestamp)).unwrap();
             if i % 10 == 0 {
                 samples.record(frame(2, timestamp)).unwrap();
             }
-            timestamp += if i == 1500 { 1000 } else { 9 };
+            timestamp += if i == 400 { 1000 } else { 9 };
         }
         let score = samples.score().unwrap();
-        assert!((score.fps - 3_000_000.0 / 27_991.0).abs() < 0.001);
-        assert!((score.low_fps - 30_000.0 / 1261.0).abs() < 0.001);
+        assert!((score.fps - 778_000.0 / 7993.0).abs() < 0.001);
+        assert!((score.low_fps - 8000.0 / 1063.0).abs() < 0.001);
     }
     #[test]
     fn excludes_warmup_and_incomplete_capture_and_rejects_loss() {
@@ -419,35 +420,35 @@ mod tests {
         samples
             .record(NativeFrame {
                 lost: 1,
-                ..frame(1, 14_999)
+                ..frame(1, 3_999)
             })
             .unwrap();
-        samples.record(frame(1, 45_000)).unwrap();
+        samples.record(frame(1, 12_000)).unwrap();
         assert!(samples.score().is_err());
         let mut samples = Samples::new(0, 1000).unwrap();
         assert!(samples
             .record(NativeFrame {
                 lost: 1,
-                ..frame(1, 20_000)
+                ..frame(1, 6_000)
             })
             .is_err());
         let mut samples = Samples::new(0, 1000).unwrap();
-        samples.record(frame(1, 20_000)).unwrap();
-        assert!(samples.record(frame(1, 19_999)).is_err());
+        samples.record(frame(1, 6_000)).unwrap();
+        assert!(samples.record(frame(1, 5_999)).is_err());
         assert!(Samples::new(0, 0).is_err());
     }
     #[test]
     fn rejects_excessive_streams_without_silently_dropping_samples() {
         let mut samples = Samples::new(0, 1000).unwrap();
         for chain in 0..64 {
-            samples.record(frame(chain, 20_000)).unwrap();
+            samples.record(frame(chain, 6_000)).unwrap();
         }
-        samples.record(frame(0, 20_001)).unwrap();
-        assert!(samples.record(frame(64, 20_002)).is_err());
+        samples.record(frame(0, 6_001)).unwrap();
+        assert!(samples.record(frame(64, 6_002)).is_err());
         let mut samples = Samples::new(0, 1_000_000).unwrap();
         for index in 0..180_000 {
-            samples.record(frame(1, 15_000_000 + index)).unwrap();
+            samples.record(frame(1, 4_000_000 + index)).unwrap();
         }
-        assert!(samples.record(frame(1, 15_180_000)).is_err());
+        assert!(samples.record(frame(1, 4_180_000)).is_err());
     }
 }

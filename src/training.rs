@@ -290,7 +290,7 @@ impl App {
                     .as_ref()
                     .is_none_or(|p| p.pinned_count(training.pid) == 0)
             {
-                if training.capture_started.elapsed() < Duration::from_secs(15) {
+                if training.capture_started.elapsed() < Duration::from_secs(5) {
                     self.training = Some(training);
                 } else {
                     self.restore_training(
@@ -330,7 +330,7 @@ impl App {
             }
             return;
         }
-        if training.capture_started.elapsed() > Duration::from_secs(15) {
+        if training.capture_started.elapsed() > Duration::from_secs(5) {
             if settings.priority && !self.optimizer.boosted(training.pid) {
                 self.restore_training(
                     training,

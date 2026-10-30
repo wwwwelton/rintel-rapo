@@ -20,6 +20,8 @@ mod pin;
 mod steam;
 #[cfg(windows)]
 mod windows;
+#[cfg(windows)]
+mod release;
 
 #[cfg(windows)]
 mod app {
@@ -1239,6 +1241,18 @@ fn main() -> eframe::Result {
         if let Err(error) = export_ui_assets() {
             eprintln!("{error}");
             std::process::exit(1);
+        }
+        return Ok(());
+    }
+    if std::env::args_os().any(|arg| arg == "--generate-sha256") {
+        if let Ok(exe) = std::env::current_exe() {
+            match release::generate_sha256_file(&exe) {
+                Ok(hash) => println!("{hash}  {}", exe.file_name().unwrap_or_default().to_string_lossy()),
+                Err(e) => {
+                    eprintln!("{e}");
+                    std::process::exit(1);
+                }
+            }
         }
         return Ok(());
     }

@@ -130,6 +130,8 @@ struct Capture {
 
     Capture(uint32_t id, ProcessHandle process, std::unique_lock<std::timed_mutex> lock)
         : ownership(std::move(lock)), game(std::move(process)), pid(id) {
+        presents.reserve(1024);
+        processes.reserve(64);
         session.mPMConsumer = &consumer;
         // Only application present timing is consumed; avoid display/input/GPU tracking.
         consumer.mTrackDisplay = false;
