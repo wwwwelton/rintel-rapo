@@ -30,6 +30,8 @@ mod windows;
 mod release;
 #[cfg(windows)]
 mod netqos;
+#[cfg(all(test, windows))]
+mod cache_bench;
 
 #[cfg(windows)]
 mod app {
