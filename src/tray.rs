@@ -504,7 +504,7 @@ impl Drop for TrayController {
     }
 }
 
-/// Generates an RGBA 32x32 icon for the main eframe window (active = Mint/Cyan, paused = Amber)
+/// Generates an RGBA 32x32 icon for the main window (active = Mint/Cyan, paused = Amber)
 pub fn build_window_icon_rgba(active: bool) -> (Vec<u8>, u32, u32) {
     let width = 32u32;
     let height = 32u32;

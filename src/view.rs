@@ -1,5 +1,4 @@
-//! Pure derivations used by the UI. Mirrors the egui render logic exactly so the
-//! webview port can reuse them without depending on `App`.
+//! Pure derivations used by the UI. Reused by the webview port without depending on `App`.
 
 use crate::learning::Settings;
 

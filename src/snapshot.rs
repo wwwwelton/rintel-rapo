@@ -1,5 +1,5 @@
-//! Read-only UI snapshot. Built from plain inputs so the egui render and, later,
-//! the webview consume the same data. Commands go the other way (not here).
+//! Read-only UI snapshot. Built from plain inputs so the webview consumes the same data.
+//! Commands go the other way (not here).
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
