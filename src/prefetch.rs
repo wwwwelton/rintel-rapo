@@ -2,8 +2,9 @@ use std::{
     fs::{self, File},
     io::Read,
     path::{Path, PathBuf},
-    time::Duration,
 };
+#[cfg(test)]
+use std::time::Duration;
 
 const CHUNK: usize = 1024 * 1024;
 const MIN_PREFETCH_BUDGET: u64 = 512 * 1024 * 1024;
@@ -61,7 +62,7 @@ fn dynamic_budget() -> u64 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PrefetchControl {
     Continue,
-    #[allow(dead_code)]
+    #[cfg(test)]
     Throttle,
     Stop,
 }
@@ -76,7 +77,7 @@ impl RamCache {
     pub fn bytes(&self) -> u64 {
         self.bytes
     }
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn files(&self) -> usize {
         self.files
     }
@@ -95,6 +96,7 @@ fn warm_file(
     loop {
         match control() {
             PrefetchControl::Stop => return Ok((bytes, true)),
+            #[cfg(test)]
             PrefetchControl::Throttle => std::thread::sleep(Duration::from_millis(5)),
             PrefetchControl::Continue => {}
         }
@@ -187,7 +189,7 @@ fn prefetch_with_budget(
     Ok(cache)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn prefetch_aion2_ram(
     root: &Path,
     budget: u64,
