@@ -3,6 +3,9 @@ name = "rintel-rapo"
 version = "0.2.0"
 edition = "2021"
 
+[workspace]
+members = ["ui-wasm"]
+
 [dependencies]
 eframe = "0.31"
 
@@ -21,3 +24,4 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Threading",
     "Win32_UI_WindowsAndMessaging",
 ] }
+wry = "0.57.1"

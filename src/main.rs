@@ -33,7 +33,7 @@ mod app {
         cpu::Monitor,
         hardware::{self, CacheTopology},
         fps::FpsTracker,
-        intel_dtt::{self, IntelDttReport, IntelDttStatus},
+        intel_dtt::{self, IntelDttReport},
         pin::Pinner,
         prefetch,
         steam::{self, Game},
