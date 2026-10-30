@@ -507,7 +507,7 @@ mod app {
             }
             if !minimized && !pause_requested && !self.running.is_empty() {
                 self.fps.record_frame_instant(Instant::now());
-                ctx.request_repaint_after(Duration::from_millis(250));
+                ctx.request_repaint_after(Duration::from_millis(8));
             } else {
                 if self.running.is_empty() {
                     self.fps.reset();
