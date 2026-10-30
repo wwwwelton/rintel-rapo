@@ -3426,6 +3426,8 @@ version = "0.2.0"
 dependencies = [
  "cc",
  "eframe",
+ "serde",
+ "serde_json",
  "tao",
  "windows-sys 0.59.0",
  "winreg",

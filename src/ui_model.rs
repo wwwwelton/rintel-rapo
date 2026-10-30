@@ -1,15 +1,18 @@
 //! UI state snapshots. Pure logic, no platform calls, so it runs under `cargo test` on any OS.
 
+use serde::Serialize;
+
 use crate::intel_dtt::IntelDttStatus;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DttBadge {
     Running,
     Stopped,
     NotInstalled,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct HeaderModel {
     pub optimizer_running: bool,
     pub dtt: DttBadge,

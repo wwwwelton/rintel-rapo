@@ -12,6 +12,7 @@ pub mod intel_dtt;
 mod webview;
 pub mod ui_model;
 pub mod view;
+pub mod snapshot;
 pub mod telemetry;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -585,7 +586,7 @@ mod app {
             }
 
             let strings_arc = self.ui_strings.clone();
-            let header = crate::ui_model::header_model(current_opt_running, &self.dtt_report.status, self.running.len());
+            let header = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len()).header;
             egui::CentralPanel::default().show(ctx, |ui| {
                 let strings = strings_arc.as_ref();
                 egui::ScrollArea::vertical().show(ui, |ui| {
