@@ -1241,6 +1241,7 @@ mod app {
                 "dashboard": {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
                     "profile": profile,
+                    "power_plan": power::active_plan(),
                     "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),

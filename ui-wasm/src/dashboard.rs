@@ -20,6 +20,13 @@ pub struct Dashboard {
     pub aion2_status: String,
     pub pin_status: Option<String>,
     pub profile: Option<AppliedProfile>,
+    pub power_plan: Result<PowerPlan, String>,
+}
+
+#[derive(Deserialize)]
+pub struct PowerPlan {
+    pub name: String,
+    pub guid: String,
 }
 
 #[derive(Deserialize)]
@@ -62,6 +69,14 @@ pub fn render(view: &Dashboard) -> String {
     } else {
         html.push_str("<section class=\"profile-summary profile-standby\"><h2>PERFIL EM USO</h2><p>Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO.</p></section>");
     }
+    html.push_str("<section class=\"power-plan\"><h2>PLANO DE ENERGIA ATIVO NO WINDOWS</h2>");
+    match &view.power_plan {
+        Ok(plan) => {
+            write!(html, "<p class=\"profile-source\">{}</p><p>GUID: <code>{}</code></p><p>Consultado no Windows; atualizado com a telemetria. Este bloco não altera o plano.</p>", escape(&plan.name), escape(&plan.guid)).unwrap();
+        }
+        Err(error) => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(error)).unwrap(); }
+    }
+    html.push_str("</section>");
     write!(html, "<section><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><dl class=\"metrics\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
         write!(html, "<div><dt>{}</dt><dd>{}</dd></div>", escape(label), escape(value)).unwrap();
@@ -114,6 +129,7 @@ mod tests {
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
             profile: None,
+            power_plan: Ok(PowerPlan { name: "<script>energia</script>".into(), guid: "a\"b".into() }),
         };
         let html = render(&view);
         assert!(!html.contains("<script>"));

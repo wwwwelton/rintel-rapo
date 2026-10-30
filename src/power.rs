@@ -23,6 +23,37 @@ fn active() -> Result<Guid, String> {
     Ok(value)
 }
 
+#[derive(serde::Serialize)]
+pub struct ActivePlan {
+    pub name: String,
+    pub guid: String,
+}
+
+pub fn active_plan() -> Result<ActivePlan, String> {
+    let scheme = active()?;
+    let mut bytes = 0u32;
+    let error = unsafe {
+        PowerReadFriendlyName(ptr::null_mut(), &scheme, ptr::null(), ptr::null(), ptr::null_mut(), &mut bytes)
+    };
+    if error != 0 && error != 234 {
+        return Err(format!("Leitura do nome do plano de energia: {error}"));
+    }
+    if bytes == 0 || bytes % 2 != 0 {
+        return Err("Nome do plano de energia inválido".into());
+    }
+    let mut name = vec![0u16; bytes as usize / 2];
+    let error = unsafe {
+        PowerReadFriendlyName(ptr::null_mut(), &scheme, ptr::null(), ptr::null(), name.as_mut_ptr().cast(), &mut bytes)
+    };
+    if error != 0 {
+        return Err(format!("Leitura do nome do plano de energia: {error}"));
+    }
+    let end = name.iter().position(|c| *c == 0).unwrap_or(name.len());
+    let guid = format!("{:08x}-{:04x}-{:04x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        scheme.a, scheme.b, scheme.c, scheme.d[0], scheme.d[1], scheme.d[2], scheme.d[3], scheme.d[4], scheme.d[5], scheme.d[6], scheme.d[7]);
+    Ok(ActivePlan { name: String::from_utf16_lossy(&name[..end]), guid })
+}
+
 fn rank(scheme: Guid, name: &[u16]) -> u8 {
     let matches = |expected: &str| {
         char::decode_utf16(name.iter().copied().take_while(|c| *c != 0))
