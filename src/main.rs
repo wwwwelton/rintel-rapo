@@ -524,26 +524,8 @@ mod app {
 
     impl eframe::App for App {
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-            if self.last_refresh.elapsed() >= Duration::from_secs(1) {
-                self.refresh();
-            }
-
             let minimized = ctx.input(|input| input.viewport().minimized == Some(true));
-            let pause_requested = self.tray.take_fps_pause_request();
-            if pause_requested {
-                self.fps.pause_sampling();
-            }
-            if !minimized && !pause_requested && !self.running.is_empty() {
-                self.fps.record_frame_instant(Instant::now());
-                ctx.request_repaint_after(Duration::from_millis(8));
-            } else {
-                if self.running.is_empty() {
-                    self.fps.reset();
-                } else {
-                    self.fps.pause_sampling();
-                }
-                ctx.request_repaint_after(Duration::from_secs(1));
-            }
+            ctx.request_repaint_after(self.tick(minimized));
 
             if !self.theme_applied {
                 let mut visuals = egui::Visuals::dark();
@@ -1178,6 +1160,28 @@ mod app {
     }
 
     impl App {
+        /// Advances refresh and FPS sampling without egui; returns how soon the next frame is needed.
+        fn tick(&mut self, minimized: bool) -> Duration {
+            if self.last_refresh.elapsed() >= Duration::from_secs(1) {
+                self.refresh();
+            }
+            let pause_requested = self.tray.take_fps_pause_request();
+            if pause_requested {
+                self.fps.pause_sampling();
+            }
+            if !minimized && !pause_requested && !self.running.is_empty() {
+                self.fps.record_frame_instant(Instant::now());
+                Duration::from_millis(8)
+            } else {
+                if self.running.is_empty() {
+                    self.fps.reset();
+                } else {
+                    self.fps.pause_sampling();
+                }
+                Duration::from_secs(1)
+            }
+        }
+
         fn apply(&mut self, ctx: &egui::Context, command: crate::command::Command) {
             match command {
                 crate::command::Command::SetOptimizerRunning(running) => {
