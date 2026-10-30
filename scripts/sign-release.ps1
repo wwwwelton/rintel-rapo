@@ -1,29 +1,17 @@
 param(
-    [string]$Target = "x86_64-pc-windows-gnu"
+    [string]$ExePath = (Join-Path $PSScriptRoot "..\target\release\rintel-rapo.exe")
 )
 
 $ErrorActionPreference = "Stop"
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoDir = Split-Path -Parent $scriptDir
-
-$exePaths = @(
-    (Join-Path $repoDir "target\$Target\release\rintel-rapo.exe"),
-    (Join-Path $repoDir "target\release\rintel-rapo.exe")
-)
-$exePath = $exePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-if (-not $exePath) {
-    Write-Error "Executavel de release nao encontrado. Compile primeiro com: cargo build --release"
-    exit 1
-}
+$exePath = (Resolve-Path -LiteralPath $ExePath -ErrorAction Stop).Path
 
 $dir = Split-Path -Parent $exePath
 $cerPath = Join-Path $dir "rintel-rapo.cer"
 $shaPath = "$exePath.sha256"
 
 Write-Host "Localizando ou criando certificado CodeSigning..."
-$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "*Rintel RAPO*" } | Select-Object -First 1
+$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -eq "CN=Rintel RAPO Open Source, O=Rintel Project, C=BR" -and $_.HasPrivateKey -and $_.NotBefore -le (Get-Date) -and $_.NotAfter -gt (Get-Date).AddDays(1) } | Sort-Object NotAfter -Descending | Select-Object -First 1
 if (-not $cert) {
     $cert = New-SelfSignedCertificate `
       -Type CodeSigningCert `
@@ -36,7 +24,6 @@ if (-not $cert) {
 }
 
 Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
-try { Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" -ErrorAction SilentlyContinue | Out-Null } catch {}
 
 Write-Host "Assinando $exePath com Authenticode SHA-256 e carimbo DigiCert..."
 $sig = Set-AuthenticodeSignature `
@@ -47,6 +34,13 @@ $sig = Set-AuthenticodeSignature `
 
 if (-not $sig.SignerCertificate) {
     Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256 | Out-Null
+}
+$sig = Get-AuthenticodeSignature -FilePath $exePath
+if (-not $sig.SignerCertificate -or $sig.SignerCertificate.Thumbprint -ne $cert.Thumbprint -or $sig.Status -notin @("Valid", "NotTrusted")) {
+    throw "Assinatura invalida: $($sig.Status) - $($sig.StatusMessage)"
+}
+if (-not $sig.TimeStamperCertificate) {
+    Write-Warning "Sem carimbo de tempo: a assinatura depende da validade do certificado."
 }
 
 $hash = (Get-FileHash $exePath -Algorithm SHA256).Hash.ToLower()
