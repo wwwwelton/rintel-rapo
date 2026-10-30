@@ -89,26 +89,33 @@ pub fn render(view: &Dashboard) -> String {
         None => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(&view.power_plan.error)).unwrap(); }
     }
     html.push_str("</section>");
-    write!(html, "<section><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><dl class=\"metrics\">", escape(&view.target)).unwrap();
+    write!(html, "<section class=\"telemetry-section\"><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><div class=\"telemetry-grid\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
-        write!(html, "<div><dt>{}</dt><dd>{}</dd></div>", escape(label), escape(value)).unwrap();
+        let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
+        write!(html, "<div class=\"telemetry-box\"><span class=\"box-label\">{}</span><strong class=\"box-value\">{}</strong>", escape(label), escape(primary)).unwrap();
+        if !sub.is_empty() {
+            write!(html, "<span class=\"box-sub\">{}</span>", escape(sub)).unwrap();
+        }
+        html.push_str("</div>");
     }
-    html.push_str("</dl></section><section><h2>USO POR NÚCLEO LÓGICO</h2><p>TOPOLOGIA DETECTADA PELO WINDOWS</p><div class=\"cores\">");
+    html.push_str("</div></section><section class=\"cores-section\"><h2>USO POR NÚCLEO LÓGICO</h2><p>TOPOLOGIA DETECTADA PELO WINDOWS</p><div class=\"core-grid\">");
     for (index, load, p_core) in &view.cores {
         let percent = load.clamp(0.0, 1.0) * 100.0;
-        write!(html, "<label>{index:02} {} <meter min=\"0\" max=\"100\" value=\"{percent}\">{percent:.0}%</meter> {percent:.0}%</label>", if *p_core { "P" } else { "" }).unwrap();
+        let color_class = if percent > 85.0 { "core-high" } else if percent > 50.0 { "core-med" } else { "core-low" };
+        write!(html, "<div class=\"core-box\"><div class=\"core-header\"><span class=\"core-num\">{:02}</span><span class=\"badge {}\">{}</span><span class=\"core-pct\">{:.0}%</span></div><div class=\"core-bar-bg\"><div class=\"core-bar-fill {}\" style=\"width: {:.1}%\"></div></div></div>", index, if *p_core { "badge-accent" } else { "badge-muted" }, if *p_core { "P-core" } else { "E-core" }, percent, color_class, percent).unwrap();
     }
-    html.push_str("</div><p>");
-    for cache in &view.cache { write!(html, "<span class=\"badge\">{}</span> ", escape(cache)).unwrap(); }
-    html.push_str("</p></section><section><h2>OPÇÕES E DIRETRIZES DE AGENDAMENTO</h2>");
+    html.push_str("</div><div class=\"cache-badges\">");
+    for cache in &view.cache { write!(html, "<span class=\"badge badge-muted\">{}</span> ", escape(cache)).unwrap(); }
+    html.push_str("</div></section><section class=\"properties-section\"><h2>OPÇÕES E DIRETRIZES DE AGENDAMENTO</h2><div class=\"property-grid\">");
     for (action, on, label, hint) in [
         ("auto-yield", view.auto_yield, "Auto-Yield (afinidade)", "Cede afinidade se outro programa mudar a máscara de uma thread já fixada"),
-        ("windowed", view.windowed, "Manter ajustes em segundo plano", "Pode prejudicar outros aplicativos"),
+        ("windowed", view.windowed, "Manter ajustes em segundo plano", "Mantém prioridade e afinidade mesmo com o jogo fora de foco"),
         ("minimize-tray", view.minimize_tray, "Minimizar para a Barra de Ícones (Tray)", "Oculta da barra de tarefas; menu Start/Stop na bandeja"),
     ] {
-        write!(html, "<label title=\"{}\"><input type=\"checkbox\" data-action=\"{action}\"{}> {}</label> ", escape(hint), if on { " checked" } else { "" }, escape(label)).unwrap();
+        write!(html, "<div class=\"property-box\"><label class=\"property-toggle\"><input type=\"checkbox\" data-action=\"{action}\"{}> <div class=\"property-text\"><span class=\"property-name\">{}</span><span class=\"property-desc\">{}</span></div></label></div>", if on { " checked" } else { "" }, escape(label), escape(hint)).unwrap();
     }
-    html.push_str("<button data-action=\"elevate\" title=\"Solicita UAC; as opções deverão ser selecionadas novamente. Processos protegidos ainda podem negar acesso.\">Reabrir como administrador</button></section>");
+    html.push_str("<div class=\"property-box property-box-action\"><div class=\"property-text\"><span class=\"property-name\">Privilégios de Administrador</span><span class=\"property-desc\">Solicita UAC; reinicia para otimizar processos comuns protegidos</span></div><button data-action=\"elevate\" class=\"btn-elevate\" title=\"Solicita UAC; as opções deverão ser selecionadas novamente. Processos protegidos ainda podem negar acesso.\">Reabrir como administrador</button></div>");
+    html.push_str("</div></section>");
     write!(html, "<section><h2>JOGOS DETECTADOS EM EXECUÇÃO: {}</h2>", view.running.len()).unwrap();
     if view.running.is_empty() { html.push_str("<p>Nenhum processo dentro das pastas dos jogos Steam instalado em execução.</p>"); }
     for p in &view.running {
