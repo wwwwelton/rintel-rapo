@@ -22,12 +22,17 @@
 <script type="module">
   import init, { render_header_json, render_games_json } from "./rapo_ui.js";
   await init();
-  document.getElementById("app").innerHTML = render_header_json(JSON.stringify(window.INITIAL_HEADER));
+  const app = document.getElementById("app");
   const games = document.getElementById("games");
-  games.innerHTML = render_games_json(JSON.stringify(window.INITIAL_GAMES));
   const send = (el) => window.ipc.postMessage(JSON.stringify({ action: el.dataset.action, dir: el.dataset.dir ?? null, checked: el.checked ?? null }));
   games.addEventListener("change", (e) => { if (e.target.matches("input[data-action]")) send(e.target); });
   games.addEventListener("click", (e) => { const b = e.target.closest("button[data-action]"); if (b && !b.disabled) send(b); });
+  // Host pushes `{ header, games }` (games = GamesView) to re-render without reloading.
+  window.rapoUpdate = (state) => {
+    app.innerHTML = render_header_json(JSON.stringify(state.header));
+    games.innerHTML = render_games_json(JSON.stringify(state.games));
+  };
+  window.rapoUpdate({ header: window.INITIAL_HEADER, games: window.INITIAL_GAMES });
 </script>
 </body>
 </html>
