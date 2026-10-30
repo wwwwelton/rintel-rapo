@@ -6,6 +6,12 @@ fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    for file in ["ui-wasm/pkg/rapo_ui.js", "ui-wasm/pkg/rapo_ui_bg.wasm", "ui-wasm/index.html"] {
+        println!("cargo:rerun-if-changed={file}");
+        if !std::path::Path::new(file).exists() {
+            panic!("{file} missing: run scripts/build-ui.sh before building the Windows binary");
+        }
+    }
     let mut build = cc::Build::new();
     build
         .cpp(true)
