@@ -31,6 +31,18 @@ pub enum Command {
     StopTraining,
     /// Chooses the process the next session targets, looked up by pid when applied.
     SelectTrainingTarget { pid: u32 },
+    RefreshRoutes,
+    ApplyRoute { destination: String, candidate: String },
+    RemoveRoute(String),
+    RemoveAllRoutes,
+    StartRouteLearning { destination: String, candidates: Vec<String> },
+    StopNetworkLearning,
+    ApplyRate { pid: u32, bps: u64 },
+    StartRateLearning { pid: u32, destination: String, rates: Vec<u64> },
+    RemoveRate,
+    SetNetworkPriority(bool),
+    SetRelay(bool),
+    SetRelayInterfaces(Vec<String>),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -52,6 +64,8 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "auto" => Some(Command::SetAuto { directory: directory()?, on: checked? }),
         "rapo" => Some(Command::SetRapo(if checked? { directory() } else { None })),
         "apo-profile" => Some(Command::ApplyAion2Profile { directory: directory()? }),
+        "network-priority" => Some(Command::SetNetworkPriority(checked?)),
+        "relay" => Some(Command::SetRelay(checked?)),
         _ => None,
     }
 }
@@ -67,6 +81,33 @@ pub fn from_json(body: &str) -> Option<Command> {
     let dir = event.get("dir").and_then(|v| v.as_str());
     let checked = event.get("checked").and_then(|v| v.as_bool());
     let pid = event.get("pid").and_then(|v| v.as_u64()).and_then(|p| u32::try_from(p).ok());
+    let text = |key| event.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned);
+    match action {
+        "relay-interfaces" => {
+            let candidates = event.get("candidates")?.as_array()?;
+            if candidates.len() > 64 { return None; }
+            let candidates = candidates.iter().map(|v| v.as_str().filter(|id| !id.is_empty() && id.len() <= 512).map(str::to_owned)).collect::<Option<Vec<_>>>()?;
+            return Some(Command::SetRelayInterfaces(candidates));
+        }
+        "route-refresh" => return Some(Command::RefreshRoutes),
+        "route-apply" => return Some(Command::ApplyRoute { destination: text("destination")?, candidate: text("candidate")? }),
+        "route-remove" => return Some(Command::RemoveRoute(text("destination")?)),
+        "route-remove-all" => return Some(Command::RemoveAllRoutes),
+        "network-stop" => return Some(Command::StopNetworkLearning),
+        "rate-remove" => return Some(Command::RemoveRate),
+        "route-learn" => {
+            if event.get("consent")?.as_bool()? != true { return None; }
+            let candidates = event.get("candidates")?.as_array()?.iter().map(|v| v.as_str().filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned)).collect::<Option<Vec<_>>>()?;
+            return Some(Command::StartRouteLearning { destination: text("destination")?, candidates });
+        }
+        "rate-apply" => return Some(Command::ApplyRate { pid: pid.filter(|p| *p != 0)?, bps: crate::network_qos::bits_per_second(&text("mbps")?).ok()? }),
+        "rate-learn" => {
+            if event.get("consent")?.as_bool()? != true { return None; }
+            let rates = event.get("rates")?.as_array()?.iter().map(|v| crate::network_qos::bits_per_second(v.as_str()?).ok()).collect::<Option<Vec<_>>>()?;
+            return Some(Command::StartRateLearning { pid: pid.filter(|p| *p != 0)?, destination: text("destination")?, rates });
+        }
+        _ => (),
+    }
     from_ui_event(action, dir, checked).or_else(|| from_training_event(action, pid))
 }
 /// Maps training panel events (buttons and target picks by `pid`) to commands.
@@ -130,5 +171,22 @@ mod tests {
         assert_eq!(from_json(r#"{"action":"windowed","checked":false}"#), Some(Command::SetWindowed(false)));
         assert_eq!(from_json(r#"{"action":"search","text":"AION 2"}"#), Some(Command::SetSearch("AION 2".into())));
         assert_eq!(from_json("not JSON"), None);
+        for body in [r#"{"action":"relay"}"#, r#"{"action":"relay","checked":"true"}"#,
+            r#"{"action":"relay-interfaces","candidates":[2]}"#, r#"{"action":"relay-interfaces","candidates":[""]}"#] {
+            assert_eq!(from_json(body), None);
+        }
+    }
+
+    #[test]
+    fn route_and_rate_ipc_requires_typed_fields_and_explicit_learning_consent() {
+        assert_eq!(from_json(r#"{"action":"route-apply","destination":"192.0.2.42","candidate":"7:2:192.0.2.1%0"}"#),
+            Some(Command::ApplyRoute { destination: "192.0.2.42".into(), candidate: "7:2:192.0.2.1%0".into() }));
+        for body in [r#"{"action":"route-apply","destination":42,"candidate":"x"}"#,
+            r#"{"action":"route-learn","destination":"192.0.2.42","candidates":["a","b"]}"#,
+            r#"{"action":"route-learn","destination":"192.0.2.42","candidates":[3],"consent":true}"#,
+            r#"{"action":"rate-apply","pid":7,"mbps":"NaN"}"#,
+            r#"{"action":"rate-apply","pid":0,"mbps":"1"}"#,
+            r#"{"action":"rate-learn","pid":7,"destination":"192.0.2.42","rates":["1","2"],"consent":false}"#] { assert_eq!(from_json(body), None, "{body}"); }
+        assert_eq!(from_json(r#"{"action":"rate-apply","pid":7,"mbps":"1.25"}"#), Some(Command::ApplyRate { pid: 7, bps: 1_250_000 }));
     }
 }

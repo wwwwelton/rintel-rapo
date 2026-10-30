@@ -35,17 +35,21 @@ impl EchoOutcome {
 pub struct EndpointPing {
     pub destination: String,
     pub outcome: EchoOutcome,
+    pub route: Option<crate::routes::Observation>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ProcessPing {
     pub summary: String,
     pub endpoints: Vec<EndpointPing>,
+    pub sample_id: u64,
+    pub sampled_at: Option<Instant>,
+    pub pids: Vec<u32>,
 }
 
 impl Default for ProcessPing {
     fn default() -> Self {
-        Self { summary: "Aguardando processo / amostra ICMP".into(), endpoints: Vec::new() }
+        Self { summary: "Aguardando processo / amostra ICMP".into(), endpoints: Vec::new(), sample_id: 0, sampled_at: None, pids: Vec::new() }
     }
 }
 
@@ -66,9 +70,13 @@ impl ProcessPingSampler {
             self.snapshot = ProcessPing::default();
         }
         if pids.is_empty() {
-            self.snapshot = ProcessPing { summary: "Nenhum processo selecionado".into(), endpoints: Vec::new() };
+            self.snapshot = ProcessPing { summary: "Nenhum processo selecionado".into(), ..ProcessPing::default() };
         } else if self.sampled_at.is_none_or(|at| now.duration_since(at) >= SAMPLE_INTERVAL) {
             self.snapshot = collect(pids);
+            static NEXT_SAMPLE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+            self.snapshot.sample_id = NEXT_SAMPLE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            self.snapshot.sampled_at = Some(now);
+            self.snapshot.pids = pids.to_vec();
             self.sampled_at = Some(Instant::now());
         }
         self.snapshot.clone()
@@ -77,7 +85,7 @@ impl ProcessPingSampler {
 
 #[cfg(not(windows))]
 fn collect(_: &[u32]) -> ProcessPing {
-    ProcessPing { summary: "ICMP por processo disponível somente no Windows".into(), endpoints: Vec::new() }
+    ProcessPing { summary: "ICMP por processo disponível somente no Windows".into(), ..ProcessPing::default() }
 }
 
 #[cfg(any(windows, test))]
@@ -147,9 +155,14 @@ fn collect(pids: &[u32]) -> ProcessPing {
             SocketAddr::V6(addr) if addr.scope_id() != 0 => format!("{}%{}", addr.ip(), addr.scope_id()),
             SocketAddr::V6(addr) => addr.ip().to_string(),
         };
-        EndpointPing { destination: address, outcome: echo(destination) }
+        let before = crate::routes::native::observe(destination.remote).ok();
+        let probe = Destination { local: before.as_ref().map_or(destination.local, |(_, source)| *source), ..destination };
+        let outcome = echo(probe);
+        let after = crate::routes::native::observe(destination.remote).ok();
+        let route = before.and_then(|(route, _)| after.filter(|(other, _)| *other == route).map(|_| route));
+        EndpointPing { destination: address, outcome, route }
     }).collect();
-    ProcessPing { summary, endpoints }
+    ProcessPing { summary, endpoints, ..ProcessPing::default() }
 }
 
 // T must be the OWNER_PID row corresponding to family. Windows can grow the table between calls.
@@ -269,8 +282,8 @@ mod tests {
         let mut sampler = ProcessPingSampler {
             pids: vec![42], sampled_at: Some(Instant::now()),
             snapshot: ProcessPing { summary: "Anterior".into(), endpoints: vec![EndpointPing {
-                destination: "10.0.0.1".into(), outcome: EchoOutcome::Reply(12),
-            }] },
+                destination: "10.0.0.1".into(), outcome: EchoOutcome::Reply(12), route: None,
+            }], ..ProcessPing::default() },
         };
         let sample = sampler.sample(&[]);
         assert!(sample.endpoints.is_empty());
@@ -283,8 +296,8 @@ mod tests {
         let mut sampler = ProcessPingSampler {
             pids: vec![42], sampled_at: Some(Instant::now()),
             snapshot: ProcessPing { summary: "Anterior".into(), endpoints: vec![EndpointPing {
-                destination: "192.0.2.42".into(), outcome: EchoOutcome::Reply(42),
-            }] },
+                destination: "192.0.2.42".into(), outcome: EchoOutcome::Reply(42), route: None,
+            }], ..ProcessPing::default() },
         };
         let sample = sampler.sample(&[99]);
         assert!(sample.endpoints.is_empty());

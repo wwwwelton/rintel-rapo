@@ -16,6 +16,10 @@ pub mod snapshot;
 pub mod command;
 pub mod telemetry;
 pub mod process_ping;
+pub mod routes;
+mod network_learning;
+pub mod relay;
+mod network_qos;
 pub mod tray;
 #[cfg(any(test, windows))]
 mod prefetch;
@@ -102,11 +106,13 @@ mod app {
         learned_pids: HashSet<(u32, PathBuf)>,
         netqos: super::netqos::NetQos,
         qos_error: String,
-        qos_sweep_error: String,
+        network_priority: bool,
+        routes: crate::routes::Service,
         ui_strings: Arc<HashMap<String, String>>,
         power_watch: Option<power::PlanWatch>,
         power_plan: Option<power::ActivePlan>,
         power_error: String,
+        relay: crate::relay::RelayServer,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -165,18 +171,18 @@ mod app {
                 learned_pids: HashSet::new(),
                 netqos: super::netqos::NetQos::default(),
                 qos_error: String::new(),
-                qos_sweep_error: String::new(),
+                network_priority: false,
+                routes: crate::routes::Service::new(),
                 ui_strings: Arc::new(load_ui_strings()),
                 power_watch: power::PlanWatch::new().ok(),
                 power_plan: None,
                 power_error: String::new(),
+                relay: crate::relay::RelayServer::new(1080),
             };
+            let _ = app.relay.start();
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
                 Err(error) => app.training_message = error,
-            }
-            if let Err(error) = super::netqos::clear_all() {
-                app.qos_sweep_error = error;
             }
             app.scan();
             app.refresh();
@@ -304,8 +310,9 @@ mod app {
                 }
             }
 
-            let active: Vec<&std::path::Path> = if optimizer_active {
-                self.running.iter().filter(|p| self.optimizer.enabled(p.pid)).map(|p| p.exe.as_path()).collect()
+            let network_pid = self.selected_process().map(|p| p.pid);
+            let active: Vec<&std::path::Path> = if optimizer_active && self.network_priority {
+                self.running.iter().filter(|p| Some(p.pid) == network_pid).map(|p| p.exe.as_path()).collect()
             } else {
                 Vec::new()
             };
@@ -477,6 +484,8 @@ mod app {
 
     impl Drop for App {
         fn drop(&mut self) {
+            self.relay.stop();
+            self.routes.shutdown();
             if let Some(training) = self.training.take() {
                 self.restore_training(training, "Aplicativo encerrado; ajustes de teste restaurados.".into());
             }
@@ -494,7 +503,7 @@ mod app {
         pub fn webview_state(&self) -> serde_json::Value {
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
             let tm = &self.telemetry.metrics;
-            let mut alerts: Vec<String> = [&self.error, &self.cpu_error, &self.qos_error, &self.qos_sweep_error]
+            let mut alerts: Vec<String> = [&self.error, &self.cpu_error, &self.qos_error]
                 .into_iter().filter(|s| !s.is_empty()).cloned().collect();
             if let Some(c) = self.pinner.as_ref().and_then(|p| p.conflict()) {
                 alerts.push(format!("DISPUTA DE AFINIDADE: Thread {}:{} afinidade externa {:#x}; aplicada {:#x}.", c.pid, c.tid, c.external_mask, c.our_mask));
@@ -552,6 +561,9 @@ mod app {
             metrics.push(("ICMP · IPs TCP DO PROCESSO", format!("{} · Não identifica servidor de partida; UDP não expõe destino na tabela Windows", tm.process_ping.summary)));
             for endpoint in &tm.process_ping.endpoints {
                 metrics.push(("ICMP · DESTINO OBSERVADO", format!("{} · {}", endpoint.outcome.label(), endpoint.destination)));
+                metrics.push(("ICMP · ROTA OBSERVADA", endpoint.route.as_ref().map_or_else(
+                    || format!("{} · rota/origem não confirmada ao redor da sonda; não usar no aprendizado", endpoint.destination),
+                    |route| format!("{} · if {} · gateway {} · origem {} · amostra {}", endpoint.destination, route.interface, route.gateway, route.source, tm.process_ping.sample_id))));
             }
             let cores: Vec<_> = self.cpu.load.iter().enumerate().map(|(index, load)| {
                 (index, *load, index < usize::BITS as usize && self.pinner.as_ref().is_some_and(|p| p.mask & (1usize << index) != 0))
@@ -560,7 +572,7 @@ mod app {
             if self.cache_topo.total_l3_kb > 0 {
                 cache.push(format!("L3 SMART CACHE {:.0}MB", self.cache_topo.total_l3_kb as f32 / 1024.0));
             }
-            let mut network_tweaks: Vec<_> = self.netqos.applied().iter().map(|name| name.to_string_lossy().into_owned()).collect();
+            let mut network_tweaks: Vec<_> = self.netqos.applied().iter().map(|(name, dscp)| format!("DSCP {dscp} · {}", name.display())).collect();
             network_tweaks.sort();
             serde_json::json!({
                 "header": { "optimizer_running": header.optimizer_running, "dtt": header.dtt, "default_config_enabled": header.default_config_enabled, "strings": &*self.ui_strings },
@@ -570,6 +582,11 @@ mod app {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
                     "profile": profile,
                     "network_tweaks": network_tweaks,
+                    "network_priority": self.network_priority,
+                    "relay": self.relay.state(),
+                    "routes": self.routes.state,
+                    "route_endpoints": tm.process_ping.endpoints.iter().map(|e| &e.destination).collect::<Vec<_>>(),
+                    "network_target_pid": if tm.has_target { tm.target_pid } else { 0 },
                     "power_plan": { "plan": self.power_plan, "error": self.power_error },
                     "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
@@ -586,6 +603,8 @@ mod app {
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
             }
+            self.routes.poll(&self.telemetry.metrics.process_ping);
+            self.relay.poll();
             let pause_requested = self.tray.take_fps_pause_request();
             if pause_requested {
                 self.fps.pause_sampling();
@@ -673,6 +692,30 @@ mod app {
                     self.refresh();
                 }
                 crate::command::Command::Refresh => self.refresh(),
+                crate::command::Command::SetNetworkPriority(on) => { self.network_priority = on; self.refresh(); }
+                crate::command::Command::SetRelay(on) => {
+                    if on { let _ = self.relay.start(); } else { self.relay.stop(); }
+                }
+                crate::command::Command::SetRelayInterfaces(interfaces) => self.relay.set_interfaces(interfaces),
+                crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
+                crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),
+                crate::command::Command::RemoveRoute(destination) => self.routes.request(crate::routes::Operation::Remove(destination)),
+                crate::command::Command::RemoveAllRoutes => self.routes.request(crate::routes::Operation::RemoveAll),
+                crate::command::Command::StartRouteLearning { destination, candidates } => self.routes.request(crate::routes::Operation::Start {
+                    destination, candidates, sample: self.telemetry.metrics.process_ping.clone(),
+                }),
+                crate::command::Command::StopNetworkLearning => self.routes.request(crate::routes::Operation::Stop),
+                crate::command::Command::RemoveRate => self.routes.request(crate::routes::Operation::RateRemove),
+                crate::command::Command::ApplyRate { pid, bps } => {
+                    if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
+                        self.routes.request(crate::routes::Operation::RateApply { pid, exe: process.exe.clone(), bps });
+                    } else { self.routes.state.error = "Alvo de saída não está mais em execução.".into(); }
+                }
+                crate::command::Command::StartRateLearning { pid, destination, rates } => {
+                    if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
+                        self.routes.request(crate::routes::Operation::RateStart { pid, exe: process.exe.clone(), rates, destination, sample: self.telemetry.metrics.process_ping.clone() });
+                    } else { self.routes.state.error = "Alvo de saída não está mais em execução.".into(); }
+                }
                 crate::command::Command::SetSearch(text) => self.search = text,
                 crate::command::Command::RelaunchElevated => match windows::relaunch_elevated() {
                     Ok(()) => return true,
@@ -684,7 +727,7 @@ mod app {
                 }
                 crate::command::Command::ResetNetQos => {
                     self.qos_error.clear();
-                    self.qos_sweep_error = match self.netqos.reset() {
+                    self.qos_error = match self.netqos.reset() {
                         Ok(()) => String::new(),
                         Err(error) => error,
                     };

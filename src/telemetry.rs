@@ -810,6 +810,7 @@ mod tests {
                 snapshot.metrics.process_ping.endpoints.push(crate::process_ping::EndpointPing {
                     destination: "192.0.2.42".into(),
                     outcome: crate::process_ping::EchoOutcome::Reply(42),
+                    route: None,
                 });
                 collector.mailbox.snapshot(*snapshot);
                 break;

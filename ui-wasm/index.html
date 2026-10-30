@@ -15,7 +15,7 @@
   .badge-accent { color: #46e0d5; border-color: rgba(70,224,213,0.4); background: rgba(70,224,213,0.1); }
   .badge-warning { color: #ffd96b; border-color: rgba(255,217,107,0.4); background: rgba(255,217,107,0.1); }
   .badge-muted { color: #8da9bb; border-color: rgba(141,169,187,0.3); background: rgba(141,169,187,0.08); }
-  button, input { background: #0c1a27; color: inherit; border: 1px solid #1e394c; padding: 7px 12px; border-radius: 6px; font-size: 13px; font-family: inherit; transition: all .15s ease; }
+  button, input, select { background: #0c1a27; color: inherit; border: 1px solid #1e394c; padding: 7px 12px; border-radius: 6px; font-size: 13px; font-family: inherit; transition: all .15s ease; max-width: 100%; box-sizing: border-box; }
   button { cursor: pointer; font-weight: 600; }
   button:hover:not(:disabled) { background: #102230; border-color: #46e0d5; color: #46e0d5; }
   button:disabled { opacity: .4; cursor: default; }
@@ -31,6 +31,21 @@
   .box-label { font-size: 11px; font-weight: 700; color: #8da9bb; text-transform: uppercase; letter-spacing: 0.05em; }
   .box-value { font-size: 22px; font-weight: 750; color: #46e0d5; line-height: 1.2; }
   .box-sub { font-size: 11px; color: #68869a; margin-top: 2px; }
+  .telemetry-box-wide { grid-column: 1 / -1; }
+  .net-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 10px 0; }
+  .net-card { background: #0c1a27; border: 1px solid #1e394c; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; transition: border-color .15s ease; }
+  .net-card:hover { border-color: #46e0d5; }
+  .net-card-label { font-size: 10px; font-weight: 700; color: #68869a; text-transform: uppercase; letter-spacing: 0.06em; }
+  .net-card-value { font-size: 18px; font-weight: 750; line-height: 1.2; }
+  .net-card-sub { font-size: 11px; color: #68869a; }
+  .net-card-active { border-color: rgba(70,224,213,0.4); } .net-card-active .net-card-value { color: #46e0d5; }
+  .net-card-warn { border-color: rgba(255,217,107,0.3); } .net-card-warn .net-card-value { color: #ffd96b; }
+  .net-card-off .net-card-value { color: #8da9bb; }
+  .net-card-wide { grid-column: 1 / -1; }
+  .net-history { margin: 4px 0 0; padding: 0; list-style: none; } .net-history li { font-size: 11px; color: #68869a; padding: 3px 0; border-bottom: 1px solid #142a39; display: flex; justify-content: space-between; gap: 8px; } .net-history li span:last-child { color: #46e0d5; font-weight: 600; white-space: nowrap; }
+  .net-policy-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px; } .net-policy-table th { text-align: left; color: #68869a; font-weight: 600; font-size: 10px; text-transform: uppercase; padding: 4px 8px; border-bottom: 1px solid #1e394c; } .net-policy-table td { padding: 5px 8px; color: #f3f8fb; } .net-policy-table tr:hover td { background: rgba(70,224,213,0.04); }
+  .net-disclaimer { font-size: 10px; color: #536b7a; margin-top: 4px; }
+  .relay-predictions { overflow-x: auto; min-width: 0; }
   .core-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 12px 0; }
   .core-box { background: #0c1a27; border: 1px solid #142a39; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
   .core-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
@@ -73,6 +88,10 @@
   .search-bar { display: flex; align-items: center; gap: 10px; margin: 16px 0 8px; }
   .search-bar input { flex: 1; max-width: 320px; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  #network-routes fieldset { border: 1px solid #1e394c; border-radius: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; margin-bottom: 12px; }
+  #network-routes h3, #network-routes fieldset p, .network-choice { flex-basis: 100%; }
+  .network-choice { display: flex; gap: 8px; align-items: flex-start; overflow-wrap: anywhere; }
+  #network-routes button { margin: 3px 0; }
 </style>
 </head>
 <body><main>
@@ -89,7 +108,28 @@
   try {
     await init();
     const search = document.getElementById('search');
-    const send = (el) => window.ipc.postMessage(JSON.stringify({ action: el.dataset.action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null }));
+    const send = (el) => {
+      const action = el.dataset.action;
+      const payload = { action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null };
+      const field = (id) => document.getElementById(id);
+      if (action === 'relay-interfaces') payload.candidates = [...document.querySelectorAll('[data-relay-candidate]:checked')].map(input => input.dataset.relayCandidate);
+      if (action.startsWith('route-') || action.startsWith('rate-')) {
+        payload.destination = el.dataset.destination ?? field('route-destination')?.value.trim();
+        payload.candidate = field('route-candidate')?.value;
+        payload.consent = field('network-consent')?.checked === true;
+        payload.candidates = [...document.querySelectorAll('[data-route-candidate]:checked')].map(input => input.dataset.routeCandidate);
+        payload.mbps = field('rate-mbps')?.value.trim();
+        payload.rates = (field('rate-list')?.value ?? '').split(',').map(value => value.trim());
+        const rateValid = (value) => /^\d+(\.\d{1,6})?$/.test(value) && /[1-9]/.test(value);
+        if (['route-apply', 'route-learn', 'rate-learn'].includes(action) && !payload.destination) { error.textContent = 'Informe um IP de destino numérico.'; return; }
+        if (action === 'route-apply' && !payload.candidate) { error.textContent = 'Selecione uma interface/gateway existente.'; return; }
+        if (action.endsWith('-learn') && !payload.consent) { error.textContent = 'Confirme explicitamente o consentimento aos testes ativos de rede.'; return; }
+        if (action === 'route-learn' && payload.candidates.length < 2) { error.textContent = 'Selecione a saída atual e pelo menos outra saída da mesma família.'; return; }
+        if (action === 'rate-apply' && !rateValid(payload.mbps ?? '')) { error.textContent = 'Informe Mbps decimal positivo com até 6 casas.'; return; }
+        if (action === 'rate-learn' && (payload.rates.length < 2 || !payload.rates.every(rateValid))) { error.textContent = 'Autorize pelo menos duas taxas Mbps positivas, separadas por vírgula.'; return; }
+      }
+      window.ipc.postMessage(JSON.stringify(payload));
+    };
     document.addEventListener('change', (e) => { if (e.target.matches('input[data-action]')) send(e.target); });
     document.addEventListener('click', (e) => { const b = e.target.closest('button[data-action]'); if (b && !b.disabled) send(b); });
     search.addEventListener('input', () => window.ipc.postMessage(JSON.stringify({ action: 'search', text: search.value })));
@@ -100,8 +140,15 @@
         const root = document.getElementById(id);
         const focused = root.contains(document.activeElement) ? { id: document.activeElement.id, data: { ...document.activeElement.dataset } } : null;
         const openDetails = [...root.querySelectorAll('details')].map(el => el.open);
+        const networkDrafts = [...root.querySelectorAll('[data-network-draft]')].map(el => ({ key: el.dataset.networkDraft, value: el.value, checked: el.checked, start: el.selectionStart, end: el.selectionEnd }));
         root.innerHTML = render(json);
         root.querySelectorAll('details').forEach((el, i) => { el.open = openDetails[i] ?? false; });
+        root.querySelectorAll('[data-network-draft]').forEach(el => {
+          const draft = networkDrafts.find(d => d.key === el.dataset.networkDraft);
+          if (!draft) return;
+          if (el.type === 'checkbox') el.checked = draft.checked;
+          else { el.value = draft.value; if (draft.start !== null && typeof el.setSelectionRange === 'function' && el.tagName === 'INPUT') el.setSelectionRange(draft.start, draft.end); }
+        });
         if (focused) {
           const replacement = focused.id ? document.getElementById(focused.id) : [...root.querySelectorAll('[data-action]')].find(el => el.dataset.action === focused.data.action && el.dataset.dir === focused.data.dir && el.dataset.pid === focused.data.pid);
           replacement?.focus({ preventScroll: true });
