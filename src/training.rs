@@ -396,7 +396,44 @@ impl App {
             }
         }
     }
-    fn training_panel(&mut self, ui: &mut egui::Ui) {
+    /// Copies the training state the panel shows; the panel itself never mutates `App`.
+    fn training_state(&self) -> crate::snapshot::TrainingState {
+        crate::snapshot::TrainingState {
+            session: self.training.as_ref().map(|training| {
+                let candidate = training.winner.map_or_else(|| training.search.current(), |winner| winner.0);
+                crate::snapshot::ActiveSession {
+                    paused: training.paused,
+                    exe: training.exe.clone(),
+                    pid: training.pid,
+                    elapsed_secs: training.started.elapsed().as_secs(),
+                    completed: training.search.completed(),
+                    explored: training.search.explored(),
+                    candidate,
+                    best: training.search.best().map(|(_, score)| score),
+                }
+            }),
+            armed_for: self.rapo_game.clone(),
+            targets: self
+                .running
+                .iter()
+                .map(|p| crate::snapshot::Target { pid: p.pid, game: p.game.clone(), exe: p.exe.clone() })
+                .collect(),
+            selected_pid: self.selected_process().map(|p| p.pid),
+            can_start: !self.running.is_empty() && self.tray.is_optimizer_running(),
+            message: self.training_message.clone(),
+            cpu_line: self.pinner.as_ref().map(|pinner| {
+                let limits = pinner.limits();
+                format!("CPU detectada: {} núcleos físicos · {} processadores lógicos · {} núcleos de maior desempenho · SMT disponível {}", limits.cores, limits.threads, limits.p_cores, limits.smt)
+            }),
+        }
+    }
+    fn training_panel(
+        &self,
+        ui: &mut egui::Ui,
+        view: &crate::snapshot::TrainingView,
+        commands: &mut Vec<crate::command::Command>,
+    ) {
+        use crate::command::Command;
         notmeter_card(ui, |ui| {
             ui.set_width((ui.ctx().screen_rect().width() - 72.0).max(320.0));
             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
@@ -405,107 +442,48 @@ impl App {
                     .strong()
                     .color(COLOR_TEXT),
             );
-            if let Some(pinner) = &self.pinner {
-                let limits = pinner.limits();
-                ui.label(format!("CPU detectada: {} núcleos físicos · {} processadores lógicos · {} núcleos de maior desempenho · SMT disponível {}", limits.cores, limits.threads, limits.p_cores, limits.smt));
+            if let Some(cpu) = &view.cpu_line {
+                ui.label(cpu);
             }
-            if let Some(training) = &self.training {
-                ui.label(if training.paused {
-                    "RAPO PAUSADO · sem otimização do alvo; aguardando o mesmo jogo em foco"
-                } else {
-                    "RAPO ATIVO · medindo o candidato atual"
-                });
-                ui.label(format!("{} · PID {}", training.exe.display(), training.pid));
-                let seconds = training.started.elapsed().as_secs();
-                let settings = training
-                    .winner
-                    .map_or_else(|| training.search.current(), |winner| winner.0);
-                ui.label(format!(
-                    "{:02}:{:02} · {} medições · {} configurações exploradas",
-                    seconds / 60,
-                    seconds % 60,
-                    training.search.completed(),
-                    training.search.explored()
-                ));
-                ui.label(crate::view::candidate_summary(settings));
-                if let Some((_, score)) = training.search.best() {
-                    ui.label(format!(
-                        "Melhor confirmado: {:.1} FPS · 1% low {:.1} FPS",
-                        score.fps, score.low_fps
-                    ));
+            if view.active {
+                for line in [&view.headline, &view.target_line, &view.progress_line, &view.candidate_line, &view.best_line].into_iter().flatten() {
+                    ui.label(line);
                 }
                 ui.add_sized([ui.available_width().min(720.0), 0.0], egui::Label::new("Testa cores, afinidade, threads críticas e uso dos irmãos SMT/Hyper-Threading conforme a topologia real do grupo 0. Sair do jogo pausa e descarta a janela parcial; voltar reinicia a medição do mesmo candidato. Não altera BIOS nem desativa SMT globalmente.").wrap());
-                if ui
-                    .button(self.tr("btn_stop_training", "Parar aprendizado e manter último perfil salvo"))
-                    .clicked()
-                {
-                    let training = self.training.take().unwrap();
-                    self.restore_training(
-                        training,
-                        "Aprendizado parado; último perfil salvo preservado. Sem melhoria salva, ajustes anteriores restaurados.".into(),
-                    );
-                    self.refresh();
+                if ui.button(self.tr("btn_stop_training", "Parar aprendizado e manter último perfil salvo")).clicked() {
+                    commands.push(Command::StopTraining);
                 }
             } else {
-                if let Some(directory) = &self.rapo_game {
-                    ui.label(format!(
-                        "RAPO armado para {}; aguardando o jogo em foco.",
-                        directory.display()
-                    ));
+                if let Some(armed) = &view.armed_line {
+                    ui.label(armed);
                     if ui.button(self.tr("btn_disable_rapo", "Desativar RAPO")).clicked() {
-                        self.select_rapo(None);
+                        commands.push(Command::SetRapo(None));
                     }
                 }
-                let selected_target = self.selected_process().map(|p| (p.pid, p.exe.clone()));
-                let selected_text = self.selected_process()
-                    .map(|p| {
-                        format!(
-                            "{} · {} · PID {}",
-                            p.game,
-                            p.exe.file_name().unwrap_or_default().to_string_lossy(),
-                            p.pid
-                        )
-                    })
+                let selected_text = view
+                    .selected_label
+                    .clone()
                     .unwrap_or_else(|| self.tr("txt_combobox_idle", "Abra um jogo Steam").into());
-                let mut new_selection = None;
                 egui::ComboBox::from_id_salt("learning_target")
                     .selected_text(selected_text)
                     .show_ui(ui, |ui| {
-                        for process in &self.running {
-                            let is_current = selected_target.as_ref().is_some_and(|(pid, exe)| *pid == process.pid && windows::same_executable(&process.exe, exe));
-                            if ui.selectable_label(
-                                is_current,
-                                format!(
-                                    "{} · {} · PID {}",
-                                    process.game,
-                                    process
-                                        .exe
-                                        .file_name()
-                                        .unwrap_or_default()
-                                        .to_string_lossy(),
-                                    process.pid
-                                ),
-                            )
-                            .on_hover_text(process.exe.display().to_string())
-                            .clicked()
+                        for target in &view.targets {
+                            if ui
+                                .selectable_label(target.selected, target.label.as_str())
+                                .on_hover_text(target.hint.as_str())
+                                .clicked()
                             {
-                                new_selection = Some((process.pid, process.exe.clone()));
+                                commands.push(Command::SelectTrainingTarget { pid: target.pid });
                             }
                         }
                     });
-                if let Some(target) = new_selection {
-                    self.training_selected = Some(target);
-                }
                 ui.add_sized([ui.available_width().min(720.0), 0.0], egui::Label::new("RAPO aprende prioridade, memória/EcoQoS, quantidade de núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis. Um jogo por vez; pausa ao sair e retoma o mesmo candidato.").wrap());
                 ui.add_sized([ui.available_width().min(720.0), 0.0], egui::Label::new("ETW de apresentação, sem rastrear entrada ou execução na GPU, sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções.").wrap());
                 if ui
-                    .add_enabled(
-                        !self.running.is_empty() && self.tray.is_optimizer_running(),
-                        egui::Button::new(self.tr("btn_start_training", "Iniciar aprendizado contínuo")),
-                    )
+                    .add_enabled(view.can_start, egui::Button::new(self.tr("btn_start_training", "Iniciar aprendizado contínuo")))
                     .clicked()
                 {
-                    self.start_training();
+                    commands.push(Command::StartTraining);
                 }
             }
             ui.add_sized([ui.available_width().min(720.0), 0.0], egui::Label::new("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível.").wrap());
@@ -516,11 +494,8 @@ impl App {
                     egui::Label::new(include_str!("../vendor/presentmon/LICENSE.txt")).wrap(),
                 );
             });
-            if !self.training_message.is_empty() {
-                ui.add_sized(
-                    [ui.available_width().min(720.0), 0.0],
-                    egui::Label::new(&self.training_message).wrap(),
-                );
+            if !view.message.is_empty() {
+                ui.add_sized([ui.available_width().min(720.0), 0.0], egui::Label::new(&view.message).wrap());
             }
         });
     }

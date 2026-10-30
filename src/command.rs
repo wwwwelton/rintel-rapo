@@ -25,6 +25,12 @@ pub enum Command {
     /// `None` clears the RAPO game.
     SetRapo(Option<PathBuf>),
     ApplyAion2Profile { directory: PathBuf },
+    /// Starts continuous learning on the selected process.
+    StartTraining,
+    /// Stops learning and keeps the last saved profile.
+    StopTraining,
+    /// Chooses the process the next session targets, looked up by pid when applied.
+    SelectTrainingTarget { pid: u32 },
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.

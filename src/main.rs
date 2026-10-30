@@ -588,12 +588,13 @@ mod app {
 
             let strings_arc = self.ui_strings.clone();
             let game_rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
-            let header = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len(), game_rows).header;
+            let snapshot = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len(), game_rows, crate::snapshot::training_view(&self.training_state()));
+            let header = snapshot.header.clone();
             let mut commands: Vec<crate::command::Command> = Vec::new();
             egui::CentralPanel::default().show(ctx, |ui| {
                 let strings = strings_arc.as_ref();
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.training_panel(ui);
+                    self.training_panel(ui, &snapshot.training, &mut commands);
                     ui.add_space(8.0);
 
                     // NOTMETER HEADER BAR
@@ -1288,6 +1289,21 @@ mod app {
                         self.error = e;
                     } else if let Some(e) = self.optimizer.update(self.windowed_mode).into_iter().next() {
                         self.error = e;
+                    }
+                }
+                crate::command::Command::StartTraining => self.start_training(),
+                crate::command::Command::StopTraining => {
+                    if let Some(training) = self.training.take() {
+                        self.restore_training(
+                            training,
+                            "Aprendizado parado; último perfil salvo preservado. Sem melhoria salva, ajustes anteriores restaurados.".into(),
+                        );
+                        self.refresh();
+                    }
+                }
+                crate::command::Command::SelectTrainingTarget { pid } => {
+                    if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
+                        self.training_selected = Some((process.pid, process.exe.clone()));
                     }
                 }
             }
