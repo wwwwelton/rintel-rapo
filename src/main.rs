@@ -1025,10 +1025,7 @@ mod app {
                                 .on_hover_text(tr(strings, "btn_reopen_admin_tooltip", "Solicita UAC somente agora. As opções deverão ser selecionadas novamente; processos protegidos ainda podem negar acesso."))
                                 .clicked()
                             {
-                                match windows::relaunch_elevated() {
-                                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
-                                    Err(error) => self.error = error,
-                                }
+                                commands.push(crate::command::Command::RelaunchElevated);
                             }
                         });
                     });
@@ -1174,13 +1171,13 @@ mod app {
                 });
             });
             for command in commands {
-                self.apply(command);
+                self.apply(ctx, command);
             }
         }
     }
 
     impl App {
-        fn apply(&mut self, command: crate::command::Command) {
+        fn apply(&mut self, ctx: &egui::Context, command: crate::command::Command) {
             match command {
                 crate::command::Command::SetOptimizerRunning(running) => {
                     self.tray.set_optimizer_running(running);
@@ -1241,6 +1238,10 @@ mod app {
                 }
                 crate::command::Command::Refresh => self.refresh(),
                 crate::command::Command::SetSearch(text) => self.search = text,
+                crate::command::Command::RelaunchElevated => match windows::relaunch_elevated() {
+                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Err(error) => self.error = error,
+                },
                 crate::command::Command::ScanSteam => {
                     self.scan();
                     self.refresh();

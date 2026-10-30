@@ -8,6 +8,8 @@ pub enum Command {
     /// Desired optimizer state, computed from the state the frame was drawn with.
     SetOptimizerRunning(bool),
     Refresh,
+    /// Requests UAC elevation and closes this instance on success.
+    RelaunchElevated,
     /// Library filter text, typed into the search box.
     SetSearch(String),
     ScanSteam,
