@@ -26,6 +26,10 @@ pub struct NetQos {
 }
 
 impl NetQos {
+    pub fn applied(&self) -> &HashSet<PathBuf> {
+        &self.applied
+    }
+
     /// Makes the policy set match `active`. Returns the error while any write or removal is failing.
     pub fn sync(&mut self, active: &[&Path]) -> Result<(), String> {
         let keep: HashSet<PathBuf> = active.iter().map(|exe| file_name(exe)).collect();

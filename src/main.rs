@@ -555,6 +555,8 @@ mod app {
             if self.cache_topo.total_l3_kb > 0 {
                 cache.push(format!("L3 SMART CACHE {:.0}MB", self.cache_topo.total_l3_kb as f32 / 1024.0));
             }
+            let mut network_tweaks: Vec<_> = self.netqos.applied().iter().map(|name| name.to_string_lossy().into_owned()).collect();
+            network_tweaks.sort();
             serde_json::json!({
                 "header": { "optimizer_running": header.optimizer_running, "dtt": header.dtt, "default_config_enabled": header.default_config_enabled, "strings": &*self.ui_strings },
                 "games": { "games": rows, "strings": &*self.ui_strings },
@@ -562,6 +564,7 @@ mod app {
                 "dashboard": {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
                     "profile": profile,
+                    "network_tweaks": network_tweaks,
                     "power_plan": { "plan": self.power_plan, "error": self.power_error },
                     "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),

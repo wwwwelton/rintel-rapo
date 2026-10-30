@@ -21,6 +21,7 @@ pub struct Dashboard {
     pub pin_status: Option<String>,
     pub profile: Option<AppliedProfile>,
     pub power_plan: PowerPlanState,
+    pub network_tweaks: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -66,6 +67,17 @@ pub fn render(view: &Dashboard) -> String {
         write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(alert)).unwrap();
     }
     if let Some(pin) = &view.pin_status { write!(html, "<p>{}</p>", escape(pin)).unwrap(); }
+    html.push_str("<section><h2>TWEAK DE REDE · QoS / DSCP 46</h2>");
+    if view.network_tweaks.is_empty() {
+        html.push_str("<p>Nenhuma política de rede aplicada pelo RAPO.</p>");
+    } else {
+        html.push_str("<p role=\"status\">Política de rede aplicada para:</p><ul>");
+        for exe in &view.network_tweaks {
+            write!(html, "<li>{}</li>", escape(exe)).unwrap();
+        }
+        html.push_str("</ul><p>DSCP 46 configurado no Windows; não confirma marcação dos pacotes nem redução do ping. Depende do suporte do roteador e da operadora.</p>");
+    }
+    html.push_str("</section>");
     if let Some(profile) = &view.profile {
         let active = profile.priority || profile.qos || profile.pinned_threads > 0;
         write!(html, "<section class=\"profile-summary {}\"><h2>PERFIL EM USO · {} · PID {}</h2><p class=\"profile-source\">{}</p><strong>{}</strong><div class=\"applied-settings\">", if active { "profile-applied" } else { "profile-standby" }, escape(&profile.game), profile.pid, escape(&profile.source), if active { "AJUSTES ATIVOS NESTE PROCESSO" } else { "SEM AJUSTES ATIVOS NESTE PROCESSO" }).unwrap();
@@ -148,6 +160,7 @@ mod tests {
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
             profile: None,
+            network_tweaks: vec!["game<&>.exe".into()],
             power_plan: PowerPlanState { plan: Some(PowerPlan { name: "<script>energia</script>".into(), guid: "a\"b".into() }), error: "<b>falha</b>".into() },
         };
         let html = render(&view);
@@ -157,5 +170,6 @@ mod tests {
         assert!(html.contains("&lt;img src=x onerror=alert(1)&gt;"));
         assert!(html.contains("&lt;script&gt;energia&lt;/script&gt;"), "a failed read must keep the last plan visible");
         assert!(html.contains("Última leitura mantida; a consulta atual falhou: &lt;b&gt;falha&lt;/b&gt;"));
+        assert!(html.contains("<li>game&lt;&amp;&gt;.exe</li>"));
     }
 }
