@@ -36,7 +36,7 @@ if (-not $cert) {
 }
 
 Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
-Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+try { Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" -ErrorAction SilentlyContinue | Out-Null } catch {}
 
 Write-Host "Assinando $exePath com Authenticode SHA-256 e carimbo DigiCert..."
 $sig = Set-AuthenticodeSignature `
