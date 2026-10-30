@@ -11,6 +11,7 @@ pub mod intel_dtt;
 #[cfg(windows)]
 mod webview;
 pub mod ui_model;
+pub mod view;
 pub mod telemetry;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -837,11 +838,7 @@ mod app {
                                 });
 
                             // 4. Uso de Memória
-                            let mem_str = if tm.mem_used_mb >= 1024.0 {
-                                format!("{:.2} GB", tm.mem_used_mb / 1024.0)
-                            } else {
-                                format!("{:.0} MB", tm.mem_used_mb)
-                            };
+                            let mem_str = crate::view::memory_label(tm.mem_used_mb);
                             egui::Frame::new()
                                 .fill(COLOR_SURFACE_ELEVATED)
                                 .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
@@ -1062,15 +1059,15 @@ mod app {
                                 .inner_margin(egui::Margin::same(12))
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {
-                                        if let Some(training) = self.training.as_ref().filter(|t| windows::same_executable(&t.exe, &process.exe) && t.pid == process.pid) {
-                                            notmeter_badge(ui, if training.paused { "RAPO PAUSADO" } else { "RAPO MEDINDO" }, if training.paused { COLOR_YELLOW } else { COLOR_ACCENT });
-                                        } else if boosted || is_pinned || has_qos {
-                                            notmeter_badge(ui, "OTIMIZANDO AGORA", COLOR_ACCENT);
-                                        } else if enabled {
-                                            notmeter_badge(ui, "STANDBY", COLOR_YELLOW);
-                                        } else {
-                                            notmeter_badge(ui, "INATIVO", COLOR_MUTED);
-                                        }
+                                        let training_paused = self.training.as_ref().filter(|t| windows::same_executable(&t.exe, &process.exe) && t.pid == process.pid).map(|t| t.paused);
+                                        let state = crate::view::process_state(training_paused, boosted, is_pinned, has_qos, enabled);
+                                        let tone_color = match state.tone() {
+                                            crate::view::Tone::Accent => COLOR_ACCENT,
+                                            crate::view::Tone::Yellow => COLOR_YELLOW,
+                                            crate::view::Tone::Danger => COLOR_DANGER,
+                                            crate::view::Tone::Muted => COLOR_MUTED,
+                                        };
+                                        notmeter_badge(ui, state.label(), tone_color);
                                         ui.label(egui::RichText::new(&process.game).size(15.0).strong().color(COLOR_TEXT));
                                         notmeter_badge(ui, &format!("PID {}", process.pid), COLOR_CYAN);
 
@@ -1118,7 +1115,6 @@ mod app {
                         });
                         ui.add_space(8.0);
 
-                        let search = self.search.to_lowercase();
                         let mut needs_refresh = false;
                         let mut manual_directories = Vec::new();
                         let mut rapo_change = None;
@@ -1127,7 +1123,7 @@ mod app {
                             for (game, search_name) in
                                 self.games.iter().zip(&self.game_search_names)
                             {
-                                if search.is_empty() || search_name.contains(&search) {
+                                if crate::view::library_matches(&self.search, search_name) {
                                     egui::Frame::new()
                                         .fill(COLOR_SURFACE_ELEVATED)
                                         .stroke(egui::Stroke::new(1.0f32, COLOR_LINE_SOFT))
