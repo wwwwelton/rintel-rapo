@@ -1,15 +1,20 @@
-use std::ptr;
+use std::{ptr, sync::atomic::{AtomicBool, Ordering}};
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Guid { a: u32, b: u16, c: u16, d: [u8; 8] }
 const PERFORMANCE: Guid = Guid { a: 0x8c5e7fda, b: 0xe8bf, c: 0x4a96, d: [0x9a, 0x85, 0xa6, 0xe2, 0x3a, 0x8c, 0x63, 0x5c] };
 const ULTIMATE: Guid = Guid { a: 0xe9a42b02, b: 0xd5df, c: 0x448d, d: [0xaa, 0x00, 0x03, 0xf1, 0x47, 0x49, 0xeb, 0x61] };
+/// GUID_ACTIVE_POWERSCHEME: notification setting for active-plan changes.
+const ACTIVE_SCHEME_SETTING: Guid = Guid { a: 0x31f9f286, b: 0x5084, c: 0x42fe, d: [0xb7, 0x20, 0x2b, 0x02, 0x64, 0x99, 0x37, 0x63] };
+const DEVICE_NOTIFY_CALLBACK: u32 = 2;
 #[link(name = "powrprof")]
 extern "system" {
     fn PowerGetActiveScheme(root: *mut std::ffi::c_void, scheme: *mut *mut Guid) -> u32;
     fn PowerSetActiveScheme(root: *mut std::ffi::c_void, scheme: *const Guid) -> u32;
     fn PowerEnumerate(root: *mut std::ffi::c_void, scheme: *const Guid, subgroup: *const Guid, access: u32, index: u32, buffer: *mut u8, size: *mut u32) -> u32;
     fn PowerReadFriendlyName(root: *mut std::ffi::c_void, scheme: *const Guid, subgroup: *const Guid, setting: *const Guid, buffer: *mut u8, size: *mut u32) -> u32;
+    fn PowerSettingRegisterNotification(setting: *const Guid, flags: u32, recipient: *const Subscription, handle: *mut *mut std::ffi::c_void) -> u32;
+    fn PowerSettingUnregisterNotification(handle: *mut std::ffi::c_void) -> u32;
 }
 #[link(name = "kernel32")]
 extern "system" { fn LocalFree(memory: *mut std::ffi::c_void) -> *mut std::ffi::c_void; }
@@ -52,6 +57,56 @@ pub fn active_plan() -> Result<ActivePlan, String> {
     let guid = format!("{:08x}-{:04x}-{:04x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
         scheme.a, scheme.b, scheme.c, scheme.d[0], scheme.d[1], scheme.d[2], scheme.d[3], scheme.d[4], scheme.d[5], scheme.d[6], scheme.d[7]);
     Ok(ActivePlan { name: String::from_utf16_lossy(&name[..end]), guid })
+}
+
+/// Pending until the first read, so startup always queries the plan once.
+static PLAN_CHANGED: AtomicBool = AtomicBool::new(true);
+
+#[repr(C)]
+struct Subscription {
+    callback: unsafe extern "system" fn(*mut std::ffi::c_void, u32, *mut std::ffi::c_void) -> u32,
+    context: *mut std::ffi::c_void,
+}
+
+unsafe extern "system" fn plan_changed(_: *mut std::ffi::c_void, _: u32, _: *mut std::ffi::c_void) -> u32 {
+    PLAN_CHANGED.store(true, Ordering::Release);
+    0
+}
+
+/// Windows calls back when the active plan changes; unregisters on drop.
+pub struct PlanWatch {
+    handle: *mut std::ffi::c_void,
+    _subscription: Box<Subscription>,
+}
+
+impl PlanWatch {
+    pub fn new() -> Result<Self, String> {
+        let subscription = Box::new(Subscription { callback: plan_changed, context: ptr::null_mut() });
+        let mut handle = ptr::null_mut();
+        let error = unsafe {
+            PowerSettingRegisterNotification(&ACTIVE_SCHEME_SETTING, DEVICE_NOTIFY_CALLBACK, &*subscription, &mut handle)
+        };
+        if error != 0 {
+            return Err(format!("Notificação do plano de energia: {error}"));
+        }
+        Ok(Self { handle, _subscription: subscription })
+    }
+}
+
+impl Drop for PlanWatch {
+    fn drop(&mut self) {
+        unsafe { PowerSettingUnregisterNotification(self.handle); }
+    }
+}
+
+/// Consumes a pending change; a change arriving during the read stays pending.
+pub fn take_plan_change() -> bool {
+    PLAN_CHANGED.swap(false, Ordering::AcqRel)
+}
+
+/// Queues another read after a failed query.
+pub fn retry_plan_read() {
+    PLAN_CHANGED.store(true, Ordering::Release);
 }
 
 fn rank(scheme: Guid, name: &[u16]) -> u8 {

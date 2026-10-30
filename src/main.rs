@@ -118,6 +118,9 @@ mod app {
         qos_error: String,
         qos_sweep_error: String,
         ui_strings: Arc<HashMap<String, String>>,
+        power_watch: Option<power::PlanWatch>,
+        power_plan: Option<power::ActivePlan>,
+        power_error: String,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -180,6 +183,9 @@ mod app {
                 qos_error: String::new(),
                 qos_sweep_error: String::new(),
                 ui_strings: Arc::new(load_ui_strings()),
+                power_watch: power::PlanWatch::new().ok(),
+                power_plan: None,
+                power_error: String::new(),
             };
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
@@ -261,6 +267,19 @@ mod app {
         fn refresh(&mut self) {
             let optimizer_active = self.tray.is_optimizer_running();
             self.ui_strings = Arc::new(load_ui_strings());
+            // Windows notifies plan changes; without that registration, read every refresh.
+            if self.power_watch.is_none() || power::take_plan_change() {
+                match power::active_plan() {
+                    Ok(plan) => {
+                        self.power_plan = Some(plan);
+                        self.power_error.clear();
+                    }
+                    Err(error) => {
+                        self.power_error = error;
+                        power::retry_plan_read();
+                    }
+                }
+            }
 
             match windows::running(&self.games) {
                 Ok(processes) => {
@@ -1241,7 +1260,7 @@ mod app {
                 "dashboard": {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
                     "profile": profile,
-                    "power_plan": power::active_plan(),
+                    "power_plan": { "plan": self.power_plan, "error": self.power_error },
                     "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),

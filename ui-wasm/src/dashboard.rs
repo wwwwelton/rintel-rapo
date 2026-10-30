@@ -20,13 +20,20 @@ pub struct Dashboard {
     pub aion2_status: String,
     pub pin_status: Option<String>,
     pub profile: Option<AppliedProfile>,
-    pub power_plan: Result<PowerPlan, String>,
+    pub power_plan: PowerPlanState,
 }
 
 #[derive(Deserialize)]
 pub struct PowerPlan {
     pub name: String,
     pub guid: String,
+}
+
+/// Last plan read from Windows; `error` is set when the latest read failed.
+#[derive(Deserialize)]
+pub struct PowerPlanState {
+    pub plan: Option<PowerPlan>,
+    pub error: String,
 }
 
 #[derive(Deserialize)]
@@ -70,11 +77,16 @@ pub fn render(view: &Dashboard) -> String {
         html.push_str("<section class=\"profile-summary profile-standby\"><h2>PERFIL EM USO</h2><p>Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO.</p></section>");
     }
     html.push_str("<section class=\"power-plan\"><h2>PLANO DE ENERGIA ATIVO NO WINDOWS</h2>");
-    match &view.power_plan {
-        Ok(plan) => {
-            write!(html, "<p class=\"profile-source\">{}</p><p>GUID: <code>{}</code></p><p>Consultado no Windows; atualizado com a telemetria. Este bloco não altera o plano.</p>", escape(&plan.name), escape(&plan.guid)).unwrap();
+    match &view.power_plan.plan {
+        Some(plan) => {
+            write!(html, "<p class=\"profile-source\">{}</p><p>GUID: <code>{}</code></p>", escape(&plan.name), escape(&plan.guid)).unwrap();
+            if view.power_plan.error.is_empty() {
+                html.push_str("<p>Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.</p>");
+            } else {
+                write!(html, "<p class=\"alert\" role=\"status\">Última leitura mantida; a consulta atual falhou: {}</p>", escape(&view.power_plan.error)).unwrap();
+            }
         }
-        Err(error) => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(error)).unwrap(); }
+        None => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(&view.power_plan.error)).unwrap(); }
     }
     html.push_str("</section>");
     write!(html, "<section><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><dl class=\"metrics\">", escape(&view.target)).unwrap();
@@ -129,12 +141,14 @@ mod tests {
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
             profile: None,
-            power_plan: Ok(PowerPlan { name: "<script>energia</script>".into(), guid: "a\"b".into() }),
+            power_plan: PowerPlanState { plan: Some(PowerPlan { name: "<script>energia</script>".into(), guid: "a\"b".into() }), error: "<b>falha</b>".into() },
         };
         let html = render(&view);
         assert!(!html.contains("<script>"));
         assert!(!html.contains("<img"));
         assert!(html.contains("data-pid=\"42\" disabled>Otimizar"));
         assert!(html.contains("&lt;img src=x onerror=alert(1)&gt;"));
+        assert!(html.contains("&lt;script&gt;energia&lt;/script&gt;"), "a failed read must keep the last plan visible");
+        assert!(html.contains("Última leitura mantida; a consulta atual falhou: &lt;b&gt;falha&lt;/b&gt;"));
     }
 }
