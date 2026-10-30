@@ -96,6 +96,116 @@ pub fn render_header_json(json: &str) -> Result<String, JsValue> {
     Ok(render_header(&view))
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GameView {
+    pub name: String,
+    pub directory: String,
+    pub is_aion2: bool,
+    pub auto_priority: bool,
+    pub pcores: bool,
+    pub qos: bool,
+    pub rapo: bool,
+    /// False while training runs; every control in the row is disabled then.
+    pub controls_enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GamesView {
+    pub games: Vec<GameView>,
+    #[serde(default)]
+    pub strings: HashMap<String, String>,
+}
+
+fn games_label<'a>(view: &'a GamesView, key: &'a str) -> &'a str {
+    view.strings.get(key).map(String::as_str).unwrap_or(key)
+}
+
+/// Renders the game list as HTML. Controls carry `data-action` and `data-dir`
+/// so the host can map a click to the matching `Command`.
+pub fn render_games(view: &GamesView) -> String {
+    let mut html = String::from("<ul class=\"games\">");
+    for game in &view.games {
+        let disabled = if game.controls_enabled { "" } else { " disabled" };
+        let dir = escape(&game.directory);
+        let checkbox = |action: &str, checked: bool, text: &str| {
+            format!(
+                "<label><input type=\"checkbox\" data-action=\"{action}\" data-dir=\"{dir}\"{} {}> {}</label>",
+                if checked { " checked" } else { "" },
+                disabled.trim(),
+                escape(text),
+            )
+        };
+        html.push_str("<li class=\"game\"><span class=\"name\">");
+        html.push_str(&escape(&game.name));
+        html.push_str("</span> ");
+        html.push_str(&checkbox("qos", game.qos, "Prioridade de memória / EcoQoS"));
+        html.push(' ');
+        html.push_str(&checkbox("pcores", game.pcores, games_label(view, "chk_game_pcores")));
+        html.push(' ');
+        html.push_str(&checkbox("auto", game.auto_priority, games_label(view, "chk_game_auto_priority")));
+        html.push(' ');
+        html.push_str(&checkbox("rapo", game.rapo, games_label(view, "chk_rapo_library")));
+        if game.is_aion2 {
+            html.push_str(&format!(
+                " <button type=\"button\" data-action=\"apo-profile\" data-dir=\"{dir}\"{disabled}>{}</button>",
+                escape(games_label(view, "btn_apo_profile")),
+            ));
+        }
+        html.push_str("</li>");
+    }
+    html.push_str("</ul>");
+    html
+}
+
+/// JS entry point for the game list, mirroring `render_header_json`.
+#[wasm_bindgen]
+pub fn render_games_json(json: &str) -> Result<String, JsValue> {
+    let view: GamesView = serde_json::from_str(json).map_err(|error| JsValue::from_str(&error.to_string()))?;
+    Ok(render_games(&view))
+}
+
+#[cfg(test)]
+mod games_tests {
+    use super::*;
+
+    fn game(name: &str, dir: &str, aion2: bool, controls_enabled: bool) -> GameView {
+        GameView {
+            name: name.into(),
+            directory: dir.into(),
+            is_aion2: aion2,
+            auto_priority: true,
+            pcores: false,
+            qos: false,
+            rapo: false,
+            controls_enabled,
+        }
+    }
+
+    #[test]
+    fn escapes_names_and_disables_controls_during_training() {
+        let view = GamesView {
+            games: vec![game("<b>X</b>", "C:\\a\"b", false, false)],
+            strings: HashMap::new(),
+        };
+        let html = render_games(&view);
+        assert!(!html.contains("<b>X</b>"));
+        assert!(html.contains("&quot;"));
+        assert_eq!(html.matches(" disabled").count(), 4);
+        assert!(!html.contains("apo-profile"));
+    }
+
+    #[test]
+    fn aion2_row_gets_profile_button_only_when_enabled() {
+        let view = GamesView {
+            games: vec![game("AION 2", "/g/aion", true, true)],
+            strings: HashMap::new(),
+        };
+        let html = render_games(&view);
+        assert!(html.contains("data-action=\"apo-profile\""));
+        assert!(!html.contains("disabled>"));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
