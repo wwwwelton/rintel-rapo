@@ -45,15 +45,20 @@ jobs:
           cargo build --release --message-format=json 2>&1 | jq '.executable' | head -5
       - name: Sign executable with Authenticode SHA-256 & DigiCert Timestamp
         shell: pwsh
+        timeout-minutes: 3
         run: |
+          Write-Host "Generating release certificate..."
           $cert = New-SelfSignedCertificate -Type CodeSigningCert `
             -Subject "CN=Rintel RAPO Open Source, O=Rintel Project, C=BR" `
             -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 `
             -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
           $cerPath = Join-Path $env:RUNNER_TEMP "rintel-rapo.cer"
           Export-Certificate -Cert $cert -FilePath $cerPath | Out-Null
-          # Trust only this release certificate inside the disposable hosted runner.
-          Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+          # LocalMachine avoids the interactive CurrentUser root-trust dialog on the disposable runner.
+          Write-Host "Trusting release certificate on disposable runner..."
+          certutil.exe -addstore -f Root $cerPath
+          if ($LASTEXITCODE -ne 0) { throw "Runner certificate import failed: $LASTEXITCODE" }
+          Write-Host "Signing release executable..."
           ./scripts/sign-release.ps1 -ExePath target/release/rintel-rapo.exe
           $sig = Get-AuthenticodeSignature "target/release/rintel-rapo.exe"
           if ($sig.Status -ne "Valid" -or $sig.SignerCertificate.Thumbprint -ne $cert.Thumbprint) {
