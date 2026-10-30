@@ -100,18 +100,19 @@ jobs:
               $item = Get-Item $_
               Write-Host "✓ $($item.Name) - $([math]::Round($item.Length / 1KB, 1)) KB"
             } else {
-              Write-Host "✗ $_ - MISSING" -ForegroundColor Red
+              throw "Required release artifact is missing: $_"
             }
           }
           Write-Host "`nTagging release: v0.2.${{ github.run_number }}" -ForegroundColor Yellow
 
-      - name: 3. Release (Publish GitHub Release on Push)
+      - name: 3. Release (Manual publication after Windows validation)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.2.${{ github.run_number }}
           name: "Rintel RAPO v0.2.${{ github.run_number }} (${{ github.sha }})"
           generate_release_notes: true
           make_latest: "true"
+          fail_on_unmatched_files: true
           files: |
             target/release/rintel-rapo.exe
             target/release/rintel-rapo.exe.sha256
