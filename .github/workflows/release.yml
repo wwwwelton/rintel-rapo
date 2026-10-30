@@ -24,11 +24,20 @@ jobs:
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Add wasm target and wasm-bindgen CLI
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-bindgen-cli --version 0.2.130 --locked
+
+      - name: Build webview UI (wasm)
+        shell: bash
+        run: scripts/build-ui.sh
+
       - name: 1. Build (Windows Release Binary)
         run: cargo build --release
 
       - name: 2. Test (Windows Unit & Integration Suite)
-        run: cargo test
+        run: cargo test --workspace
 
       - name: 📋 Show build environment
         run: |

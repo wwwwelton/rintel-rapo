@@ -5,6 +5,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-cargo build --offline -p rapo-ui --target wasm32-unknown-unknown --release
+cargo build -p rapo-ui --target wasm32-unknown-unknown --release
 wasm-bindgen --target web --out-dir ui-wasm/pkg \
     target/wasm32-unknown-unknown/release/rapo_ui.wasm
