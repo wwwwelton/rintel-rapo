@@ -427,11 +427,7 @@ impl App {
                     training.search.completed(),
                     training.search.explored()
                 ));
-                ui.label(format!(
-                    "Candidato: prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · limiar {}% · memória {}",
-                    settings.priority, settings.pin, settings.cores, settings.threads,
-                    settings.smt, settings.p_only, settings.min_percent, settings.qos
-                ));
+                ui.label(crate::view::candidate_summary(settings));
                 if let Some((_, score)) = training.search.best() {
                     ui.label(format!(
                         "Melhor confirmado: {:.1} FPS · 1% low {:.1} FPS",
