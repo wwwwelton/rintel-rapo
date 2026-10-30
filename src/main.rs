@@ -13,6 +13,7 @@ mod webview;
 pub mod ui_model;
 pub mod view;
 pub mod snapshot;
+pub mod command;
 pub mod telemetry;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -587,6 +588,7 @@ mod app {
 
             let strings_arc = self.ui_strings.clone();
             let header = crate::snapshot::Snapshot::new(current_opt_running, &self.dtt_report.status, self.running.len()).header;
+            let mut commands: Vec<crate::command::Command> = Vec::new();
             egui::CentralPanel::default().show(ctx, |ui| {
                 let strings = strings_arc.as_ref();
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -638,8 +640,7 @@ mod app {
                             }
                             let toggle_label = if current_opt_running { tr(strings, "btn_stop", "⏹ Stop") } else { tr(strings, "btn_start", "▶ Start") };
                             if ui.button(egui::RichText::new(toggle_label).size(12.0).strong()).clicked() {
-                                self.tray.set_optimizer_running(!current_opt_running);
-                                self.refresh();
+                                commands.push(crate::command::Command::SetOptimizerRunning(!current_opt_running));
                             }
                         });
                     });
@@ -1243,6 +1244,20 @@ mod app {
                     });
                 });
             });
+            for command in commands {
+                self.apply(command);
+            }
+        }
+    }
+
+    impl App {
+        fn apply(&mut self, command: crate::command::Command) {
+            match command {
+                crate::command::Command::SetOptimizerRunning(running) => {
+                    self.tray.set_optimizer_running(running);
+                    self.refresh();
+                }
+            }
         }
     }
 }
