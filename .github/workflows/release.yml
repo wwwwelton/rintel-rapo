@@ -61,14 +61,14 @@ jobs:
       - name: Generate SHA-256 checksum
         shell: pwsh
         run: |
-          $hash = (Get-FileHash "target\release\rintel-rapo.exe" -Algorithm SHA256).Hash.ToLower()
-          "$hash  rintel-rapo.exe" | Out-File -FilePath "target\release\rintel-rapo.exe.sha256" -Encoding ascii
+          $hash = & "target\release\rintel-rapo.exe" --generate-sha256
+          "$hash" | Out-File -FilePath "target\release\rintel-rapo.exe.sha256" -Encoding ascii
 
       - name: 3. Release (Publish GitHub Release on Push)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.${{ github.run_number }}
-          name: "Rintel RAPO v0.1.${{ github.run_number }} (${{ github.sha }})"
+          tag_name: v0.2.${{ github.run_number }}
+          name: "Rintel RAPO v0.2.${{ github.run_number }} (${{ github.sha }})"
           generate_release_notes: true
           make_latest: "true"
           files: |
