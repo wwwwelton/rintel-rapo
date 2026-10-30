@@ -1,6 +1,8 @@
 //! Pure derivations used by the UI. Mirrors the egui render logic exactly so the
 //! webview port can reuse them without depending on `App`.
 
+use crate::learning::Settings;
+
 /// Visual tone of a status badge or metric.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tone {
@@ -58,6 +60,42 @@ pub fn process_state(
     }
 }
 
+/// Headline state of the RAPO hero card while a training session exists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrainingStatus {
+    Paused,
+    Baseline,
+    Candidate,
+}
+
+impl TrainingStatus {
+    /// `candidate` is the setting currently under measurement (winner or search cursor).
+    pub fn of(paused: bool, candidate: Settings) -> Self {
+        if paused {
+            Self::Paused
+        } else if candidate.bits() == 0 {
+            Self::Baseline
+        } else {
+            Self::Candidate
+        }
+    }
+
+    pub fn tone(self) -> Tone {
+        match self {
+            Self::Paused => Tone::Yellow,
+            Self::Baseline | Self::Candidate => Tone::Accent,
+        }
+    }
+}
+
+/// One-line summary of the candidate settings shown under the RAPO hero headline.
+pub fn candidate_summary(candidate: Settings) -> String {
+    format!(
+        "Prioridade {} · afinidade {} · até {} núcleos físicos · até {} threads críticas · SMT {} · somente P-cores {} · memória/EcoQoS {}",
+        candidate.priority, candidate.pin, candidate.cores, candidate.threads, candidate.smt, candidate.p_only, candidate.qos
+    )
+}
+
 /// Library search: empty query matches everything; otherwise case-insensitive substring.
 /// `search_name` must already be lowercase, as stored in `App::game_search_names`.
 pub fn library_matches(query: &str, search_name: &str) -> bool {
@@ -89,6 +127,10 @@ pub fn cpu_load_tone(load: f32) -> Tone {
 mod tests {
     use super::*;
 
+    fn settings(priority: bool, pin: bool, qos: bool) -> Settings {
+        Settings { priority, pin, qos, ..Settings::default() }
+    }
+
     #[test]
     fn training_state_takes_precedence_over_optimization() {
         assert_eq!(process_state(Some(true), true, true, true, true), ProcessState::TrainingPaused);
@@ -106,6 +148,26 @@ mod tests {
     fn standby_when_enabled_but_idle_and_inactive_otherwise() {
         assert_eq!(process_state(None, false, false, false, true), ProcessState::Standby);
         assert_eq!(process_state(None, false, false, false, false), ProcessState::Inactive);
+    }
+
+    #[test]
+    fn paused_wins_over_candidate_bits() {
+        assert_eq!(TrainingStatus::of(true, settings(true, true, true)), TrainingStatus::Paused);
+    }
+
+    #[test]
+    fn zero_bits_is_baseline_measurement() {
+        assert_eq!(TrainingStatus::of(false, settings(false, false, false)), TrainingStatus::Baseline);
+        assert_eq!(TrainingStatus::of(false, settings(false, false, true)), TrainingStatus::Candidate);
+    }
+
+    #[test]
+    fn candidate_summary_lists_every_setting() {
+        let s = candidate_summary(Settings { priority: true, pin: false, qos: true, cores: 6, threads: 4, smt: false, p_only: true, ..Settings::default() });
+        assert_eq!(
+            s,
+            "Prioridade true · afinidade false · até 6 núcleos físicos · até 4 threads críticas · SMT false · somente P-cores true · memória/EcoQoS true"
+        );
     }
 
     #[test]
