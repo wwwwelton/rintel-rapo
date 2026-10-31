@@ -112,7 +112,8 @@ fn counters_update_during_live_session_and_stop_closes_both_sides() {
     greet(&mut socket); request(&mut socket, target, false); assert_eq!(response(&mut socket).0, 0);
     socket.write_all(b"\0relay\xff").unwrap();
     let mut echoed = [0; 7]; socket.read_exact(&mut echoed).unwrap(); assert_eq!(&echoed, b"\0relay\xff");
-    until(|| server.state().bytes_rx == 7);
+    // Each direction counts after its write returns, so the echo may land before the upload is tallied.
+    until(|| { let state = server.state(); state.bytes_rx == 7 && state.bytes_tx == 7 });
     let state = server.state();
     assert_eq!((state.bytes_tx, state.active_connections, state.total_connections), (7, 1, 1));
     assert_eq!(state.predictions.len(), 1);
