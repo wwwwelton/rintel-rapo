@@ -21,6 +21,18 @@ jobs:
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Install Go for the embedded HY2 library
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: native/hy2/go.mod
+          cache-dependency-path: native/hy2/go.sum
+
+      - name: Check cgo toolchain (go build -buildmode=c-shared needs gcc)
+        shell: bash
+        run: |
+          go version
+          gcc --version
+
       - name: Add wasm target and wasm-bindgen CLI
         run: |
           rustup target add wasm32-unknown-unknown
@@ -83,7 +95,8 @@ jobs:
           @(
             "target/release/rintel-rapo.exe",
             "target/release/rintel-rapo.exe.sha256",
-            "target/release/rintel-rapo.cer"
+            "target/release/rintel-rapo.cer",
+            "native/hy2/THIRD_PARTY_NOTICES.txt"
           ) | ForEach-Object {
             if (Test-Path $_) {
               $item = Get-Item $_
@@ -106,3 +119,4 @@ jobs:
             target/release/rintel-rapo.exe
             target/release/rintel-rapo.exe.sha256
             target/release/rintel-rapo.cer
+            native/hy2/THIRD_PARTY_NOTICES.txt
