@@ -47,6 +47,11 @@ pub struct Relay {
     pub predictions: Vec<RelayPrediction>,
     pub interfaces: Vec<RouteCandidate>,
     pub allowed_interfaces: Vec<String>,
+    pub mode: String,
+    pub hy2_server: String,
+    pub hy2_server_name: String,
+    pub udp_associations: usize,
+    pub udp_route: String,
 }
 #[derive(Deserialize)]
 pub struct RelayPrediction {
@@ -118,12 +123,21 @@ pub struct OwnedRoute { pub destination: String, pub interface: String, pub gate
 #[derive(Deserialize)]
 pub struct Rate { pub exe: String, pub policy: String, pub bps: u64, pub confirmed: bool, pub conflict: bool }
 
+const RELAY_MODES: [(&str, &str); 4] = [("direct", "Direto · rota do sistema"), ("local", "Local · Flow nas interfaces autorizadas"),
+    ("hy2", "HY2 · sem fallback direto"), ("neural_auto", "Neural Auto · direto/HY2 nas novas conexões TCP")];
+
 fn render_relay(html: &mut String, relay: &Relay) {
     let (class, status) = if relay.running { ("net-card-active", "Escutando") }
         else if relay.stopping { ("net-card-warn", "Encerrando conexões") }
         else { ("net-card-off", "Desativado") };
-    write!(html, "<div class=\"net-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} conexões ativas · {} aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0).unwrap();
-    html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. Somente TCP CONNECT; sem UDP, captura automática ou túnel remoto. Desabilitar fecha as conexões do proxy.</span>");
+    write!(html, "<div class=\"net-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} conexões ativas ({} associações UDP, saída UDP fixa: {}) · {} aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0).unwrap();
+    html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. TCP CONNECT e UDP ASSOCIATE; sem captura automática. Desabilitar encerra todas as sessões. AION 2: compatibilidade não comprovada — tráfego de teste não prova que o jogo aceita proxy.</span>");
+    let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
+    write!(html, "<details><summary>Transporte · {mode}</summary><p class=\"net-card-sub\">HY2 configurado: {} · nome TLS: {}</p><fieldset id=\"relay-transport\"{}><legend>Configuração desta sessão</legend><label for=\"relay-mode\">Modo</label><select id=\"relay-mode\" data-network-draft=\"relay-mode\">", if relay.hy2_server.is_empty() { "nenhum".into() } else { escape(&relay.hy2_server) }, if relay.hy2_server_name.is_empty() { "host do servidor".into() } else { escape(&relay.hy2_server_name) }, if relay.running || relay.stopping { " disabled" } else { "" }).unwrap();
+    for (id, label) in RELAY_MODES {
+        write!(html, "<option value=\"{id}\"{}>{label}</option>", if relay.mode == id { " selected" } else { "" }).unwrap();
+    }
+    html.push_str("</select><label for=\"relay-server\">Servidor HY2 (host:porta)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"servidor:443\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. HY2 exige servidor remoto compatível. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
     if !relay.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&relay.error)).unwrap(); }
     if !relay.interfaces.is_empty() {
         html.push_str("<details><summary>Autorizar outras saídas</summary><p>A saída atual do Windows sempre permanece elegível. Autorizar outra interface pode contornar sua VPN e mudar o IP público; afeta somente conexões SOCKS5 novas.</p>");
@@ -137,11 +151,12 @@ fn render_relay(html: &mut String, relay: &Relay) {
     let (class, status) = if !relay.running { ("net-card-off", "Parado") }
         else if relay.predictions.is_empty() { ("net-card-warn", "Aguardando tráfego SOCKS5") }
         else { ("net-card-active", "Aprendendo com conexões reais") };
-    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Estima o tempo de abertura TCP por destino e saída, não o ping da partida. Compara apenas saídas autorizadas; não migra sessões abertas nem envia sondas extras.</span>").unwrap();
+    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Estima o tempo de abertura TCP por destino e saída, não o ping da partida. Compara apenas as saídas do modo escolhido (interfaces autorizadas ou direto/HY2); não migra sessões abertas nem envia sondas extras. UDP não é medido.</span>").unwrap();
     if !relay.predictions.is_empty() {
         html.push_str("<div class=\"relay-predictions\"><table class=\"net-policy-table\"><thead><tr><th>Destino / saída</th><th>Medido</th><th>Previsão TCP</th><th>Amostras / falhas</th></tr></thead><tbody>");
         for prediction in &relay.predictions {
-            write!(html, "<tr><td>{}<br><span class=\"net-card-sub\">if {} · {} via {}{}</span></td><td>", escape(&prediction.destination), prediction.interface, escape(&prediction.source), escape(&prediction.gateway), if prediction.selected { " · última saída escolhida" } else { "" }).unwrap();
+            let via = match prediction.gateway.as_str() { "hy2" => "túnel HY2".into(), "system" => "rota do sistema".into(), gateway => escape(gateway) };
+            write!(html, "<tr><td>{}<br><span class=\"net-card-sub\">if {} · {} via {via}{}</span></td><td>", escape(&prediction.destination), prediction.interface, escape(&prediction.source), if prediction.selected { " · última saída escolhida" } else { "" }).unwrap();
             if let Some(ms) = prediction.observed_ms { write!(html, "{ms:.1} ms").unwrap(); } else { html.push_str("Falha de conexão"); }
             html.push_str("</td><td>");
             if let Some(ms) = prediction.predicted_ms { write!(html, "{ms:.1} ms<br><span class=\"net-card-sub\">Desvio/resíduo: {:.1} ms</span>", prediction.uncertainty_ms).unwrap(); } else { html.push_str("Aguardando respostas"); }
@@ -354,6 +369,7 @@ mod tests {
             routes: Routes::default(), route_endpoints: vec![], network_target_pid: 0,
             relay: Relay { running: true, address: "127.0.0.1:1080".into(), error: "<script>relay</script>".into(),
                 interfaces: vec![RouteCandidate { id: "relay\"<&>".into(), interface: "<img src=relay>".into(), index: 2, gateway: "192.0.2.1".into(), ipv6: false }],
+                mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
         };
         view.routes = Routes {
@@ -377,5 +393,8 @@ mod tests {
         assert!(html.contains("1.250000 Mbps"));
         assert!(html.contains("C:\\game&lt;&amp;&gt;.exe"));
         assert!(html.contains("&lt;b&gt;previsão não é ganho&lt;/b&gt;"));
+        assert!(html.contains("&lt;script&gt;hy2&lt;/script&gt;:443") && html.contains("&lt;img src=udp&gt;"));
+        assert!(html.contains("<fieldset id=\"relay-transport\" disabled>"), "transport settings are locked while the relay runs");
+        assert!(html.contains("<option value=\"hy2\" selected>") && html.contains("Transporte · HY2"));
     }
 }

@@ -92,6 +92,8 @@
   #network-routes h3, #network-routes fieldset p, .network-choice { flex-basis: 100%; }
   .network-choice { display: flex; gap: 8px; align-items: flex-start; overflow-wrap: anywhere; }
   #network-routes button { margin: 3px 0; }
+  #relay-transport { display: grid; gap: 6px; min-width: 0; margin: 8px 0; border: 1px solid #1e394c; border-radius: 6px; }
+  #relay-transport input, #relay-transport select, #relay-transport textarea { width: 100%; box-sizing: border-box; min-width: 0; }
 </style>
 </head>
 <body><main>
@@ -113,6 +115,17 @@
       const payload = { action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null };
       const field = (id) => document.getElementById(id);
       if (action === 'relay-interfaces') payload.candidates = [...document.querySelectorAll('[data-relay-candidate]:checked')].map(input => input.dataset.relayCandidate);
+      if (action === 'relay-configure') {
+        payload.mode = field('relay-mode').value;
+        payload.server = field('relay-server').value.trim();
+        payload.server_name = field('relay-server-name').value.trim();
+        payload.auth = field('relay-auth').value;
+        payload.ca_pem = field('relay-ca').value;
+        if (['hy2', 'neural_auto'].includes(payload.mode) && (!payload.server || !payload.auth)) {
+          error.textContent = 'Informe servidor e autenticação HY2.'; return;
+        }
+        field('relay-auth').value = '';
+      }
       if (action.startsWith('route-') || action.startsWith('rate-')) {
         payload.destination = el.dataset.destination ?? field('route-destination')?.value.trim();
         payload.candidate = field('route-candidate')?.value;
