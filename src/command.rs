@@ -43,6 +43,7 @@ pub enum Command {
     SetNetworkPriority(bool),
     SetRelay(bool),
     SetRelayInterfaces(Vec<String>),
+    ConfigureRelay { mode: crate::relay::Mode, config: crate::relay::Hy2Config },
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -83,6 +84,17 @@ pub fn from_json(body: &str) -> Option<Command> {
     let pid = event.get("pid").and_then(|v| v.as_u64()).and_then(|p| u32::try_from(p).ok());
     let text = |key| event.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned);
     match action {
+        "relay-configure" => {
+            let mode = serde_json::from_value(event.get("mode")?.clone()).ok()?;
+            let bounded = |key, limit| event.get(key)?.as_str().filter(|value| value.len() <= limit).map(str::to_owned);
+            let config = crate::relay::Hy2Config {
+                server: bounded("server", 512)?,
+                auth: bounded("auth", 4096)?,
+                server_name: bounded("server_name", 253)?,
+                ca_pem: bounded("ca_pem", 65_536)?,
+            };
+            return Some(Command::ConfigureRelay { mode, config });
+        }
         "relay-interfaces" => {
             let candidates = event.get("candidates")?.as_array()?;
             if candidates.len() > 64 { return None; }
@@ -174,6 +186,27 @@ mod tests {
         for body in [r#"{"action":"relay"}"#, r#"{"action":"relay","checked":"true"}"#,
             r#"{"action":"relay-interfaces","candidates":[2]}"#, r#"{"action":"relay-interfaces","candidates":[""]}"#] {
             assert_eq!(from_json(body), None);
+        }
+    }
+
+    #[test]
+    fn relay_configuration_rejects_unknown_modes_untyped_and_oversized_secrets() {
+        let valid = serde_json::json!({
+            "action": "relay-configure", "mode": "hy2",
+            "server": "localhost:443", "server_name": "localhost",
+            "auth": "test-secret", "ca_pem": "",
+        });
+        assert!(matches!(from_json(&valid.to_string()), Some(Command::ConfigureRelay { mode: crate::relay::Mode::Hy2, .. })));
+        for (key, value) in [
+            ("mode", serde_json::json!("transparent")),
+            ("auth", serde_json::json!(42)),
+            ("auth", serde_json::json!("x".repeat(4097))),
+            ("server", serde_json::json!("x".repeat(513))),
+            ("ca_pem", serde_json::json!("x".repeat(65_537))),
+        ] {
+            let mut invalid = valid.clone();
+            invalid[key] = value;
+            assert_eq!(from_json(&invalid.to_string()), None, "{key}");
         }
     }
 

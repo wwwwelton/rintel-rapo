@@ -3,6 +3,7 @@ fn main() {
         println!("cargo:rerun-if-changed={path}");
     }
     generate_figma_ui_and_tokens();
+    build_hy2();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
@@ -74,6 +75,37 @@ fn main() {
     for library in ["advapi32", "tdh", "version"] {
         println!("cargo:rustc-link-lib={library}");
     }
+}
+
+/// Produces the HY2 c-shared library embedded by `src/relay/hy2.rs`.
+/// `RAPO_HY2_LIBRARY` may name an absolute prebuilt library for toolchains without Go.
+fn build_hy2() {
+    println!("cargo:rerun-if-env-changed=RAPO_HY2_LIBRARY");
+    println!("cargo:rerun-if-env-changed=GO");
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+    let library = if let Some(path) = std::env::var_os("RAPO_HY2_LIBRARY") {
+        let path = std::path::PathBuf::from(path);
+        assert!(path.is_absolute() && path.is_file(), "RAPO_HY2_LIBRARY must be an absolute path to an existing library");
+        println!("cargo:rerun-if-changed={}", path.display());
+        path
+    } else {
+        let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+        let library = out.join(if target_os == "windows" { "rapo_hy2.dll" } else { "librapo_hy2.so" });
+        let arch = match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_str() {
+            "x86_64" => "amd64", "aarch64" => "arm64", "x86" => "386", other => panic!("HY2: unsupported target arch {other}"),
+        };
+        let mut go = std::process::Command::new(std::env::var_os("GO").unwrap_or_else(|| "go".into()));
+        go.current_dir("native/hy2")
+            .args(["build", "-trimpath", "-buildmode=c-shared", "-ldflags=-s -w -buildid=", "-o"]).arg(&library).arg(".")
+            .env("CGO_ENABLED", "1").env("GOOS", &target_os).env("GOARCH", arch);
+        if target_os == "windows" && !cfg!(windows) && std::env::var_os("CC").is_none() {
+            go.env("CC", "x86_64-w64-mingw32-gcc");
+        }
+        let status = go.status().unwrap_or_else(|e| panic!("HY2: Go toolchain not runnable ({e}); install Go or set RAPO_HY2_LIBRARY"));
+        assert!(status.success(), "HY2: go build -buildmode=c-shared failed (cgo needs a C compiler)");
+        library
+    };
+    println!("cargo:rustc-env=RAPO_HY2_EMBED={}", library.display());
 }
 
 fn write_if_changed(path: &std::path::Path, content: &str) {

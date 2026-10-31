@@ -1,7 +1,7 @@
 use super::{CONNECT_TIMEOUT, Egress};
 use std::io;
-use std::net::{SocketAddr, TcpStream};
-use std::os::windows::io::{AsRawSocket, FromRawSocket};
+use std::net::{SocketAddr, TcpStream, UdpSocket};
+use std::os::windows::io::{AsRawSocket, FromRawSocket, OwnedSocket};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use windows_sys::Win32::Networking::WinSock::*;
@@ -34,15 +34,16 @@ fn address(socket: SocketAddr) -> (SOCKADDR_INET, i32) {
 }
 fn last_error() -> io::Error { io::Error::from_raw_os_error(unsafe { WSAGetLastError() }) }
 
-pub(super) fn connect(target: SocketAddr, exit: &Egress, running: &AtomicBool) -> io::Result<TcpStream> {
+/// Socket pinned to the exit's interface (`*_UNICAST_IF`) and source address; never falls back unbound.
+fn bound(target: SocketAddr, exit: &Egress, kind: i32, protocol: i32) -> io::Result<OwnedSocket> {
     if target.is_ipv4() != exit.source.is_ipv4() || exit.source.ip().is_unspecified() || exit.interface == 0 {
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "Saída SOCKS5 sem interface/origem válida"));
     }
     // The listener initializes Winsock before any client worker can reach this function.
     let raw = unsafe { WSASocketW(if target.is_ipv4() { AF_INET } else { AF_INET6 } as i32,
-        SOCK_STREAM, IPPROTO_TCP, std::ptr::null(), 0, WSA_FLAG_NO_HANDLE_INHERIT | WSA_FLAG_OVERLAPPED) };
+        kind, protocol, std::ptr::null(), 0, WSA_FLAG_NO_HANDLE_INHERIT | WSA_FLAG_OVERLAPPED) };
     if raw == INVALID_SOCKET { return Err(last_error()); }
-    let socket = unsafe { TcpStream::from_raw_socket(raw as _) };
+    let socket = unsafe { OwnedSocket::from_raw_socket(raw as _) };
     let (level, option, index) = if target.is_ipv4() { (IPPROTO_IP, IP_UNICAST_IF, exit.interface.to_be()) }
         else { (IPPROTO_IPV6, IPV6_UNICAST_IF, exit.interface) };
     if unsafe { setsockopt(raw, level, option, std::ptr::addr_of!(index).cast(), std::mem::size_of_val(&index) as i32) } == SOCKET_ERROR {
@@ -50,6 +51,16 @@ pub(super) fn connect(target: SocketAddr, exit: &Egress, running: &AtomicBool) -
     }
     let (local, length) = address(exit.source);
     if unsafe { bind(raw, std::ptr::addr_of!(local).cast(), length) } == SOCKET_ERROR { return Err(last_error()); }
+    Ok(socket)
+}
+
+pub(super) fn udp_socket(target: SocketAddr, exit: &Egress) -> io::Result<UdpSocket> {
+    Ok(UdpSocket::from(bound(target, exit, SOCK_DGRAM, IPPROTO_UDP)?))
+}
+
+pub(super) fn connect(target: SocketAddr, exit: &Egress, running: &AtomicBool) -> io::Result<TcpStream> {
+    let socket = TcpStream::from(bound(target, exit, SOCK_STREAM, IPPROTO_TCP)?);
+    let raw = socket.as_raw_socket() as SOCKET;
     socket.set_nonblocking(true)?;
     let (remote, length) = address(target);
     let result = unsafe { windows_sys::Win32::Networking::WinSock::connect(raw, std::ptr::addr_of!(remote).cast(), length) };

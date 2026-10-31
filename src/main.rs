@@ -697,6 +697,7 @@ mod app {
                     if on { let _ = self.relay.start(); } else { self.relay.stop(); }
                 }
                 crate::command::Command::SetRelayInterfaces(interfaces) => self.relay.set_interfaces(interfaces),
+                crate::command::Command::ConfigureRelay { mode, config } => { let _ = self.relay.configure(mode, config); }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
                 crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),
                 crate::command::Command::RemoveRoute(destination) => self.routes.request(crate::routes::Operation::Remove(destination)),
