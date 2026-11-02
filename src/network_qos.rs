@@ -212,6 +212,19 @@ mod native {
             Policy::check_target(std::process::id(), &exe).unwrap();
             assert!(Policy::intent(None, 0).is_err());
         }
+        /// Admin only (ActiveStore): the real Rust path end to end, including Steam's forward-slash registry path.
+        /// Run elevated: `cargo test --bin rintel-rapo system_limit_round_trip -- --ignored`.
+        #[test]
+        #[ignore]
+        fn system_limit_round_trip_against_the_real_activestore() {
+            let mut policy = Policy::intent(None, 16_000_000).unwrap();
+            assert!(policy.view.exempt.iter().any(|exe| exe.to_ascii_lowercase().ends_with("steam.exe")), "{:?}", policy.view.exempt);
+            let created = policy.create();
+            let removed = policy.remove();
+            created.unwrap();
+            removed.unwrap();
+            assert!(policy.view.confirmed && !policy.view.conflict);
+        }
     }
 }
 #[cfg(windows)]

@@ -247,6 +247,14 @@ pub fn render_training(view: &TrainingView) -> String {
         html.push_str("</ul>");
         let disabled = if view.can_start { "" } else { " disabled" };
         html.push_str(&format!("<div class=\"hero-actions\"><button id=\"training-toggle\" type=\"button\" data-action=\"start_training\"{disabled}>Iniciar aprendizado contínuo</button></div>"));
+        // The host enables start only with a running Steam game and the optimizer on, so the reason is derivable here.
+        if !view.can_start {
+            html.push_str(&format!("<p class=\"alert\" role=\"status\">{}</p>", if view.targets.is_empty() {
+                "Aprendizado indisponível: nenhum jogo Steam em execução foi detectado. Abra o jogo (ex.: AION 2) e aguarde aparecer em JOGOS DETECTADOS EM EXECUÇÃO."
+            } else {
+                "Aprendizado indisponível: o otimizador está em Stop. Clique em ▶ Start no topo para habilitar."
+            }));
+        }
     }
     html.push_str(&paragraph("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."));
     html.push_str("<details><summary id=\"collector-license\">Licença do coletor integrado</summary><p>PresentData / PresentMon 2.3.0 · Intel · MIT</p><pre>");
@@ -387,10 +395,13 @@ mod training_tests {
     }
 
     #[test]
-    fn idle_renders_start_enabled_only_when_allowed() {
+    fn idle_renders_start_enabled_only_when_allowed_and_explains_why_not() {
         let html = render_training(&view(false, true));
-        assert!(html.contains("data-action=\"start_training\">Iniciar aprendizado contínuo</button>"));
-        assert!(render_training(&view(false, false)).contains("data-action=\"start_training\" disabled>"));
+        assert!(html.contains("data-action=\"start_training\">Iniciar aprendizado contínuo</button>") && !html.contains("Aprendizado indisponível"));
+        let stopped = render_training(&view(false, false));
+        assert!(stopped.contains("data-action=\"start_training\" disabled>") && stopped.contains("otimizador está em Stop"));
+        let no_game = render_training(&TrainingView { targets: Vec::new(), ..view(false, false) });
+        assert!(no_game.contains("nenhum jogo Steam em execução"));
     }
 
     #[test]

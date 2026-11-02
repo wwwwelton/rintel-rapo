@@ -15,7 +15,8 @@ function Proof($p) {
     if ($properties.Count -eq 0) { throw 'NetQos CIM schema unavailable; refusing unproved mutation' }
     return ,$properties
 }
-function App($p) { return Field $p @('AppPathNameMatchCondition', 'AppPathName') }
+# Steam's registry path uses forward slashes, but Windows stores AppPathName with backslashes.
+function App($p) { return ([string](Field $p @('AppPathNameMatchCondition', 'AppPathName'))).Replace('/', '\') }
 # MSFT_NetQosPolicy.cdxml: NetQosPolicy.Template 1 = Default (wildcard for traffic no other policy matches).
 function Template($p) { $v = Field $p @('TemplateMatchCondition'); if ($null -eq $v) { return 0 }; return [int]$v }
 function Rate($p) {
@@ -57,6 +58,7 @@ try {
         if ($name -notmatch '^RintelRAPO-Rate-[0-9]+-[0-9]+$') { throw 'Invalid policy identity' }
     } elseif ($scope -eq 'app') {
         if ($name -notmatch '^RintelRAPO-Exempt-[0-9]+-[0-9]+-[0-9]+$' -or -not [IO.Path]::IsPathRooted($exe) -or [IO.Path]::GetExtension($exe) -ine '.exe') { throw 'Invalid policy identity or executable' }
+        $exe = [IO.Path]::GetFullPath($exe)
     } else { throw 'Unknown policy scope' }
     $all = @(Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction Stop)
     # Windows stores policy names lowercased; the per-session nonce keeps the identity unique.
