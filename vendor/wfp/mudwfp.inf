@@ -1,0 +1,48 @@
+[Version]
+Signature="$WINDOWS NT$"
+Class=WFPCALLOUT
+ClassGuid={136f5ca7-adc1-4e75-bd9d-0cb78ccf7b21}
+Provider=%ProviderString%
+CatalogFile=MUDWFP.cat
+DriverVer = 05/09/2022,22.23.0.588
+
+[SourceDisksNames]
+	1 = %MUDWFPDisk%,,,""
+
+[SourceDisksFiles]
+	MUDWFP.sys  = 1,,
+
+[DestinationDirs]
+	DefaultDestDir = 12
+	MUDWFP.DriverFiles = 12
+
+[DefaultInstall]
+    OptionDesc = %MUDWFPDesc%
+    CopyFiles  = MUDWFP.DriverFiles
+
+[DefaultInstall.Services]
+    AddService = %MUDWFPServiceName%,,MUDWFP.Service
+
+[DefaultUninstall]
+    DelFiles = MUDWFP.DriverFiles
+
+[DefaultUninstall.Services]
+    DelService = %MUDWFPServiceName%,0x200              
+    DelReg     = MUDWFP.DelRegistry
+	
+[MUDWFP.DriverFiles]
+    MUDWFP.sys,,,0x00000040
+	
+[MUDWFP.Service]
+    DisplayName   = %MUDWFPServiceName%
+    Description   = %MUDWFPDesc%
+    ServiceType   = 1
+    StartType     = 3
+    ErrorControl  = 1
+    ServiceBinary = %12%\MUDWFP.sys
+
+[Strings]
+    ProviderString     = "Mudfish Networks"
+    MUDWFPDisk         = "Mudfish WFP"
+    MUDWFPDesc         = "Mudfish WFP Callout Driver"
+    MUDWFPServiceName  = "MUDWFP"

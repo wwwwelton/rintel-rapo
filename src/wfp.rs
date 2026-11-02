@@ -12,6 +12,26 @@ pub struct State {
     pub error: String,
 }
 
+#[cfg(any(windows, test))]
+fn extract_bundle(dir: &std::path::Path) -> io::Result<std::path::PathBuf> {
+    use std::fs;
+    for (name, bytes) in [
+        ("mudwfp_proxy.exe", &include_bytes!("../vendor/wfp/mudwfp_proxy.exe")[..]),
+        ("MUDWFP.sys", &include_bytes!("../vendor/wfp/MUDWFP.sys")[..]),
+        ("mudwfp.inf", &include_bytes!("../vendor/wfp/mudwfp.inf")[..]),
+    ] {
+        let path = dir.join(name);
+        match fs::read(&path) {
+            Ok(existing) if existing == bytes => continue,
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+        fs::write(path, bytes)?;
+    }
+    Ok(dir.join("mudwfp_proxy.exe"))
+}
+
 #[cfg(windows)]
 pub use windows_impl::WfpManager;
 
@@ -28,8 +48,42 @@ mod windows_impl {
 
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-    // The proxy loads the kernel driver from %SystemRoot%\System32\Drivers itself; only the proxy is bundled.
-    static PROXY_EXE: &[u8] = include_bytes!("../vendor/wfp/mudwfp_proxy.exe");
+    const PREPARE_DRIVER: &str = include_str!("../scripts/prepare-wfp.ps1");
+    fn system_dir() -> io::Result<PathBuf> {
+        use std::os::windows::ffi::OsStringExt;
+        let mut path = [0u16; 260];
+        let length = unsafe {
+            windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW(
+                path.as_mut_ptr(),
+                path.len() as u32,
+            ) as usize
+        };
+        if length == 0 { return Err(io::Error::last_os_error()); }
+        if length >= path.len() { return Err(io::Error::other("Caminho System32 excede o limite")); }
+        Ok(PathBuf::from(std::ffi::OsString::from_wide(&path[..length])))
+    }
+
+    fn driver_running() -> io::Result<bool> {
+        use windows_sys::Win32::System::Services::*;
+        unsafe {
+            let scm = OpenSCManagerW(std::ptr::null(), std::ptr::null(), SC_MANAGER_CONNECT);
+            if scm.is_null() { return Err(io::Error::last_os_error()); }
+            let name = [77u16, 85, 68, 87, 70, 80, 0]; // MUDWFP
+            let service = OpenServiceW(scm, name.as_ptr(), SERVICE_QUERY_STATUS);
+            if service.is_null() {
+                let error = io::Error::last_os_error();
+                CloseServiceHandle(scm);
+                return Err(error);
+            }
+            let mut status: SERVICE_STATUS = std::mem::zeroed();
+            let ok = QueryServiceStatus(service, &mut status);
+            let error = if ok == 0 { Some(io::Error::last_os_error()) } else { None };
+            CloseServiceHandle(service);
+            CloseServiceHandle(scm);
+            if let Some(error) = error { return Err(error); }
+            Ok(status.dwCurrentState == SERVICE_RUNNING)
+        }
+    }
 
     /// Job that kills the proxy when RAPO dies for any reason (crash, kill, power loss of the UI).
     /// Without it an orphaned proxy keeps redirecting the game to a dead local port.
@@ -71,19 +125,28 @@ mod windows_impl {
         }
 
         fn base_dir() -> io::Result<PathBuf> {
-            let base = std::env::var_os("LOCALAPPDATA")
-                .ok_or_else(|| io::Error::other("LOCALAPPDATA ausente"))?;
-            let dir = PathBuf::from(base).join("Rintel RAPO").join("wfp");
+            let dir = system_dir()?.join("drivers").join("Rintel RAPO").join("wfp");
             fs::create_dir_all(&dir)?;
             Ok(dir)
         }
 
-        fn ensure_files(dir: &Path) -> io::Result<PathBuf> {
-            let exe_path = dir.join("mudwfp_proxy.exe");
-            if !exe_path.exists() || fs::metadata(&exe_path)?.len() != PROXY_EXE.len() as u64 {
-                fs::write(&exe_path, PROXY_EXE)?;
+        fn prepare_driver(dir: &Path) -> io::Result<()> {
+            let powershell = system_dir()?.join("WindowsPowerShell").join("v1.0").join("powershell.exe");
+            let output = Command::new(powershell)
+                .args(["-NoProfile", "-NonInteractive", "-Command", PREPARE_DRIVER])
+                .env("RAPO_WFP_DRIVER_SOURCE", dir.join("MUDWFP.sys"))
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()?;
+            if !output.status.success() {
+                return Err(io::Error::other(format!(
+                    "Preparação do driver MUDWFP falhou; instalação exige administrador: {}",
+                    String::from_utf8_lossy(&output.stderr).trim()
+                )));
             }
-            Ok(exe_path)
+            if !driver_running()? {
+                return Err(io::Error::other("Driver MUDWFP não confirmou estado Running"));
+            }
+            Ok(())
         }
 
         pub fn set_enabled(&mut self, enabled: bool, target: &str, port: u16) {
@@ -110,13 +173,17 @@ mod windows_impl {
                 }
             };
 
-            let exe_path = match Self::ensure_files(&dir) {
+            let exe_path = match extract_bundle(&dir) {
                 Ok(p) => p,
                 Err(e) => {
                     self.error = format!("Extração WFP: {e}");
                     return Err(e);
                 }
             };
+            if let Err(error) = Self::prepare_driver(&dir) {
+                self.error = error.to_string();
+                return Err(error);
+            }
 
             // Process names are matched case-insensitively by the proxy, so one rule covers AION2.exe/Aion2.exe.
             let args = ["-r".to_string(), "-S".to_string(), "-b".to_string(), format!("{proc_name}|B|127.0.0.1:{port}")];
@@ -149,12 +216,15 @@ mod windows_impl {
         }
 
         pub fn stop(&mut self) {
-            if let Some(mut child) = self.child.take() {
+            let had_child = if let Some(mut child) = self.child.take() {
                 let _ = child.kill();
                 let _ = child.wait();
+                true
+            } else { false };
+            if had_child {
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                Self::restart_driver();
             }
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            Self::restart_driver();
             self.target.clear();
         }
 
@@ -194,11 +264,17 @@ mod windows_impl {
         }
 
         pub fn state(&self) -> State {
+            let driver = if self.child.is_some() { driver_running() } else { Ok(false) };
+            let error = match &driver {
+                Err(error) => format!("Consulta do driver MUDWFP falhou: {error}"),
+                Ok(false) if self.child.is_some() => "Driver MUDWFP parado; nenhum tunelamento confirmado".into(),
+                _ => self.error.clone(),
+            };
             State {
                 enabled: self.enabled,
-                running: self.child.is_some(),
+                running: self.child.is_some() && driver.unwrap_or(false),
                 target: self.target.clone(),
-                error: self.error.clone(),
+                error,
             }
         }
     }
@@ -254,6 +330,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn bundle_extracts_all_files_and_repairs_same_size_corruption() {
+        let dir = std::env::temp_dir().join(format!("rapo-wfp-bundle-{}-{}", std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir(&dir).unwrap();
+        let proxy = extract_bundle(&dir).unwrap();
+        assert_eq!(std::fs::read(&proxy).unwrap(), include_bytes!("../vendor/wfp/mudwfp_proxy.exe"));
+        assert_eq!(std::fs::read(dir.join("mudwfp.inf")).unwrap(), include_bytes!("../vendor/wfp/mudwfp.inf"));
+        let driver = dir.join("MUDWFP.sys");
+        let original = std::fs::read(&driver).unwrap();
+        assert_eq!(original, include_bytes!("../vendor/wfp/MUDWFP.sys"));
+        let mut damaged = original.clone();
+        damaged[0] ^= 0xff;
+        std::fs::write(&driver, damaged).unwrap();
+        extract_bundle(&dir).unwrap();
+        assert_eq!(std::fs::read(&driver).unwrap(), original);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    #[cfg_attr(windows, ignore = "Installs/starts a signed kernel driver; run explicitly with administrator consent")]
     fn wfp_state_lifecycle() {
         let mut wfp = WfpManager::new();
         assert!(!wfp.state().running);

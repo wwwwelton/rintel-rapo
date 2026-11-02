@@ -180,7 +180,6 @@ mod app {
                 wfp: crate::wfp::WfpManager::new(),
             };
             let _ = app.relay.start();
-            app.wfp.set_enabled(true, "Aion2.exe", 1080);
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
                 Err(error) => app.training_message = error,
@@ -756,15 +755,7 @@ mod app {
                 crate::command::Command::SetRapo(directory) => {
                     let on = directory.is_some();
                     self.select_rapo(directory);
-                    let target = if self.telemetry.metrics.has_target {
-                        self.running.iter().find(|p| p.pid == self.telemetry.metrics.target_pid)
-                            .and_then(|p| std::path::Path::new(&p.exe).file_name()?.to_str())
-                            .unwrap_or("Aion2.exe")
-                    } else {
-                        "Aion2.exe"
-                    };
                     if on { let _ = self.relay.start(); }
-                    self.wfp.set_enabled(on, target, 1080);
                     self.refresh();
                 }
                 crate::command::Command::ApplyAion2Profile { directory } => {
@@ -780,7 +771,6 @@ mod app {
                     self.qos_games.insert(directory.clone());
                     self.aion2_prefetched = false;
                     let _ = self.relay.start();
-                    self.wfp.set_enabled(true, "Aion2.exe", 1080);
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }
