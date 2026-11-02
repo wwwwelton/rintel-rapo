@@ -758,11 +758,13 @@ mod app {
                 }),
                 crate::command::Command::StopNetworkLearning => self.routes.request(crate::routes::Operation::Stop),
                 crate::command::Command::RemoveRate => self.routes.request(crate::routes::Operation::RateRemove),
-                crate::command::Command::ApplyRate { pid, bps } => {
-                    if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
-                        self.routes.request(crate::routes::Operation::RateApply { pid, exe: process.exe.clone(), bps });
-                    } else { self.routes.state.error = "Alvo de saída não está mais em execução.".into(); }
-                }
+                crate::command::Command::ApplyRate { pid, bps } => match pid {
+                    None => self.routes.request(crate::routes::Operation::RateApply { game: None, bps }),
+                    Some(pid) => match self.running.iter().find(|p| p.pid == pid) {
+                        Some(process) => self.routes.request(crate::routes::Operation::RateApply { game: Some((pid, process.exe.clone())), bps }),
+                        None => self.routes.state.error = "Jogo alvo não está mais em execução; o limite não foi aplicado.".into(),
+                    },
+                },
                 crate::command::Command::StartRateLearning { pid, destination, rates } => {
                     if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
                         self.routes.request(crate::routes::Operation::RateStart { pid, exe: process.exe.clone(), rates, destination, sample: self.telemetry.metrics.process_ping.clone() });

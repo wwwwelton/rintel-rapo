@@ -37,7 +37,8 @@ pub enum Command {
     RemoveAllRoutes,
     StartRouteLearning { destination: String, candidates: Vec<String> },
     StopNetworkLearning,
-    ApplyRate { pid: u32, bps: u64 },
+    /// System-wide outbound limit; `pid` names the game to exempt, if any.
+    ApplyRate { pid: Option<u32>, bps: u64 },
     StartRateLearning { pid: u32, destination: String, rates: Vec<u64> },
     RemoveRate,
     SetNetworkPriority(bool),
@@ -124,10 +125,10 @@ pub fn from_json(body: &str) -> Option<Command> {
             let candidates = event.get("candidates")?.as_array()?.iter().map(|v| v.as_str().filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned)).collect::<Option<Vec<_>>>()?;
             return Some(Command::StartRouteLearning { destination: text("destination")?, candidates });
         }
-        "rate-apply" => return Some(Command::ApplyRate { pid: pid.filter(|p| *p != 0)?, bps: crate::network_qos::bits_per_second(&text("mbps")?).ok()? }),
+        "rate-apply" => return Some(Command::ApplyRate { pid: pid.filter(|p| *p != 0), bps: crate::network_qos::megabytes_per_second(&text("mb_s")?).ok()? }),
         "rate-learn" => {
             if event.get("consent")?.as_bool()? != true { return None; }
-            let rates = event.get("rates")?.as_array()?.iter().map(|v| crate::network_qos::bits_per_second(v.as_str()?).ok()).collect::<Option<Vec<_>>>()?;
+            let rates = event.get("rates")?.as_array()?.iter().map(|v| crate::network_qos::megabytes_per_second(v.as_str()?).ok()).collect::<Option<Vec<_>>>()?;
             return Some(Command::StartRateLearning { pid: pid.filter(|p| *p != 0)?, destination: text("destination")?, rates });
         }
         _ => (),
@@ -233,9 +234,10 @@ mod tests {
         for body in [r#"{"action":"route-apply","destination":42,"candidate":"x"}"#,
             r#"{"action":"route-learn","destination":"192.0.2.42","candidates":["a","b"]}"#,
             r#"{"action":"route-learn","destination":"192.0.2.42","candidates":[3],"consent":true}"#,
-            r#"{"action":"rate-apply","pid":7,"mbps":"NaN"}"#,
-            r#"{"action":"rate-apply","pid":0,"mbps":"1"}"#,
+            r#"{"action":"rate-apply","pid":7,"mb_s":"NaN"}"#,
+            r#"{"action":"rate-apply","pid":7,"mbps":"1"}"#,
             r#"{"action":"rate-learn","pid":7,"destination":"192.0.2.42","rates":["1","2"],"consent":false}"#] { assert_eq!(from_json(body), None, "{body}"); }
-        assert_eq!(from_json(r#"{"action":"rate-apply","pid":7,"mbps":"1.25"}"#), Some(Command::ApplyRate { pid: 7, bps: 1_250_000 }));
+        assert_eq!(from_json(r#"{"action":"rate-apply","pid":7,"mb_s":"1.25"}"#), Some(Command::ApplyRate { pid: Some(7), bps: 10_000_000 }));
+        assert_eq!(from_json(r#"{"action":"rate-apply","pid":0,"mb_s":"2"}"#), Some(Command::ApplyRate { pid: None, bps: 16_000_000 }), "the system limit needs no running game");
     }
 }

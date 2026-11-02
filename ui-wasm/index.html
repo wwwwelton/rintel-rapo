@@ -299,15 +299,15 @@
         payload.candidate = field('route-candidate')?.value;
         payload.consent = field('network-consent')?.checked === true;
         payload.candidates = [...document.querySelectorAll('[data-route-candidate]:checked')].map(input => input.dataset.routeCandidate);
-        payload.mbps = field('rate-mbps')?.value.trim();
+        payload.mb_s = field('rate-mbs')?.value.trim();
         payload.rates = (field('rate-list')?.value ?? '').split(',').map(value => value.trim());
         const rateValid = (value) => /^\d+(\.\d{1,6})?$/.test(value) && /[1-9]/.test(value);
         if (['route-apply', 'route-learn', 'rate-learn'].includes(action) && !payload.destination) { error.textContent = 'Informe um IP de destino numérico.'; return; }
         if (action === 'route-apply' && !payload.candidate) { error.textContent = 'Selecione uma interface/gateway existente.'; return; }
         if (action.endsWith('-learn') && !payload.consent) { error.textContent = 'Confirme explicitamente o consentimento aos testes ativos de rede.'; return; }
         if (action === 'route-learn' && payload.candidates.length < 2) { error.textContent = 'Selecione a saída atual e pelo menos outra saída da mesma família.'; return; }
-        if (action === 'rate-apply' && !rateValid(payload.mbps ?? '')) { error.textContent = 'Informe Mbps decimal positivo com até 6 casas.'; return; }
-        if (action === 'rate-learn' && (payload.rates.length < 2 || !payload.rates.every(rateValid))) { error.textContent = 'Autorize pelo menos duas taxas Mbps positivas, separadas por vírgula.'; return; }
+        if (action === 'rate-apply' && !rateValid(payload.mb_s ?? '')) { error.textContent = 'Informe MB/s decimal positivo com até 6 casas.'; return; }
+        if (action === 'rate-learn' && (payload.rates.length < 2 || !payload.rates.every(rateValid))) { error.textContent = 'Autorize pelo menos duas taxas MB/s positivas, separadas por vírgula.'; return; }
       }
       window.ipc.postMessage(JSON.stringify(payload));
     };

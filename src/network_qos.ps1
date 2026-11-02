@@ -16,6 +16,8 @@ function Proof($p) {
     return ,$properties
 }
 function App($p) { return Field $p @('AppPathNameMatchCondition', 'AppPathName') }
+# MSFT_NetQosPolicy.cdxml: NetQosPolicy.Template 1 = Default (wildcard for traffic no other policy matches).
+function Template($p) { $v = Field $p @('TemplateMatchCondition'); if ($null -eq $v) { return 0 }; return [int]$v }
 function Rate($p) {
     $value = Field $p @('ThrottleRateActionBitsPerSecond', 'ThrottleRateAction', 'ThrottleRate')
     if ($null -eq $value) { throw 'NetQos raw throttle field unavailable; refusing to infer formatted rate' }
@@ -40,33 +42,50 @@ function NoExtraConditions($p) {
         }
     }
 }
+function Matches($p, $scope, $exe, $bps) {
+    if ($scope -eq 'default') { return (Template $p) -eq 1 -and [string](App $p) -eq '' -and (Rate $p) -eq $bps }
+    return (App $p) -ieq $exe -and (Rate $p) -eq $bps
+}
 try {
     $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $scope = [string]$request.scope
     $name = [string]$request.name
     $exe = [string]$request.exe
     $bps = [UInt64]::Parse([string]$request.bps, [Globalization.CultureInfo]::InvariantCulture)
-    if ($name -notmatch '^RintelRAPO-Rate-[0-9]+-[0-9]+$' -or -not [IO.Path]::IsPathRooted($exe) -or [IO.Path]::GetExtension($exe) -ine '.exe' -or $bps -eq 0) { throw 'Invalid policy identity or rate' }
+    if ($bps -eq 0) { throw 'Invalid rate' }
+    if ($scope -eq 'default') {
+        if ($name -notmatch '^RintelRAPO-Rate-[0-9]+-[0-9]+$') { throw 'Invalid policy identity' }
+    } elseif ($scope -eq 'app') {
+        if ($name -notmatch '^RintelRAPO-Exempt-[0-9]+-[0-9]+-[0-9]+$' -or -not [IO.Path]::IsPathRooted($exe) -or [IO.Path]::GetExtension($exe) -ine '.exe') { throw 'Invalid policy identity or executable' }
+    } else { throw 'Unknown policy scope' }
     $all = @(Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction Stop)
-    $own = @($all | Where-Object { $_.Name -ceq $name })
+    # Windows stores policy names lowercased; the per-session nonce keeps the identity unique.
+    $own = @($all | Where-Object { $_.Name -ieq $name })
     if ($own.Count -gt 1) { throw 'Duplicate policy identity; refusing mutation' }
     if ($request.action -in @('prepare', 'create')) {
         if ($own.Count -ne 0) { throw 'Policy already exists; never adopting or overwriting it' }
-        if (-not [IO.File]::Exists($exe)) { throw 'Executable no longer exists' }
         $dscp = -1
-        foreach ($policy in $all) {
-            $app = [string](App $policy)
-            if ($app -ieq $exe -or $app -ieq [IO.Path]::GetFileName($exe) -or $app -eq '' -or $app -eq '*') {
-                if ($app -eq '' -or $app -eq '*') { throw 'Global/wildcard QoS policy is ambiguous; existing policies preserved' }
-                NoExtraConditions $policy
-                $existingRate = Rate $policy
-                if ($existingRate -ne 0 -and $existingRate -ne [UInt64]::MaxValue) { throw 'Existing throttle policy targets this executable; preserved' }
-                $value = Dscp $policy
-                if ($value -ge 0) {
-                    if ($dscp -ge 0 -and $dscp -ne $value) { throw 'Conflicting DSCP policies; preserved' }
-                    $dscp = $value
+        if ($scope -eq 'default') {
+            foreach ($policy in $all) {
+                if ((Template $policy) -eq 1 -or [string](App $policy) -eq '*') { throw 'Another system-wide (Default) QoS policy exists; preserved' }
+            }
+        } else {
+            if (-not [IO.File]::Exists($exe)) { throw 'Executable no longer exists' }
+            foreach ($policy in $all) {
+                $app = [string](App $policy)
+                if ($app -ieq $exe -or $app -ieq [IO.Path]::GetFileName($exe) -or $app -eq '' -or $app -eq '*') {
+                    if ($app -eq '' -or $app -eq '*') { throw 'Global/wildcard QoS policy is ambiguous; existing policies preserved' }
+                    NoExtraConditions $policy
+                    $existingRate = Rate $policy
+                    if ($existingRate -ne 0 -and $existingRate -ne [UInt64]::MaxValue) { throw 'Existing throttle policy targets this executable; preserved' }
+                    $value = Dscp $policy
+                    if ($value -ge 0) {
+                        if ($dscp -ge 0 -and $dscp -ne $value) { throw 'Conflicting DSCP policies; preserved' }
+                        $dscp = $value
+                    }
+                    $precedence = Field $policy @('Precedence')
+                    if ($null -ne $precedence -and [int]$precedence -ge 255) { throw 'Existing precedence 255; cannot preserve effective DSCP safely' }
                 }
-                $precedence = Field $policy @('Precedence')
-                if ($null -ne $precedence -and [int]$precedence -ge 255) { throw 'Existing precedence 255; cannot preserve effective DSCP safely' }
             }
         }
         if ($request.action -eq 'prepare') {
@@ -74,11 +93,16 @@ try {
             exit 0
         }
         if ($null -eq $request.dscp -or [int]$request.dscp -ne $dscp) { throw 'DSCP state changed since preparation; existing policy preserved' }
-        $parameters = @{ Name = $name; PolicyStore = 'ActiveStore'; NetworkProfile = 'All'; Precedence = 255; AppPathNameMatchCondition = $exe; ThrottleRateActionBitsPerSecond = $bps; ErrorAction = 'Stop' }
-        if ($dscp -ge 0) { $parameters.DSCPAction = $dscp }
+        $parameters = @{ Name = $name; PolicyStore = 'ActiveStore'; NetworkProfile = 'All'; ThrottleRateActionBitsPerSecond = $bps; ErrorAction = 'Stop' }
+        if ($scope -eq 'default') { $parameters.Default = $true }
+        else {
+            # Precedence 255 and the copied DSCP keep an existing DSCP policy for this executable effective.
+            $parameters.Precedence = 255; $parameters.AppPathNameMatchCondition = $exe
+            if ($dscp -ge 0) { $parameters.DSCPAction = $dscp }
+        }
         $null = New-NetQosPolicy @parameters
-        $own = @(Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction Stop | Where-Object { $_.Name -ceq $name })
-        if ($own.Count -ne 1 -or (App $own[0]) -ine $exe -or (Rate $own[0]) -ne $bps -or (Dscp $own[0]) -ne $dscp) { throw 'Policy creation not confirmed; keep session intent for cleanup' }
+        $own = @(Get-NetQosPolicy -PolicyStore ActiveStore -ErrorAction Stop | Where-Object { $_.Name -ieq $name })
+        if ($own.Count -ne 1 -or -not (Matches $own[0] $scope $exe $bps) -or (Dscp $own[0]) -ne $dscp) { throw 'Policy creation not confirmed; keep session intent for cleanup' }
         @{ ok = $true; proof = (Proof $own[0]) } | ConvertTo-Json -Depth 16 -Compress
     } elseif ($request.action -in @('validate', 'remove')) {
         if ($own.Count -eq 0) {
@@ -86,15 +110,18 @@ try {
             @{ ok = $true } | ConvertTo-Json -Compress
         } else {
             $p = $own[0]
-            if ((App $p) -ine $exe -or (Rate $p) -ne $bps) { throw 'Owned policy identity/actions changed externally; preserved' }
+            if (-not (Matches $p $scope $exe $bps)) { throw 'Owned policy identity/actions changed externally; preserved' }
             if ($null -ne $request.proof) {
                 $current = ConvertTo-Json -InputObject (Proof $p) -Depth 16 -Compress
                 $expected = ConvertTo-Json -InputObject $request.proof -Depth 16 -Compress
                 if ($current -cne $expected) { throw 'Owned policy attributes changed externally; preserved' }
             } else {
                 # An interrupted create has only its pre-recorded session intent. Never sweep by prefix.
-                NoExtraConditions $p
-                if ([string](Field $p @('NetworkProfile')) -notin @('All', '7') -or [int](Field $p @('Precedence')) -ne 255) { throw 'Interrupted create has unexpected attributes; preserved for inspection' }
+                if ([string](Field $p @('NetworkProfile')) -notin @('All', '7')) { throw 'Interrupted create has unexpected attributes; preserved for inspection' }
+                if ($scope -eq 'app') {
+                    NoExtraConditions $p
+                    if ([int](Field $p @('Precedence')) -ne 255) { throw 'Interrupted create has unexpected attributes; preserved for inspection' }
+                }
                 if ($null -eq $request.dscp -or (Dscp $p) -ne [int]$request.dscp) { throw 'Interrupted policy DSCP changed; preserved' }
             }
             if ($request.action -eq 'remove') { Remove-NetQosPolicy -Name $name -PolicyStore ActiveStore -Confirm:$false -ErrorAction Stop }

@@ -8,7 +8,8 @@ pub enum Operation {
     Remove(String),
     RemoveAll,
     Start { destination: String, candidates: Vec<String>, sample: ProcessPing },
-    RateApply { pid: u32, exe: PathBuf, bps: u64 },
+    /// System-wide outbound limit; `game` (pid, exe) is exempted along with Steam and RAPO.
+    RateApply { game: Option<(u32, PathBuf)>, bps: u64 },
     RateStart { pid: u32, exe: PathBuf, rates: Vec<u64>, destination: String, sample: ProcessPing },
     RateRemove,
     Stop,
@@ -43,10 +44,10 @@ impl Runtime {
         if let Some(policy) = &mut self.rate { policy.remove()?; }
         self.rate = None; Ok(())
     }
-    fn apply_rate(&mut self, pid: u32, exe: PathBuf, bps: u64) -> Result<(), String> {
+    fn apply_rate(&mut self, game: Option<(u32, PathBuf)>, bps: u64) -> Result<(), String> {
         if self.rate.is_some() { return Err("Remova a política própria atual antes de aplicar outra taxa.".into()); }
         // Record intent before starting a subprocess: timeout must not lose cleanup ownership.
-        self.rate = Some(Policy::intent(pid, &exe, bps)?);
+        self.rate = Some(Policy::intent(game.as_ref().map(|(pid, exe)| (*pid, exe.as_path())), bps)?);
         self.rate.as_mut().unwrap().create()
     }
     fn cleanup_session(&mut self) -> Result<(), String> {
@@ -95,14 +96,14 @@ impl Runtime {
                 if endpoint.route.as_ref() != Some(&current) { return Err("Rota mudou desde a amostra; aguarde uma nova amostra antes de iniciar.".into()); }
                 self.state.history.clear(); self.session = Some(Session::start(destination, candidates, &sample, Instant::now())?);
             }
-            Operation::RateApply { pid, exe, bps } => { self.require_manual()?; self.apply_rate(pid, exe, bps)?; self.state.message = "Limite de saída por executável confirmado no ActiveStore; não é prova de pacing/ganho real.".into(); }
-            Operation::RateRemove => { self.cleanup_session()?; self.remove_rate()?; self.state.message = "Limite próprio removido; políticas anteriores preservadas.".into(); }
+            Operation::RateApply { game, bps } => { self.require_manual()?; self.apply_rate(game, bps)?; self.state.message = "Limite de saída do sistema confirmado no ActiveStore; Steam, RAPO e o jogo alvo ficam isentos. Não é prova de pacing/ganho real.".into(); }
+            Operation::RateRemove => { self.cleanup_session()?; self.remove_rate()?; self.state.message = "Limite do sistema e isenções removidos; políticas anteriores preservadas.".into(); }
             Operation::RateStart { pid, exe, mut rates, destination, sample } => {
                 self.require_manual()?;
                 if self.rate.is_some() || !self.manager.owned.is_empty() { return Err("Remova ajustes manuais de rede antes do aprendizado de taxas.".into()); }
                 Policy::check_target(pid, &exe)?;
                 rates.sort_unstable(); rates.dedup();
-                if rates.len() < 2 || rates.contains(&0) { return Err("Autorize ao menos duas taxas positivas distintas em Mbps; banda de upload nunca é inferida da placa.".into()); }
+                if rates.len() < 2 || rates.contains(&0) { return Err("Autorize ao menos duas taxas positivas distintas em MB/s; banda de upload nunca é inferida da placa.".into()); }
                 if !sample.pids.contains(&pid) { return Err("Executável deve pertencer aos PIDs da amostra atual.".into()); }
                 let route = sample.endpoints.iter().find(|e| e.destination == destination).and_then(|e| e.route.as_ref()).ok_or("IP/rota ICMP atual indisponível")?.id.clone();
                 let current = super::native::observe(std::net::SocketAddr::new(super::destination(&destination)?, 0))?.0;
@@ -137,8 +138,8 @@ impl Runtime {
                     Action::None => (),
                     Action::Apply(candidate) => {
                         if let Some(target) = &self.rate_target {
-                            let pid = target.pid; let exe = target.exe.clone();
-                            self.apply_rate(pid, exe, candidate.parse().map_err(|_| "Taxa interna inválida")?)?;
+                            let game = Some((target.pid, target.exe.clone()));
+                            self.apply_rate(game, candidate.parse().map_err(|_| "Taxa interna inválida")?)?;
                         } else { self.manager.apply(&destination, &candidate)?; }
                     }
                     Action::Restore => {
@@ -163,7 +164,7 @@ fn decorate_rate_sample(sample: &ProcessPing, destination: &str, expected_route:
     if route.id != expected_route { return Err("Rota de rede mudou durante aprendizado de taxa; não confundir causas.".into()); }
     let label = bps.map_or_else(|| "uncapped".into(), |r| r.to_string());
     route.id = format!("{}|rate:{label}", route.id); route.candidate = label;
-    route.gateway = format!("{} · {}", route.gateway, bps.map_or_else(|| "sem limite RAPO".into(), |r| format!("{:.6} Mbps saída", r as f64 / 1_000_000.0)));
+    route.gateway = format!("{} · {}", route.gateway, bps.map_or_else(|| "sem limite RAPO".into(), |r| format!("sistema {:.3} MB/s saída", r as f64 / 8_000_000.0)));
     Ok(sample)
 }
 impl Service {

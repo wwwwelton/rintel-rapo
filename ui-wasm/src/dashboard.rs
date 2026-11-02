@@ -160,7 +160,12 @@ pub struct RouteCandidate { pub id: String, pub interface: String, pub index: u3
 #[derive(Deserialize)]
 pub struct OwnedRoute { pub destination: String, pub interface: String, pub gateway: String, pub conflict: bool }
 #[derive(Deserialize)]
-pub struct Rate { pub exe: String, pub policy: String, pub bps: u64, pub confirmed: bool, pub conflict: bool }
+pub struct Rate { pub exempt: Vec<String>, pub policy: String, pub bps: u64, pub confirmed: bool, pub conflict: bool }
+
+/// File names of the exempt executables, e.g. `steam.exe, rintel-rapo.exe, AION2.exe`.
+fn exempt_names(rate: &Rate) -> String {
+    rate.exempt.iter().map(|path| escape(path.rsplit(['\\', '/']).next().unwrap_or(path))).collect::<Vec<_>>().join(", ")
+}
 
 const RELAY_MODES: [(&str, &str); 4] = [("direct", "Direto · rota do sistema"), ("local", "Local · Flow nas interfaces autorizadas"),
     ("hy2", "HY2 · sem fallback direto"), ("neural_auto", "Neural Auto · direto/HY2 nas novas conexões TCP")];
@@ -284,11 +289,13 @@ fn render_network(html: &mut String, view: &Dashboard) {
     }
     html.push_str("<label class=\"network-choice\"><input id=\"network-consent\" data-network-draft=\"consent\" type=\"checkbox\"> Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo. Nada será alterado apenas por detectar um jogo.</label>");
     write!(html, "<button data-action=\"route-learn\"{}>Aprender e aplicar · rotas autorizadas</button>", if routes.candidates.len() < 2 { " disabled" } else { "" }).unwrap();
-    html.push_str("<h3>QOS DE SAÍDA POR EXECUTÁVEL · Mbps DECIMAIS</h3><p>Afeta a saída inteira do executável alvo, não o conteúdo nem somente este IP. Pode atrasar o próprio jogo. Não é pacing de pacotes, SQM/CAKE, controle do download ou da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido. DSCP e políticas anteriores são preservados; conflitos ambíguos recusam aplicação.</p>");
-    write!(html, "<p>Alvo atual: PID {} (caminho completo revalidado pelo host).</p><label for=\"rate-mbps\">Limite manual em Mbps</label><input id=\"rate-mbps\" data-network-draft=\"rate\" type=\"text\" inputmode=\"decimal\" placeholder=\"1.25\"><button data-action=\"rate-apply\" data-pid=\"{}\"{}>Aplicar limite de saída</button><label for=\"rate-list\">Taxas autorizadas em Mbps, separadas por vírgula (mínimo duas)</label><input id=\"rate-list\" data-network-draft=\"rates\" type=\"text\" placeholder=\"1.25, 2.5\"><button data-action=\"rate-learn\" data-pid=\"{}\"{}>Aprender e aplicar · taxas autorizadas</button></fieldset>", view.network_target_pid, view.network_target_pid, if view.network_target_pid == 0 { " disabled" } else { "" }, view.network_target_pid, if view.network_target_pid == 0 { " disabled" } else { "" }).unwrap();
-    write!(html, "<button data-action=\"network-stop\"{}>Parar aprendizado e restaurar referência</button><button data-action=\"route-remove-all\"{}>Remover todos os ajustes de rede desta sessão</button><button data-action=\"rate-remove\"{}>Remover limite de saída próprio</button>", if routes.pending || !routes.auto_active { " disabled" } else { "" }, if routes.pending { " disabled" } else { "" }, if routes.pending || routes.rate.is_none() { " disabled" } else { "" }).unwrap();
+    html.push_str("<h3>QOS DE SAÍDA DO SISTEMA · MB/s DECIMAIS</h3><p>Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido. Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.</p>");
+    write!(html, "<p>{}</p><label for=\"rate-mbs\">Limite do sistema em MB/s</label><input id=\"rate-mbs\" data-network-draft=\"rate\" type=\"text\" inputmode=\"decimal\" placeholder=\"5\"><button data-action=\"rate-apply\" data-pid=\"{}\">Aplicar limite do sistema</button><label for=\"rate-list\">Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)</label><input id=\"rate-list\" data-network-draft=\"rates\" type=\"text\" placeholder=\"2, 5\"><button data-action=\"rate-learn\" data-pid=\"{}\"{}>Aprender e aplicar · taxas autorizadas</button></fieldset>",
+        if view.network_target_pid == 0 { "Sem jogo alvo detectado: Steam e RAPO ficam isentos; o jogo só é isento quando estiver em execução.".to_string() } else { format!("Jogo alvo isento: PID {} (caminho completo revalidado pelo host).", view.network_target_pid) },
+        view.network_target_pid, view.network_target_pid, if view.network_target_pid == 0 { " disabled" } else { "" }).unwrap();
+    write!(html, "<button data-action=\"network-stop\"{}>Parar aprendizado e restaurar referência</button><button data-action=\"route-remove-all\"{}>Remover todos os ajustes de rede desta sessão</button><button data-action=\"rate-remove\"{}>Remover limite do sistema</button>", if routes.pending || !routes.auto_active { " disabled" } else { "" }, if routes.pending { " disabled" } else { "" }, if routes.pending || routes.rate.is_none() { " disabled" } else { "" }).unwrap();
     if let Some(rate) = &routes.rate {
-        write!(html, "<p class=\"{}\">Saída: {:.6} Mbps · {} · política {} · {}{}</p>", if rate.conflict || !rate.confirmed { "alert" } else { "" }, rate.bps as f64 / 1_000_000.0, escape(&rate.exe), escape(&rate.policy), if rate.confirmed { "configuração ActiveStore confirmada, não prova de pacotes" } else { "intent registrado; aplicação não confirmada, remoção ainda necessária" }, if rate.conflict { " · conflito/erro: não sobrescrever terceiros" } else { "" }).unwrap();
+        write!(html, "<p class=\"{}\">Sistema: {:.3} MB/s de envio · isentos: {} · política {} · {}{}</p>", if rate.conflict || !rate.confirmed { "alert" } else { "" }, rate.bps as f64 / 8_000_000.0, exempt_names(rate), escape(&rate.policy), if rate.confirmed { "configuração ActiveStore confirmada, não prova de pacotes" } else { "intent registrado; aplicação não confirmada, remoção ainda necessária" }, if rate.conflict { " · conflito/erro: não sobrescrever terceiros" } else { "" }).unwrap();
     }
     html.push_str("<h3>ROTAS REGISTRADAS NESTA SESSÃO</h3>");
     if routes.owned.is_empty() { html.push_str("<p>Nenhuma rota host própria registrada.</p>"); }
@@ -367,7 +374,7 @@ pub fn render(view: &Dashboard) -> String {
     // Card 7: Rate limit (if any)
     if let Some(rate) = &view.routes.rate {
         let rc = if rate.confirmed { "net-card-active" } else { "net-card-warn" };
-        write!(html, "<div class=\"net-card {rc}\"><span class=\"net-card-label\">Limite de saída</span><span class=\"net-card-value\">{:.2} Mbps</span><span class=\"net-card-sub\">{} · {}</span></div>", rate.bps as f64 / 1_000_000.0, escape(&rate.exe), if rate.confirmed { "✅ confirmado" } else { "⏳ pendente" }).unwrap();
+        write!(html, "<div class=\"net-card {rc}\"><span class=\"net-card-label\">Limite de envio do sistema</span><span class=\"net-card-value\">{:.2} MB/s</span><span class=\"net-card-sub\">Isentos: {} · {}</span></div>", rate.bps as f64 / 8_000_000.0, exempt_names(rate), if rate.confirmed { "✅ confirmado" } else { "⏳ pendente" }).unwrap();
     }
     // Card 8: Owned routes (if any)
     if !view.routes.owned.is_empty() {
@@ -487,7 +494,7 @@ mod tests {
             owned: vec![OwnedRoute { destination: "2001:db8::42".into(), interface: "Ethernet".into(), gateway: "fe80::1%2".into(), conflict: false }],
             pending: true, auto_active: true, error: "<script>admin</script>".into(), message: String::new(), automatic: String::new(),
             history: vec!["<b>previsão não é ganho</b>".into()],
-            rate: Some(Rate { exe: "C:\\game<&>.exe".into(), policy: "own\"policy".into(), bps: 1_250_000, confirmed: true, conflict: false }),
+            rate: Some(Rate { exempt: vec!["C:\\Steam\\steam.exe".into(), "C:\\game<&>.exe".into()], policy: "own\"policy".into(), bps: 10_000_000, confirmed: true, conflict: false }),
         };
         let html = render(&view);
         assert!(!html.contains("<script>"));
@@ -500,8 +507,8 @@ mod tests {
         assert!(html.contains("&lt;img src=x&gt; &amp; destino"));
         assert!(html.contains("<fieldset disabled>"));
         assert!(html.contains("data-destination=\"2001:db8::42\" disabled>"));
-        assert!(html.contains("1.250000 Mbps"));
-        assert!(html.contains("C:\\game&lt;&amp;&gt;.exe"));
+        assert!(html.contains("Sistema: 1.250 MB/s de envio") && html.contains("1.25 MB/s"), "rates are shown in megabytes per second");
+        assert!(html.contains("isentos: steam.exe, game&lt;&amp;&gt;.exe"), "exempt executables are listed by escaped file name");
         assert!(html.contains("&lt;b&gt;previsão não é ganho&lt;/b&gt;"));
         assert!(html.contains("&lt;script&gt;hy2&lt;/script&gt;:443") && html.contains("&lt;img src=udp&gt;"));
         assert!(html.contains("<fieldset id=\"relay-transport\" disabled>"), "transport settings are locked while the relay runs");
