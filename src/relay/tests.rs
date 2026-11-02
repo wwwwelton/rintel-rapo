@@ -438,6 +438,10 @@ fn wfp_udp_replies_reach_the_sender_and_stop_releases_the_flow_threads() {
     assert_eq!(&b[8..10], &target.port().to_le_bytes(), "reply names the destination it came from");
     assert_eq!(&b[14..n], b"skill");
     until(|| server.state().udp_destinations == 1);
+    until(|| { let state = server.state(); state.bytes_tx == 5 && state.bytes_rx == 5 });
+    let state = server.state();
+    assert_eq!(state.total_connections, 0, "UDP datagrams are not TCP connections");
+    assert_eq!(state.udp_destinations, 1);
     server.stop();
     until(|| { server.poll(); !server.state().stopping });
     let before = thread_count();

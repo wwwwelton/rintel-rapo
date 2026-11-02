@@ -366,7 +366,6 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
         flow.last_seen = now;
         if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
             shared.bytes_tx.fetch_add(sent as u64, Ordering::Relaxed);
-            shared.total.fetch_add(1, Ordering::Relaxed);
         }
     }
 }

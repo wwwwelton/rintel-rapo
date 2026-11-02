@@ -65,6 +65,7 @@ pub struct Relay {
     pub hy2_server: String,
     pub hy2_server_name: String,
     pub udp_associations: usize,
+    pub udp_destinations: u64,
     pub udp_route: String,
 }
 #[derive(Deserialize)]
@@ -144,10 +145,10 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     let (class, status) = if relay.running { ("net-card-active", "Escutando") }
         else if relay.stopping { ("net-card-warn", "Encerrando conexões") }
         else { ("net-card-off", "Desativado") };
-    write!(html, "<div class=\"net-card relay-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} conexões ativas ({} associações UDP, saída UDP fixa: {}) · {} aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB<br>Conexões pré-abertas: {} usadas · {} descartadas</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0, relay.prewarm_hits, relay.prewarm_misses).unwrap();
-    html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. TCP CONNECT e UDP ASSOCIATE. AION 2: use a opção abaixo para tunelamento transparente.</span>");
-    let (_wfp_class, wfp_status) = if wfp.running { ("net-card-active", format!("Tunelando {}", escape(&wfp.target))) }
-        else if wfp.enabled { ("net-card-warn", "Aguardando processo".into()) }
+    write!(html, "<div class=\"net-card relay-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} TCP ativas · {} associações UDP · {} destinos UDP ativos · saída UDP fixa: {} · {} TCP aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB<br>Conexões pré-abertas: {} usadas · {} descartadas</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, relay.udp_destinations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0, relay.prewarm_hits, relay.prewarm_misses).unwrap();
+    html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. TCP CONNECT e UDP ASSOCIATE funcionam sem WFP; o tunelamento transparente do AION 2 exige o driver MUDWFP, solicitado somente ao ativar a opção abaixo.</span>");
+    let (_wfp_class, wfp_status) = if wfp.running { ("net-card-active", format!("Driver e proxy ativos · alvo {}", escape(&wfp.target))) }
+        else if wfp.enabled { ("net-card-warn", "Inativo · verifique o driver e as permissões".into()) }
         else { ("net-card-off", "Desativado".into()) };
     write!(html, "<hr><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
     if !wfp.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&wfp.error)).unwrap(); }
@@ -418,5 +419,14 @@ mod tests {
         assert!(html.contains("&lt;script&gt;hy2&lt;/script&gt;:443") && html.contains("&lt;img src=udp&gt;"));
         assert!(html.contains("<fieldset id=\"relay-transport\" disabled>"), "transport settings are locked while the relay runs");
         assert!(html.contains("<option value=\"hy2\" selected>") && html.contains("Transporte · HY2"));
+    }
+    #[test]
+    fn udp_destinations_are_visible_when_tcp_connections_are_zero() {
+        let relay: Relay = serde_json::from_str(
+            r#"{"running":true,"stopping":false,"address":"127.0.0.1:1080","active_connections":0,"total_connections":0,"bytes_tx":0,"bytes_rx":0,"prewarm_hits":0,"prewarm_misses":0,"error":"","predictions":[],"interfaces":[],"allowed_interfaces":[],"mode":"local","hy2_server":"","hy2_server_name":"","udp_associations":0,"udp_route":"direct","udp_destinations":2}"#,
+        ).unwrap();
+        let mut html = String::new();
+        render_relay(&mut html, &relay, &Wfp::default());
+        assert!(html.contains("0 TCP ativas · 0 associações UDP · 2 destinos UDP ativos"));
     }
 }
