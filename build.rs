@@ -1,9 +1,14 @@
+#[allow(dead_code)]
+#[path = "src/relay/profile_cipher.rs"]
+mod profile_cipher;
+
 fn main() {
     for path in ["native", "vendor/presentmon", "ui.json", "ui_figma.svg"] {
         println!("cargo:rerun-if-changed={path}");
     }
     generate_figma_ui_and_tokens();
     build_hy2();
+    embed_hy2_profile();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
@@ -75,6 +80,30 @@ fn main() {
     for library in ["advapi32", "tdh", "version"] {
         println!("cargo:rustc-link-lib={library}");
     }
+}
+
+/// Seals the built-in HY2 profile (`server`, `auth`, optional `ca_pem`) into the executable.
+/// Source: `RAPO_HY2_PROFILE_JSON` (CI secret) or the git-ignored `hy2-profile.json`; absent means no built-in server.
+fn embed_hy2_profile() {
+    use sha2::{Digest, Sha256};
+    println!("cargo:rerun-if-env-changed=RAPO_HY2_PROFILE_JSON");
+    println!("cargo:rerun-if-changed=hy2-profile.json");
+    let text = std::env::var("RAPO_HY2_PROFILE_JSON").ok().or_else(|| std::fs::read_to_string("hy2-profile.json").ok());
+    let blob = match text.filter(|text| !text.trim().is_empty()) {
+        None => Vec::new(),
+        Some(text) => {
+            let value: serde_json::Value = serde_json::from_str(&text).expect("HY2 profile is not valid JSON");
+            for key in ["server", "auth"] {
+                assert!(value.get(key).and_then(|v| v.as_str()).is_some_and(|v| !v.is_empty()), "HY2 profile needs a non-empty `{key}`");
+            }
+            let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+            let seed = Sha256::new().chain_update(nanos.to_le_bytes()).chain_update(std::process::id().to_le_bytes()).chain_update(text.as_bytes()).finalize();
+            profile_cipher::seal(text.trim().as_bytes(), seed[..16].try_into().unwrap())
+        }
+    };
+    let path = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("hy2_profile.bin");
+    std::fs::write(&path, blob).unwrap();
+    println!("cargo:rustc-env=RAPO_HY2_PROFILE_BLOB={}", path.display());
 }
 
 /// Produces the HY2 c-shared library embedded by `src/relay/hy2.rs`.

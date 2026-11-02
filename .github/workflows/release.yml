@@ -10,10 +10,20 @@ jobs:
   build-test-release:
     name: Build, Test & Release (Windows x64)
     runs-on: windows-latest
+    env:
+      # Same value for every cargo invocation: build.rs reruns when it changes and must never drop the sealed server.
+      RAPO_HY2_PROFILE_JSON: ${{ secrets.RAPO_HY2_PROFILE_JSON }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Require the built-in Hysteria 2 profile
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RAPO_HY2_PROFILE_JSON)) {
+            throw "Secret RAPO_HY2_PROFILE_JSON is missing: the release would ship without the integrated Hysteria 2 server."
+          }
 
       - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@stable

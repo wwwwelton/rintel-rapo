@@ -290,7 +290,7 @@
         payload.auth = field('relay-auth').value;
         payload.ca_pem = field('relay-ca').value;
         if (['hy2', 'neural_auto'].includes(payload.mode) && Boolean(payload.server) !== Boolean(payload.auth)) {
-          error.textContent = 'Informe servidor e autenticação HY2, ou deixe ambos vazios para usar o HY2 local embutido.'; return;
+          error.textContent = 'Informe servidor e autenticação HY2, ou deixe ambos vazios para usar o servidor integrado ao RAPO.'; return;
         }
         field('relay-auth').value = '';
       }

@@ -88,6 +88,12 @@ pub struct Relay {
     pub hy2_connected: bool,
     #[serde(default)]
     pub hy2_error: String,
+    /// The server sealed into the executable is in use; nothing was typed.
+    #[serde(default)]
+    pub hy2_builtin: bool,
+    /// ICMP round trip to the HY2 server in ms; 0 while unmeasured or unanswered.
+    #[serde(default)]
+    pub hy2_ping_ms: u32,
     pub udp_associations: usize,
     pub udp_destinations: u64,
     pub udp_route: String,
@@ -202,15 +208,23 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
     html.push_str("</section>");
 }
 
-/// One-line HY2 state: off, connecting, on and working (QUIC session open), or the last connect error.
+/// Which HY2 server the relay uses: a typed one, the one sealed into the executable, or the loopback fallback.
+fn hy2_server_label(relay: &Relay) -> String {
+    if !relay.hy2_server.is_empty() { escape(&relay.hy2_server) }
+    else if relay.hy2_builtin { "HY2 integrado ao RAPO".into() }
+    else { "HY2 local embutido (loopback 127.0.0.1)".into() }
+}
+
+/// One-line HY2 state: off, connecting, on and working (QUIC session open) with ping and traffic, or the last connect error.
 fn hy2_status(relay: &Relay) -> String {
-    let server = if relay.hy2_server.is_empty() { "HY2 local embutido (loopback)".into() } else { escape(&relay.hy2_server) };
+    let server = hy2_server_label(relay);
     let (class, text) = if !matches!(relay.mode.as_str(), "hy2" | "neural_auto") {
         ("hy2-off", "Hysteria 2 desligado · o modo atual não usa HY2".to_string())
     } else if !relay.running {
         ("hy2-off", format!("Hysteria 2 selecionado · relay parado · {server}"))
     } else if relay.hy2_connected {
-        ("hy2-on", format!("✅ Hysteria 2 ligado e funcionando · sessão QUIC ativa · {server}"))
+        let ping = if relay.hy2_ping_ms == 0 { "ping sem resposta ICMP".to_string() } else { format!("ping {} ms", relay.hy2_ping_ms) };
+        ("hy2-on", format!("✅ Hysteria 2 ligado e funcionando · sessão QUIC ativa · {server} · {ping} · {} conexões · ↑ {:.1} KiB ↓ {:.1} KiB", relay.active_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0))
     } else if !relay.hy2_error.is_empty() {
         ("hy2-error", format!("⚠️ Hysteria 2 com erro · {server} · {}", escape(&relay.hy2_error)))
     } else {
@@ -234,12 +248,12 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     // Without a remote server the relay uses the embedded loopback HY2 server, so HY2 is always configured.
     {
         let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
-        let server = if relay.hy2_server.is_empty() { "HY2 local embutido (loopback 127.0.0.1)".into() } else { escape(&relay.hy2_server) };
+        let server = hy2_server_label(relay);
         write!(html, "<details><summary>Transporte · {mode}</summary><p class=\"net-card-sub\">HY2 configurado: {server} · nome TLS: {}</p><fieldset id=\"relay-transport\"{}><legend>Configuração desta sessão</legend><label for=\"relay-mode\">Modo</label><select id=\"relay-mode\" data-network-draft=\"relay-mode\">", if relay.hy2_server_name.is_empty() { "host do servidor".into() } else { escape(&relay.hy2_server_name) }, if relay.running || relay.stopping { " disabled" } else { "" }).unwrap();
         for (id, label) in RELAY_MODES {
             write!(html, "<option value=\"{id}\"{}>{label}</option>", if relay.mode == id { " selected" } else { "" }).unwrap();
         }
-        html.push_str("</select><label for=\"relay-server\">Servidor HY2 remoto (host:porta; vazio = HY2 local embutido)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"vazio usa o HY2 local\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2 (vazia com o HY2 local)</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. Sem servidor remoto, o HY2 local embutido roda em loopback nesta máquina: funciona para TCP e UDP, mas não muda a rota e só acrescenta latência. Menor ping exige um servidor HY2 remoto com rota melhor que a direta. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
+        html.push_str("</select><label for=\"relay-server\">Servidor HY2 próprio (opcional; vazio = servidor integrado ao RAPO)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"vazio usa o servidor integrado\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2 (vazia com o servidor integrado)</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Escolha Hysteria 2 e aplique: o servidor integrado ao RAPO é usado sem digitar nada (credencial cifrada no executável, nunca exibida). Credencial digitada fica só em memória; TLS sempre validado. Uma versão sem servidor integrado usa o HY2 local embutido em loopback, que só acrescenta latência. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
     }
     if !relay.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&relay.error)).unwrap(); }
     if !relay.interfaces.is_empty() {
@@ -531,6 +545,17 @@ mod tests {
         assert!(failed.contains("hy2-error") && failed.contains("&lt;b&gt;auth&lt;/b&gt;"), "connect errors are untrusted text");
         let remote = hy2_status(&Relay { hy2_server: "vps.example:443".into(), ..relay("hy2", true, true, "") });
         assert!(remote.contains("vps.example:443") && !remote.contains("embutido"));
+    }
+    #[test]
+    fn integrated_hy2_status_shows_ping_connections_and_traffic() {
+        let base = Relay { mode: "hy2".into(), running: true, hy2_connected: true, hy2_builtin: true, active_connections: 3, bytes_tx: 2048, bytes_rx: 4096, ..Relay::default() };
+        let measured = hy2_status(&Relay { hy2_ping_ms: 21, ..base });
+        assert!(measured.contains("HY2 integrado ao RAPO") && measured.contains("ping 21 ms") && measured.contains("3 conexões"), "{measured}");
+        assert!(measured.contains("↑ 2.0 KiB") && measured.contains("↓ 4.0 KiB"), "{measured}");
+        let unanswered = hy2_status(&Relay { mode: "hy2".into(), running: true, hy2_connected: true, hy2_builtin: true, ..Relay::default() });
+        assert!(unanswered.contains("ping sem resposta ICMP") && !unanswered.contains("0 ms"), "an unmeasured ping is never shown as 0 ms: {unanswered}");
+        let typed = hy2_status(&Relay { mode: "hy2".into(), hy2_server: "vps.example:443".into(), hy2_builtin: true, ..Relay::default() });
+        assert!(typed.contains("vps.example:443") && !typed.contains("integrado"), "a typed server wins over the sealed one");
     }
     #[test]
     fn udp_destinations_are_visible_when_tcp_connections_are_zero() {

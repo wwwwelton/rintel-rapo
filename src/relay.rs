@@ -13,7 +13,7 @@ pub use hy2::Config as Hy2Config;
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
-use std::sync::{Arc, Mutex, RwLock, atomic::{AtomicBool, AtomicU64, Ordering}};
+use std::sync::{Arc, Mutex, RwLock, atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -44,6 +44,10 @@ pub struct State {
     pub hy2_connected: bool,
     /// Last HY2 connect failure; empty after a successful connect.
     pub hy2_error: String,
+    /// No server was typed: the one sealed into this executable is used.
+    pub hy2_builtin: bool,
+    /// ICMP round trip to the HY2 server in ms; 0 while unmeasured or unanswered.
+    pub hy2_ping_ms: u32,
     pub udp_associations: usize,
     pub udp_destinations: u64,
     pub udp_route: String,
@@ -81,6 +85,7 @@ struct Shared {
     hy2: Mutex<Option<hy2::Client>>,
     /// Last HY2 connect failure, shown in the GUI; cleared by a successful connect.
     hy2_error: Mutex<String>,
+    hy2_ping_ms: AtomicU32,
 }
 impl Shared {
     fn close_connections(&self) {
@@ -95,8 +100,8 @@ impl Shared {
         let mut cached = self.hy2.lock().unwrap();
         if let Some(client) = &*cached { return Ok(client.clone()); }
         if !self.running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
-        // ponytail: subida de servidor HY2 local em loopback; sem um VPS remoto intermediário, criar túnel local apenas adicionaria sobrecarga de CPU e latência inútil.
-        let connected = if self.config.server.is_empty() { hy2::local_server_config() } else { Ok(self.config.clone()) }
+        // Typed server first, then the server sealed into the exe; the loopback HY2 is only a fallback (a remote server is the only real ping gain).
+        let connected = if !self.config.server.is_empty() { Ok(self.config.clone()) } else { hy2::builtin().map_or_else(hy2::local_server_config, Ok) }
             .and_then(|config| hy2::Client::connect(&config));
         *self.hy2_error.lock().unwrap() = connected.as_ref().err().map(ToString::to_string).unwrap_or_default();
         let client = connected?;
@@ -122,6 +127,21 @@ impl Shared {
     }
 }
 struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, address: SocketAddr }
+
+/// Measures the ICMP round trip to the HY2 server until the relay stops; resolves off the UI thread.
+#[cfg(windows)]
+fn ping_server(shared: Arc<Shared>) {
+    let server = if shared.config.server.is_empty() { hy2::builtin().map(|config| config.server) } else { Some(shared.config.server.clone()) };
+    let ip = server.and_then(|server| server.to_socket_addrs().ok()?.find_map(|a| match a.ip() { IpAddr::V4(ip) if !ip.is_loopback() => Some(ip), _ => None }));
+    let Some(ip) = ip else { return; };
+    while shared.running.load(Ordering::Acquire) {
+        shared.hy2_ping_ms.store(crate::process_ping::round_trip_ms(ip).unwrap_or(0), Ordering::Relaxed);
+        for _ in 0..30 {
+            if !shared.running.load(Ordering::Acquire) { break; }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+}
 
 pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
@@ -171,7 +191,7 @@ impl RelayServer {
             bytes_tx: AtomicU64::new(0), bytes_rx: AtomicU64::new(0), error: Mutex::new(String::new()),
             learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
             prewarm: Mutex::new(prewarm::Prewarm::default()),
-            interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()),
+            interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()), hy2_ping_ms: AtomicU32::new(0),
         });
         let state = Arc::clone(&shared);
         let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
@@ -179,6 +199,11 @@ impl RelayServer {
         if matches!(self.mode, Mode::Hy2 | Mode::NeuralAuto) {
             let hy2 = Arc::clone(&shared);
             let _ = thread::Builder::new().name("rapo-hy2-connect".into()).spawn(move || { let _ = hy2.hy2_client(); });
+            #[cfg(windows)]
+            {
+                let shared = Arc::clone(&shared);
+                let _ = thread::Builder::new().name("rapo-hy2-ping".into()).spawn(move || ping_server(shared));
+            }
         }
         self.run = Some(Run { shared, worker: Some(worker), address });
         self.error.clear();
@@ -215,6 +240,7 @@ impl RelayServer {
     pub fn state(&self) -> State {
         let Some(run) = &self.run else {
             return State { mode: self.mode, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(),
+                hy2_builtin: self.config.server.is_empty() && hy2::builtin().is_some(),
                 udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), ..State::default() };
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
@@ -238,6 +264,8 @@ impl RelayServer {
             // try_lock: a connect in progress holds the lock and must not stall the UI thread.
             hy2_connected: running && run.shared.hy2.try_lock().is_ok_and(|client| client.is_some()),
             hy2_error: run.shared.hy2_error.lock().unwrap().clone(),
+            hy2_builtin: self.config.server.is_empty() && hy2::builtin().is_some(),
+            hy2_ping_ms: if running { run.shared.hy2_ping_ms.load(Ordering::Relaxed) } else { 0 },
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),

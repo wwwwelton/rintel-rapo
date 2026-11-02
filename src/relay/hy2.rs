@@ -7,11 +7,17 @@ use std::net::Shutdown;
 use std::sync::{Arc, LazyLock, atomic::{AtomicBool, AtomicU32, Ordering}};
 use std::time::Duration;
 
+#[path = "profile_cipher.rs"]
+mod profile_cipher;
+
 static LIBRARY: &[u8] = include_bytes!(env!("RAPO_HY2_EMBED"));
+/// Sealed by build.rs from `hy2-profile.json` / `RAPO_HY2_PROFILE_JSON`; empty when the build has no built-in server.
+static PROFILE: &[u8] = include_bytes!(env!("RAPO_HY2_PROFILE_BLOB"));
 const MAX_WAIT_MS: u32 = 30_000;
 
 /// Session-only HY2 settings. `auth` is a secret: never logged, displayed or persisted.
 #[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub server: String,
     pub auth: String,
@@ -43,6 +49,14 @@ impl Config {
         }
         Ok(())
     }
+}
+
+/// The server sealed into this executable, so the user types nothing. Tests never see it: they must not reach a real server.
+pub fn builtin() -> Option<Config> {
+    if cfg!(test) { return None; }
+    let config: Config = serde_json::from_slice(&profile_cipher::open(PROFILE)?).ok()?;
+    config.validate().ok().filter(|_| !config.server.is_empty())?;
+    Some(config)
 }
 
 type Open = unsafe extern "C" fn(u64, *mut u64) -> i32;

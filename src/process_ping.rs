@@ -247,6 +247,17 @@ fn echo(destination: Destination) -> EchoOutcome {
     }
 }
 
+/// One ICMP round trip to an IPv4 address (the HY2 server); `None` on timeout or error.
+/// shortcut: IPv6 servers report no ping, add Icmp6 here if one is ever used.
+#[cfg(windows)]
+pub(crate) fn round_trip_ms(ip: std::net::Ipv4Addr) -> Option<u32> {
+    let remote = std::net::SocketAddr::from((ip, 0));
+    match echo(Destination { remote, local: remote }) {
+        EchoOutcome::Reply(ms) => Some(ms.max(1)),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
