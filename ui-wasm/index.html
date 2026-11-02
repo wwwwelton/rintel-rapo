@@ -138,7 +138,7 @@
   .net-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
   .property-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
   .parameters { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
-  .core-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 14px; }
+  .core-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
   .telemetry-box, .net-card, .property-box, .parameter, .core-box {
     min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
   }
@@ -162,13 +162,14 @@
   .net-policy-table { margin: 8px 0; }
   .net-disclaimer { display: block; color: var(--muted); font-size: 11px; line-height: 1.7; margin-top: 8px; }
   .relay-predictions { min-width: 0; max-width: 100%; overflow-x: auto; }
-  .core-box { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; transition: border-color .2s ease; }
+  .core-box { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; transition: border-color .2s ease; }
   .core-box.core-p { border-color: #3c5c47; }
-  .core-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .core-num { color: var(--muted); font: 600 14px/1.4 var(--mono); }
-  .core-pct { color: var(--text); font: 700 30px/1.1 var(--mono); letter-spacing: -.03em; }
-  .core-header .badge { padding: 3px 8px; font-size: 11px; }
-  .core-bar-bg { width: 100%; height: 10px; background: #29362e; border-radius: 5px; overflow: hidden; }
+  .core-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 6px; }
+  .core-num, .core-header .badge { white-space: nowrap; }
+  .core-num { color: var(--muted); font: 600 12px/1.4 var(--mono); }
+  .core-pct { color: var(--text); font: 700 22px/1.1 var(--mono); letter-spacing: -.03em; }
+  .core-header .badge { padding: 2px 6px; font-size: 10px; }
+  .core-bar-bg { width: 100%; height: 8px; background: #29362e; border-radius: 4px; overflow: hidden; }
   .core-bar-fill { height: 100%; border-radius: 5px; transition: width .2s ease; }
   .core-low { background: var(--accent); }
   .core-med { background: var(--warning); }
@@ -235,8 +236,10 @@
     .telemetry-grid, .net-grid, .property-grid, .parameters { gap: 10px; }
     .telemetry-box, .net-card, .property-box, .parameter { padding: 16px; }
     .parameters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .core-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .core-pct { font-size: 24px; }
+    .core-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .core-box { padding: 10px; }
+    .core-pct { font-size: 18px; }
+    .core-header .badge { padding: 1px 4px; font-size: 9px; }
     .game { align-items: stretch; gap: 12px; }
     .name, .game label, .game button { flex-basis: 100%; }
     .search-bar { margin-top: 22px; }
