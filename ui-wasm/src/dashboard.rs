@@ -172,7 +172,7 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     let (class, status) = if !relay.running { ("net-card-off", "Parado") }
         else if relay.predictions.is_empty() { ("net-card-warn", "Aguardando conexões do jogo") }
         else { ("net-card-active", "Aprendendo com conexões reais") };
-    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Compara o tempo de abertura TCP (e respostas UDP pontuais) por destino e saída, não o ping da partida nem a latência de cada pacote.</span>").unwrap();
+    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote.</span>").unwrap();
     if !relay.predictions.is_empty() {
         html.push_str("<div class=\"relay-predictions\"><table class=\"net-policy-table\"><thead><tr><th>Destino / saída</th><th>Medido</th><th>Previsão (TCP/UDP)</th><th>Amostras / falhas</th></tr></thead><tbody>");
         for prediction in &relay.predictions {
@@ -185,7 +185,7 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
         }
         html.push_str("</tbody></table></div>");
     }
-    html.push_str("<span class=\"net-disclaimer\">Previsão de abertura TCP (e respostas UDP pontuais) após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</span></div>");
+    html.push_str("<span class=\"net-disclaimer\">Previsão de abertura TCP após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</span></div>");
 }
 
 fn render_network(html: &mut String, view: &Dashboard) {

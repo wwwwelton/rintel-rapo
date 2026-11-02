@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -715,7 +716,15 @@ func rapo_hy2_start_local_server(buffer *C.uint8_t, capacity C.size_t, actual *C
 		if err != nil {
 			return -4
 		}
-		secret := "rapo-local-hy2-token"
+		secret := ""
+		{
+			raw := make([]byte, 16)
+			if _, err := rand.Read(raw); err != nil {
+				_ = conn.Close()
+				return -6
+			}
+			secret = hex.EncodeToString(raw)
+		}
 		s, err := server.NewServer(&server.Config{
 			TLSConfig:     server.TLSConfig{Certificates: []tls.Certificate{cert}},
 			Conn:          conn,

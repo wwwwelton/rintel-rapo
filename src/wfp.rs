@@ -129,7 +129,12 @@ mod windows_impl {
                 Ok(child) => {
                     if self.job != 0 {
                         use std::os::windows::io::AsRawHandle;
-                        unsafe { windows_sys::Win32::System::JobObjects::AssignProcessToJobObject(self.job as _, child.as_raw_handle() as _); }
+                        let ok = unsafe { windows_sys::Win32::System::JobObjects::AssignProcessToJobObject(self.job as _, child.as_raw_handle() as _) };
+                        if ok == 0 {
+                            let _ = child.kill();
+                            self.error = format!("Job Object WFP recusado (RAPO dentro de outro job): {}", io::Error::last_os_error());
+                            return Err(io::Error::other(self.error.clone()));
+                        }
                     }
                     self.child = Some(child);
                     self.target = proc_name.to_string();
