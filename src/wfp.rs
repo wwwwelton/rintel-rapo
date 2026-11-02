@@ -15,9 +15,11 @@ pub struct State {
 #[cfg(any(windows, test))]
 fn extract_bundle(dir: &std::path::Path) -> io::Result<std::path::PathBuf> {
     use std::fs;
+    fs::create_dir_all(dir.join("DRIVERS"))?;
     for (name, bytes) in [
         ("mudwfp_proxy.exe", &include_bytes!("../vendor/wfp/mudwfp_proxy.exe")[..]),
         ("MUDWFP.sys", &include_bytes!("../vendor/wfp/MUDWFP.sys")[..]),
+        ("DRIVERS/MUDWFP.sys", &include_bytes!("../vendor/wfp/MUDWFP.sys")[..]),
         ("mudwfp.inf", &include_bytes!("../vendor/wfp/mudwfp.inf")[..]),
     ] {
         let path = dir.join(name);
@@ -125,9 +127,30 @@ mod windows_impl {
         }
 
         fn base_dir() -> io::Result<PathBuf> {
-            let dir = system_dir()?.join("drivers").join("Rintel RAPO").join("wfp");
+            // mudwfp_proxy.exe is a 32-bit WOW64 binary that creates `.mudwfp_proxy.vsm` in current_dir;
+            // using System32 triggers WOW64 redirection to a missing SysWOW64 path (SHM_Init:543 error 0x3).
+            let base = std::env::var_os("LOCALAPPDATA")
+                .ok_or_else(|| io::Error::other("LOCALAPPDATA ausente"))?;
+            let dir = PathBuf::from(base).join("Rintel RAPO").join("wfp");
             fs::create_dir_all(&dir)?;
             Ok(dir)
+        }
+
+        fn lock_verified_proxy(exe_path: &Path) -> io::Result<fs::File> {
+            use std::io::Read;
+            use std::os::windows::fs::OpenOptionsExt;
+            const FILE_SHARE_READ: u32 = 0x00000001;
+            let mut file = fs::OpenOptions::new()
+                .read(true)
+                .share_mode(FILE_SHARE_READ)
+                .open(exe_path)?;
+            let expected = &include_bytes!("../vendor/wfp/mudwfp_proxy.exe")[..];
+            let mut actual = Vec::with_capacity(expected.len());
+            file.read_to_end(&mut actual)?;
+            if actual != expected {
+                return Err(io::Error::other("mudwfp_proxy.exe extraído diverge do bundle verificado"));
+            }
+            Ok(file)
         }
 
         fn prepare_driver(dir: &Path) -> io::Result<()> {
@@ -177,6 +200,13 @@ mod windows_impl {
                 Ok(p) => p,
                 Err(e) => {
                     self.error = format!("Extração WFP: {e}");
+                    return Err(e);
+                }
+            };
+            let _proxy_lock = match Self::lock_verified_proxy(&exe_path) {
+                Ok(lock) => lock,
+                Err(e) => {
+                    self.error = format!("Verificação do WFP Proxy: {e}");
                     return Err(e);
                 }
             };
@@ -340,6 +370,7 @@ mod tests {
         let driver = dir.join("MUDWFP.sys");
         let original = std::fs::read(&driver).unwrap();
         assert_eq!(original, include_bytes!("../vendor/wfp/MUDWFP.sys"));
+        assert_eq!(std::fs::read(dir.join("DRIVERS/MUDWFP.sys")).unwrap(), original);
         let mut damaged = original.clone();
         damaged[0] ^= 0xff;
         std::fs::write(&driver, damaged).unwrap();
