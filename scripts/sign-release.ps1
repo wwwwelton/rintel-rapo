@@ -4,6 +4,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Windows PowerShell 5 launched from PowerShell 7 or WSL inherits PS7 module paths, which hide the
+# Cert: drive and -CodeSigningCert. Use the machine module path and load the 5.1 modules explicitly.
+if ($PSVersionTable.PSEdition -eq "Desktop") {
+    $env:PSModulePath = [Environment]::GetEnvironmentVariable("PSModulePath", "Machine")
+    Import-Module Microsoft.PowerShell.Security, PKI -Force
+}
+
 $exePath = (Resolve-Path -LiteralPath $ExePath -ErrorAction Stop).Path
 
 $dir = Split-Path -Parent $exePath
