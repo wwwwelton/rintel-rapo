@@ -23,3 +23,13 @@ ai-memory is the cross-harness memory of record for durable project knowledge; d
 
 Project rules ("always X") belong in this file; standing preferences that apply across projects belong in ai-memory's profile (`scope: "profile"`). Refresh this block with `memory_install_self_routing` or `ai-memory install-instructions --compact`; only the marked region is replaced.
 <!-- ai-memory:end -->
+
+## Default delivery workflow
+
+After each completed implementation task, use the `step-commits` skill: sync before editing, validate each cohesive step, commit only its files with an English Conventional Commit, and push using the existing Git identity. Fast-forward `origin/main` when possible; otherwise create/reuse a PR without force-pushing or auto-merging.
+
+Before finishing, build the wasm UI and a local Windows release executable, then run `scripts/sign-release.ps1 -ExePath <built-exe>`. Reuse or generate the local CodeSigning certificate and retain the signed `.exe`, public `.cer`, and SHA-256 checksum; never export the private key or install root trust on the user's machine.
+
+After Windows validation and publication to `main`, dispatch `.github/workflows/release.yml` on `main`, wait for successful completion, and verify the published executable, certificate, checksum, and third-party notices. The workflow generates its certificate on the disposable runner. Report the commit, local artifact path, release URL, exercised checks, and any blocker; never claim an unsigned or failed build was delivered.
+
+Signing is self-signed unless a production certificate is explicitly provided. It does not establish public trust, eliminate SmartScreen warnings, or prove game/anti-cheat compatibility.
