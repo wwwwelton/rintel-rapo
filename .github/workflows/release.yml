@@ -107,6 +107,8 @@ jobs:
             "target/release/rintel-rapo.exe",
             "target/release/rintel-rapo.exe.sha256",
             "target/release/rintel-rapo.cer",
+            "target/release/mudwfp_proxy.exe",
+            "target/release/DRIVERS/MUDWFP.sys",
             "target/release/wfp/MUDWFP.sys",
             "target/release/wfp/mudwfp_proxy.exe",
             "target/release/wfp/mudwfp.inf",
