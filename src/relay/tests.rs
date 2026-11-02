@@ -300,6 +300,7 @@ fn hy2_mode_relays_tcp_and_udp_through_a_real_server_and_rejected_auth_is_never_
     let target: SocketAddr = fixture.endpoints.tcp_echo.parse().unwrap();
     let mut socket = client(&server); greet(&mut socket); request(&mut socket, target, false);
     assert_eq!(response(&mut socket).0, 2, "HY2 auth failure is reported, not a fake success");
+    until(|| { let state = server.state(); !state.hy2_error.is_empty() && !state.hy2_connected });
     server.stop();
     until(|| { server.poll(); !server.state().stopping });
 
@@ -324,6 +325,31 @@ fn hy2_mode_relays_tcp_and_udp_through_a_real_server_and_rejected_auth_is_never_
     assert_eq!(udp_reply(&udp, Duration::from_secs(5)), Some((echo, b"through hy2".to_vec())));
     let predictions = serde_json::to_string(&server.state().predictions).unwrap();
     assert!(predictions.contains("\"gateway\":\"hy2\"") && !predictions.contains("\"gateway\":\"system\""), "HY2 mode has no direct fallback: {predictions}");
+}
+
+#[test]
+fn embedded_hy2_connects_at_start_and_relays_tcp_and_udp_without_a_server_address() {
+    let mut server = RelayServer::new(0);
+    server.configure(Mode::Hy2, Hy2Config::default()).unwrap();
+    server.start().unwrap();
+    until(|| server.state().hy2_connected);
+    assert_eq!(server.state().hy2_error, "", "the GUI reports HY2 working before any game connection");
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let target = listener.local_addr().unwrap();
+    thread::spawn(move || { let (mut c, _) = listener.accept().unwrap(); let mut b = [0; 5]; c.read_exact(&mut b).unwrap(); c.write_all(&b).unwrap(); });
+    let mut socket = client(&server); greet(&mut socket); request(&mut socket, target, false);
+    assert_eq!(response(&mut socket).0, 0, "TCP CONNECT through the embedded HY2 server");
+    socket.write_all(b"hello").unwrap(); let mut reply = [0; 5]; socket.read_exact(&mut reply).unwrap(); assert_eq!(&reply, b"hello");
+    let echo = udp_echo("127.0.0.1:0");
+    let udp = udp_client();
+    let (_control, status, bound) = associate(&server, "0.0.0.0:0".parse().unwrap());
+    assert_eq!(status, 0);
+    udp.send_to(&datagram(echo, b"embedded hy2"), bound).unwrap();
+    assert_eq!(udp_reply(&udp, Duration::from_secs(5)), Some((echo, b"embedded hy2".to_vec())), "UDP through the embedded HY2 server");
+    assert_eq!(server.state().udp_route, "hy2");
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+    assert!(!server.state().hy2_connected, "a stopped relay never reports HY2 working");
 }
 
 #[test]

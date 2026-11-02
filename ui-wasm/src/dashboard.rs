@@ -84,6 +84,10 @@ pub struct Relay {
     pub mode: String,
     pub hy2_server: String,
     pub hy2_server_name: String,
+    #[serde(default)]
+    pub hy2_connected: bool,
+    #[serde(default)]
+    pub hy2_error: String,
     pub udp_associations: usize,
     pub udp_destinations: u64,
     pub udp_route: String,
@@ -193,24 +197,44 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
     html.push_str("</section>");
 }
 
+/// One-line HY2 state: off, connecting, on and working (QUIC session open), or the last connect error.
+fn hy2_status(relay: &Relay) -> String {
+    let server = if relay.hy2_server.is_empty() { "HY2 local embutido (loopback)".into() } else { escape(&relay.hy2_server) };
+    let (class, text) = if !matches!(relay.mode.as_str(), "hy2" | "neural_auto") {
+        ("hy2-off", "Hysteria 2 desligado · o modo atual não usa HY2".to_string())
+    } else if !relay.running {
+        ("hy2-off", format!("Hysteria 2 selecionado · relay parado · {server}"))
+    } else if relay.hy2_connected {
+        ("hy2-on", format!("✅ Hysteria 2 ligado e funcionando · sessão QUIC ativa · {server}"))
+    } else if !relay.hy2_error.is_empty() {
+        ("hy2-error", format!("⚠️ Hysteria 2 com erro · {server} · {}", escape(&relay.hy2_error)))
+    } else {
+        ("hy2-pending", format!("Hysteria 2 ligado · conectando · {server}"))
+    };
+    format!("<span class=\"hy2-status {class}\" role=\"status\">{text}</span>")
+}
+
 fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     let (class, status) = if relay.running { ("net-card-active", "Escutando") }
         else if relay.stopping { ("net-card-warn", "Encerrando conexões") }
         else { ("net-card-off", "Desativado") };
     write!(html, "<div class=\"net-card relay-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} TCP ativas · {} associações UDP · {} destinos UDP ativos · saída UDP fixa: {} · {} TCP aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB<br>Conexões pré-abertas: {} usadas · {} descartadas</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, relay.udp_destinations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0, relay.prewarm_hits, relay.prewarm_misses).unwrap();
+    html.push_str(&hy2_status(relay));
     html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. TCP CONNECT e UDP ASSOCIATE funcionam sem WFP; o tunelamento transparente do AION 2 exige o driver MUDWFP, solicitado somente ao ativar a opção abaixo.</span>");
     let (_wfp_class, wfp_status) = if wfp.running { ("net-card-active", format!("Driver e proxy ativos · alvo {}", escape(&wfp.target))) }
         else if wfp.enabled { ("net-card-warn", "Inativo · verifique o driver e as permissões".into()) }
         else { ("net-card-off", "Desativado".into()) };
     write!(html, "<hr><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
     if !wfp.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&wfp.error)).unwrap(); }
-    if !relay.hy2_server.is_empty() {
+    // Without a remote server the relay uses the embedded loopback HY2 server, so HY2 is always configured.
+    {
         let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
-        write!(html, "<details><summary>Transporte · {mode}</summary><p class=\"net-card-sub\">HY2 configurado: {} · nome TLS: {}</p><fieldset id=\"relay-transport\"{}><legend>Configuração desta sessão</legend><label for=\"relay-mode\">Modo</label><select id=\"relay-mode\" data-network-draft=\"relay-mode\">", escape(&relay.hy2_server), if relay.hy2_server_name.is_empty() { "host do servidor".into() } else { escape(&relay.hy2_server_name) }, if relay.running || relay.stopping { " disabled" } else { "" }).unwrap();
+        let server = if relay.hy2_server.is_empty() { "HY2 local embutido (loopback 127.0.0.1)".into() } else { escape(&relay.hy2_server) };
+        write!(html, "<details><summary>Transporte · {mode}</summary><p class=\"net-card-sub\">HY2 configurado: {server} · nome TLS: {}</p><fieldset id=\"relay-transport\"{}><legend>Configuração desta sessão</legend><label for=\"relay-mode\">Modo</label><select id=\"relay-mode\" data-network-draft=\"relay-mode\">", if relay.hy2_server_name.is_empty() { "host do servidor".into() } else { escape(&relay.hy2_server_name) }, if relay.running || relay.stopping { " disabled" } else { "" }).unwrap();
         for (id, label) in RELAY_MODES {
             write!(html, "<option value=\"{id}\"{}>{label}</option>", if relay.mode == id { " selected" } else { "" }).unwrap();
         }
-        html.push_str("</select><label for=\"relay-server\">Servidor HY2 (host:porta)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"servidor:443\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. HY2 exige servidor remoto compatível. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
+        html.push_str("</select><label for=\"relay-server\">Servidor HY2 remoto (host:porta; vazio = HY2 local embutido)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"vazio usa o HY2 local\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2 (vazia com o HY2 local)</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. Sem servidor remoto, o HY2 local embutido roda em loopback nesta máquina: funciona para TCP e UDP, mas não muda a rota e só acrescenta latência. Menor ping exige um servidor HY2 remoto com rota melhor que a direta. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
     }
     if !relay.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&relay.error)).unwrap(); }
     if !relay.interfaces.is_empty() {
@@ -489,6 +513,19 @@ mod tests {
         assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }
     #[test]
+    fn hy2_status_tells_off_connecting_working_and_error_apart() {
+        let relay = |mode: &str, running, connected, error: &str| Relay { mode: mode.into(), running, hy2_connected: connected, hy2_error: error.into(), ..Relay::default() };
+        assert!(hy2_status(&relay("local", true, false, "")).contains("Hysteria 2 desligado"));
+        assert!(hy2_status(&relay("hy2", false, false, "")).contains("relay parado"));
+        assert!(hy2_status(&relay("hy2", true, false, "")).contains("hy2-pending"));
+        let working = hy2_status(&relay("neural_auto", true, true, ""));
+        assert!(working.contains("ligado e funcionando") && working.contains("HY2 local embutido") && working.contains("role=\"status\""));
+        let failed = hy2_status(&relay("hy2", true, false, "<b>auth</b>"));
+        assert!(failed.contains("hy2-error") && failed.contains("&lt;b&gt;auth&lt;/b&gt;"), "connect errors are untrusted text");
+        let remote = hy2_status(&Relay { hy2_server: "vps.example:443".into(), ..relay("hy2", true, true, "") });
+        assert!(remote.contains("vps.example:443") && !remote.contains("embutido"));
+    }
+    #[test]
     fn udp_destinations_are_visible_when_tcp_connections_are_zero() {
         let relay: Relay = serde_json::from_str(
             r#"{"running":true,"stopping":false,"address":"127.0.0.1:1080","active_connections":0,"total_connections":0,"bytes_tx":0,"bytes_rx":0,"prewarm_hits":0,"prewarm_misses":0,"error":"","predictions":[],"interfaces":[],"allowed_interfaces":[],"mode":"local","hy2_server":"","hy2_server_name":"","udp_associations":0,"udp_route":"direct","udp_destinations":2}"#,
@@ -496,5 +533,7 @@ mod tests {
         let mut html = String::new();
         render_relay(&mut html, &relay, &Wfp::default());
         assert!(html.contains("0 TCP ativas · 0 associações UDP · 2 destinos UDP ativos"));
+        assert!(html.contains("HY2 configurado: HY2 local embutido (loopback 127.0.0.1)") && html.contains("data-action=\"relay-configure\""),
+            "without a remote server the transport block still offers HY2 through the embedded server");
     }
 }

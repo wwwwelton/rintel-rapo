@@ -40,6 +40,10 @@ pub struct State {
     pub mode: Mode,
     pub hy2_server: String,
     pub hy2_server_name: String,
+    /// A QUIC session to the HY2 server (embedded loopback or remote) is open.
+    pub hy2_connected: bool,
+    /// Last HY2 connect failure; empty after a successful connect.
+    pub hy2_error: String,
     pub udp_associations: usize,
     pub udp_destinations: u64,
     pub udp_route: String,
@@ -75,6 +79,8 @@ struct Shared {
     allowed_interfaces: RwLock<Vec<String>>,
     /// One authenticated HY2 connection shared by all flows, opened lazily on a worker.
     hy2: Mutex<Option<hy2::Client>>,
+    /// Last HY2 connect failure, shown in the GUI; cleared by a successful connect.
+    hy2_error: Mutex<String>,
 }
 impl Shared {
     fn close_connections(&self) {
@@ -90,12 +96,10 @@ impl Shared {
         if let Some(client) = &*cached { return Ok(client.clone()); }
         if !self.running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
         // ponytail: subida de servidor HY2 local em loopback; sem um VPS remoto intermediário, criar túnel local apenas adicionaria sobrecarga de CPU e latência inútil.
-        let config = if self.config.server.is_empty() {
-            hy2::local_server_config()?
-        } else {
-            self.config.clone()
-        };
-        let client = hy2::Client::connect(&config)?;
+        let connected = if self.config.server.is_empty() { hy2::local_server_config() } else { Ok(self.config.clone()) }
+            .and_then(|config| hy2::Client::connect(&config));
+        *self.hy2_error.lock().unwrap() = connected.as_ref().err().map(ToString::to_string).unwrap_or_default();
+        let client = connected?;
         *cached = Some(client.clone());
         Ok(client)
     }
@@ -167,10 +171,15 @@ impl RelayServer {
             bytes_tx: AtomicU64::new(0), bytes_rx: AtomicU64::new(0), error: Mutex::new(String::new()),
             learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
             prewarm: Mutex::new(prewarm::Prewarm::default()),
-            interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None),
+            interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()),
         });
         let state = Arc::clone(&shared);
         let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
+        // HY2 modes open the QUIC session now: the GUI shows it working, and the first game connection skips the handshake.
+        if matches!(self.mode, Mode::Hy2 | Mode::NeuralAuto) {
+            let hy2 = Arc::clone(&shared);
+            let _ = thread::Builder::new().name("rapo-hy2-connect".into()).spawn(move || { let _ = hy2.hy2_client(); });
+        }
         self.run = Some(Run { shared, worker: Some(worker), address });
         self.error.clear();
         Ok(())
@@ -226,6 +235,9 @@ impl RelayServer {
             bytes_tx: run.shared.bytes_tx.load(Ordering::Relaxed), bytes_rx: run.shared.bytes_rx.load(Ordering::Relaxed),
             error: if self.error.is_empty() { run.shared.error.lock().unwrap().clone() } else { self.error.clone() },
             prewarm_hits, prewarm_misses,
+            // try_lock: a connect in progress holds the lock and must not stall the UI thread.
+            hy2_connected: running && run.shared.hy2.try_lock().is_ok_and(|client| client.is_some()),
+            hy2_error: run.shared.hy2_error.lock().unwrap().clone(),
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),

@@ -154,6 +154,10 @@
   .net-card-warn { border-color: #5b4c30; }
   .net-card-warn .net-card-value { color: var(--warning); }
   .net-card-off .net-card-value { color: var(--muted); }
+  .hy2-status { display: block; margin: 8px 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .hy2-on { color: var(--accent); border-color: #3c5c47; background: #1b2c21; }
+  .hy2-pending { color: var(--warning); border-color: #5b4c30; }
+  .hy2-error { color: var(--danger); border-color: #6b3434; }
   .telemetry-box-wide, .net-card-wide, .net-card:has(details), .relay-card { grid-column: 1 / -1; }
   .net-history { margin: 4px 0 0; }
   .net-history li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--muted); font: 11px/1.6 var(--mono); }
@@ -285,8 +289,8 @@
         payload.server_name = field('relay-server-name').value.trim();
         payload.auth = field('relay-auth').value;
         payload.ca_pem = field('relay-ca').value;
-        if (['hy2', 'neural_auto'].includes(payload.mode) && (!payload.server || !payload.auth)) {
-          error.textContent = 'Informe servidor e autenticação HY2.'; return;
+        if (['hy2', 'neural_auto'].includes(payload.mode) && Boolean(payload.server) !== Boolean(payload.auth)) {
+          error.textContent = 'Informe servidor e autenticação HY2, ou deixe ambos vazios para usar o HY2 local embutido.'; return;
         }
         field('relay-auth').value = '';
       }
