@@ -32,3 +32,31 @@ foreach ($entry in $stageTargets) {
     Write-Host "$rel ok ($actual)"
 }
 Copy-Item -LiteralPath (Join-Path $sourceDir 'NOTICE.md') -Destination (Join-Path $destDir 'NOTICE.md') -Force
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+Copy-Item -LiteralPath (Join-Path $sourceDir 'NOTICE.md') -Destination (Join-Path $outRoot 'NOTICE.md') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'native\hy2\THIRD_PARTY_NOTICES.txt') -Destination (Join-Path $outRoot 'THIRD_PARTY_NOTICES.txt') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'ui-screen.svg') -Destination (Join-Path $outRoot 'ui-screen.svg') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'ui-screen.json') -Destination (Join-Path $outRoot 'ui-screen.json') -Force
+
+$exePath = Join-Path $outRoot 'rintel-rapo.exe'
+if (Test-Path -LiteralPath $exePath) {
+    $zipPath = Join-Path $outRoot 'rintel-rapo-windows-x64.zip'
+    $zipShaPath = "$zipPath.sha256"
+    if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+    $itemsToZip = @(
+        'rintel-rapo.exe',
+        'rintel-rapo.exe.sha256',
+        'rintel-rapo.cer',
+        'mudwfp_proxy.exe',
+        'DRIVERS',
+        'wfp',
+        'NOTICE.md',
+        'THIRD_PARTY_NOTICES.txt',
+        'ui-screen.svg',
+        'ui-screen.json'
+    ) | ForEach-Object { Join-Path $outRoot $_ } | Where-Object { Test-Path -LiteralPath $_ }
+    Compress-Archive -Path $itemsToZip -DestinationPath $zipPath -CompressionLevel Optimal -Force
+    $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLower()
+    "$zipHash  rintel-rapo-windows-x64.zip" | Out-File -FilePath $zipShaPath -Encoding ascii
+    Write-Host "rintel-rapo-windows-x64.zip ok ($zipHash)"
+}
