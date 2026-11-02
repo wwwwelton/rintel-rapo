@@ -1,9 +1,7 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 pub mod cache;
-#[cfg(any(test, windows))]
 mod capture;
-#[cfg(any(test, windows))]
 mod learning;
 pub mod fps;
 pub mod hardware;
@@ -27,7 +25,6 @@ mod prefetch;
 mod cpu;
 #[cfg(windows)]
 mod pin;
-#[cfg(any(test, windows))]
 mod steam;
 #[cfg(windows)]
 mod windows;
