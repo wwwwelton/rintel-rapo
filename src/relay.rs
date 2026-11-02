@@ -247,14 +247,17 @@ fn serve(listener: TcpListener, udp: Option<UdpSocket>, shared: Arc<Shared>, add
         }
         Err(error) => *shared.error.lock().unwrap() = format!("Listar interfaces SOCKS5: {error}"),
     }
-    let udp_worker = if let Some(sock) = udp {
+    let swapped_port = address.port().swap_bytes();
+    let swapped_udp = (swapped_port != 0 && swapped_port != address.port())
+        .then(|| UdpSocket::bind((Ipv4Addr::LOCALHOST, swapped_port)).ok())
+        .flatten();
+    let mut udp_workers = Vec::new();
+    for sock in [udp, swapped_udp].into_iter().flatten() {
         let state = Arc::clone(&shared);
-        thread::Builder::new().name("rapo-wfp-udp".into()).spawn(move || {
-            serve_wfp_udp(sock, state);
-        }).ok()
-    } else {
-        None
-    };
+        if let Ok(w) = thread::Builder::new().name("rapo-wfp-udp".into()).spawn(move || serve_wfp_udp(sock, state)) {
+            udp_workers.push(w);
+        }
+    }
     let mut workers: Vec<JoinHandle<()>> = Vec::new();
     while shared.running.load(Ordering::Acquire) {
         let incoming = listener.accept();
@@ -299,7 +302,7 @@ fn serve(listener: TcpListener, udp: Option<UdpSocket>, shared: Arc<Shared>, add
     shared.running.store(false, Ordering::Release);
     shared.close_connections();
     drop(listener);
-    if let Some(w) = udp_worker { let _ = w.join(); }
+    for w in udp_workers { let _ = w.join(); }
     for worker in workers { let _ = worker.join(); }
 }
 
@@ -309,7 +312,7 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
     // Only bounds how long shutdown waits; incoming datagrams wake the loop immediately.
     let _ = socket.set_read_timeout(Some(Duration::from_millis(250)));
     let reply_socket = match socket.try_clone() { Ok(s) => Arc::new(s), Err(_) => return };
-    struct Flow { out: Arc<UdpSocket>, client: Arc<Mutex<SocketAddr>>, sent_at: Arc<Mutex<Instant>>, last_seen: Instant }
+    struct Flow { out: Arc<UdpSocket>, client: Arc<Mutex<SocketAddr>>, raw: Arc<AtomicBool>, sent_at: Arc<Mutex<Instant>>, last_seen: Instant }
     let mut flows: HashMap<SocketAddr, Flow> = HashMap::new();
     let mut buf = [0u8; 65535];
 
@@ -329,8 +332,16 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
             Err(e) if e.kind() == io::ErrorKind::ConnectionReset => continue,
             Err(_) => break,
         };
-        if !src.ip().is_loopback() || n < 14 || buf[..4] != [0x23, 0xa4, 0xfa, 0x39] { continue; }
-        let dst = SocketAddr::new(Ipv4Addr::new(buf[4], buf[5], buf[6], buf[7]).into(), u16::from_le_bytes([buf[8], buf[9]]));
+        if !src.ip().is_loopback() || n < 14 { continue; }
+        // mudwfp_proxy.exe (`mudwfp_udp.c` 0x40df79) prefixes 14 bytes: magic 0x7e6d8b10 LE
+        // (`[0x10, 0x8b, 0x6d, 0x7e]`), 4-byte token, 4-byte IPv4, 2-byte big-endian port, and expects raw payload back.
+        let (dst, raw_reply) = if buf[..4] == [0x10, 0x8b, 0x6d, 0x7e] {
+            (SocketAddr::new(Ipv4Addr::new(buf[8], buf[9], buf[10], buf[11]).into(), u16::from_be_bytes([buf[12], buf[13]])), true)
+        } else if buf[..4] == [0x23, 0xa4, 0xfa, 0x39] {
+            (SocketAddr::new(Ipv4Addr::new(buf[4], buf[5], buf[6], buf[7]).into(), u16::from_le_bytes([buf[8], buf[9]])), false)
+        } else {
+            continue;
+        };
 
         let now = Instant::now();
         let is_new = !flows.contains_key(&dst);
@@ -339,9 +350,10 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
             let _ = out.set_read_timeout(Some(Duration::from_secs(1)));
             let out = Arc::new(out);
             let client = Arc::new(Mutex::new(src));
+            let raw = Arc::new(AtomicBool::new(raw_reply));
             let sent_at = Arc::new(Mutex::new(now));
             shared.udp_destinations.fetch_add(1, Ordering::Relaxed);
-            let (reader, back, to, stamp, state) = (Arc::clone(&out), Arc::clone(&reply_socket), Arc::clone(&client), Arc::clone(&sent_at), Arc::clone(&shared));
+            let (reader, back, to, is_raw, stamp, state) = (Arc::clone(&out), Arc::clone(&reply_socket), Arc::clone(&client), Arc::clone(&raw), Arc::clone(&sent_at), Arc::clone(&shared));
             let spawned = thread::Builder::new().name("rapo-wfp-udp-rx".into()).spawn(move || {
                 let mut reply = [0u8; 65535];
                 reply[..4].copy_from_slice(&[0x23, 0xa4, 0xfa, 0x39]);
@@ -353,15 +365,17 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
                     let Ok((rn, _)) = reader.recv_from(&mut reply[14..]) else { continue };
                     let rtt = Instant::now().saturating_duration_since(*stamp.lock().unwrap());
                     state.learning.lock().unwrap().observe(dst, &system_egress(dst), rtt, true, Instant::now());
-                    let _ = back.send_to(&reply[..14 + rn], *to.lock().unwrap());
+                    let payload = if is_raw.load(Ordering::Relaxed) { &reply[14..14 + rn] } else { &reply[..14 + rn] };
+                    let _ = back.send_to(payload, *to.lock().unwrap());
                     state.bytes_rx.fetch_add(rn as u64, Ordering::Relaxed);
                 }
             });
             if spawned.is_err() { shared.udp_destinations.fetch_sub(1, Ordering::Relaxed); continue; }
-            flows.insert(dst, Flow { out, client, sent_at, last_seen: now });
+            flows.insert(dst, Flow { out, client, raw, sent_at, last_seen: now });
         }
         let Some(flow) = flows.get_mut(&dst) else { continue };
         *flow.client.lock().unwrap() = src;
+        flow.raw.store(raw_reply, Ordering::Relaxed);
         *flow.sent_at.lock().unwrap() = now;
         flow.last_seen = now;
         if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
@@ -441,6 +455,10 @@ fn handle(mut client: TcpStream, shared: &Arc<Shared>, id: u64, listen: SocketAd
         }
     };
     shared.register_outbound(id, &outbound)?;
+    {
+        let mut err = shared.error.lock().unwrap();
+        if err.starts_with("Última conexão SOCKS5:") { err.clear(); }
+    }
     if !is_wfp {
         reply(&mut client, 0, outbound.local_addr()?)?;
     }

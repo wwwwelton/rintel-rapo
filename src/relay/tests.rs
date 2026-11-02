@@ -442,6 +442,11 @@ fn wfp_udp_replies_reach_the_sender_and_stop_releases_the_flow_threads() {
     let state = server.state();
     assert_eq!(state.total_connections, 0, "UDP datagrams are not TCP connections");
     assert_eq!(state.udp_destinations, 1);
+    let mut mud_pkt = vec![0x10, 0x8b, 0x6d, 0x7e, 1, 2, 3, 4, 127, 0, 0, 1];
+    mud_pkt.extend_from_slice(&target.port().to_be_bytes()); mud_pkt.extend_from_slice(b"cast");
+    game.send_to(&mud_pkt, (Ipv4Addr::LOCALHOST, port)).unwrap();
+    let (n2, _) = game.recv_from(&mut b).unwrap();
+    assert_eq!(&b[..n2], b"cast", "mudwfp_proxy 0x7e6d8b10 UDP expects raw payload reply");
     server.stop();
     until(|| { server.poll(); !server.state().stopping });
     let before = thread_count();
