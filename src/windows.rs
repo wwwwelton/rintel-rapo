@@ -206,6 +206,16 @@ fn process_path(pid: u32) -> Option<PathBuf> {
     }
 }
 
+/// Image paths of processes seen in the previous snapshot, so each process is opened once instead of
+/// every second. Keyed by PID plus image name: a PID reused between snapshots by another program misses.
+type PathKey = (u32, Vec<u16>);
+static PATH_CACHE: std::sync::LazyLock<std::sync::Mutex<HashMap<PathKey, Option<PathBuf>>>> = std::sync::LazyLock::new(Default::default);
+
+fn path_key(entry: &PROCESSENTRY32W) -> PathKey {
+    let len = entry.szExeFile.iter().position(|&c| c == 0).unwrap_or(entry.szExeFile.len());
+    (entry.th32ProcessID, entry.szExeFile[..len].to_vec())
+}
+
 fn game_for_path<'a>(exe: &Path, games: &'a [Game]) -> Option<&'a Game> {
     games.iter().find(|game| path_in_directory(exe, &game.directory))
 }
@@ -238,8 +248,16 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
             CloseHandle(snapshot);
             return Err(format!("Não foi possível iniciar enumeração de processos: {error}"));
         }
+        let mut cache = PATH_CACHE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut seen = HashMap::with_capacity(cache.len());
         loop {
-            if let Some(exe) = process_path(entry.th32ProcessID) {
+            let key = path_key(&entry);
+            let path = match cache.remove(&key) {
+                Some(path) => path,
+                None => process_path(entry.th32ProcessID),
+            };
+            let path = seen.entry(key).or_insert(path).clone();
+            if let Some(exe) = path {
                 if let Some(game) = game_for_path(&exe, games) {
                     found.push((
                         entry.cntThreads,
@@ -257,6 +275,9 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
             }
         }
         CloseHandle(snapshot);
+        // Exited processes drop out; only processes still in this snapshot stay cached.
+        *cache = seen;
+        drop(cache);
         // Sort by thread count descending so the main 3D game engine process is always first
         found.sort_by_key(|(threads, _)| std::cmp::Reverse(*threads));
         Ok(found.into_iter().map(|(_, r)| r).collect())
