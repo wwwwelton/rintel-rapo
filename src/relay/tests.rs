@@ -274,6 +274,12 @@ fn udp_rejects_foreign_sources_spoofed_ports_fragments_and_reserved_bits() {
 }
 
 #[test]
+fn an_integrated_server_makes_hy2_the_default_mode() {
+    assert_eq!(default_mode(true), Mode::Hy2);
+    assert_eq!(default_mode(false), Mode::Local, "without an integrated server the previous Flow stays the default");
+}
+
+#[test]
 fn configuration_requires_a_stopped_relay_and_never_exposes_the_hy2_secret() {
     let mut server = RelayServer::new(0);
     assert_eq!(server.mode(), Mode::Local, "the pre-existing Flow stays the default");

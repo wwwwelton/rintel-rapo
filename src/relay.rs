@@ -143,9 +143,12 @@ fn ping_server(shared: Arc<Shared>) {
     }
 }
 
+/// With an integrated server the relay opens in HY2: the transport block is locked while the relay runs, so a Local default left HY2 unreachable.
+fn default_mode(integrated_server: bool) -> Mode { if integrated_server { Mode::Hy2 } else { Mode::Local } }
+
 pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
-    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: Mode::default(), config: Hy2Config::default(), priors: Vec::new() } }
+    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), priors: Vec::new() } }
     /// Exit statistics saved by earlier sessions; used from the next `start()` on.
     pub fn set_priors(&mut self, priors: Vec<crate::store::PathStat>) { self.priors = priors; }
     /// Destination/exit statistics measured by the running relay, for saving.

@@ -219,7 +219,8 @@ fn hy2_server_label(relay: &Relay) -> String {
 fn hy2_status(relay: &Relay) -> String {
     let server = hy2_server_label(relay);
     let (class, text) = if !matches!(relay.mode.as_str(), "hy2" | "neural_auto") {
-        ("hy2-off", "Hysteria 2 desligado · o modo atual não usa HY2".to_string())
+        let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
+        ("hy2-off", format!("Hysteria 2 desligado · modo atual: {mode} · para usar, desabilite o relay, escolha HY2 em Transporte e aplique"))
     } else if !relay.running {
         ("hy2-off", format!("Hysteria 2 selecionado · relay parado · {server}"))
     } else if relay.hy2_connected {
@@ -536,7 +537,8 @@ mod tests {
     #[test]
     fn hy2_status_tells_off_connecting_working_and_error_apart() {
         let relay = |mode: &str, running, connected, error: &str| Relay { mode: mode.into(), running, hy2_connected: connected, hy2_error: error.into(), ..Relay::default() };
-        assert!(hy2_status(&relay("local", true, false, "")).contains("Hysteria 2 desligado"));
+        let off = hy2_status(&relay("local", true, false, ""));
+        assert!(off.contains("Hysteria 2 desligado") && off.contains("modo atual: Local") && off.contains("escolha HY2 em Transporte"), "{off}");
         assert!(hy2_status(&relay("hy2", false, false, "")).contains("relay parado"));
         assert!(hy2_status(&relay("hy2", true, false, "")).contains("hy2-pending"));
         let working = hy2_status(&relay("neural_auto", true, true, ""));

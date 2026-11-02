@@ -46,7 +46,7 @@ O RAPO inicia um servidor **SOCKS5 em `127.0.0.1:1080`** com `CONNECT` (TCP) e `
 
 **Modos de saída** (em **Transporte**, alteráveis somente com o relay desabilitado; valem para a execução inteira):
 
-- **Local** (padrão, comportamento anterior): Flow entre a saída atual do Windows e as interfaces autorizadas.
+- **Local** (padrão em versões sem servidor HY2 integrado; comportamento anterior): Flow entre a saída atual do Windows e as interfaces autorizadas.
 - **Direto:** somente a rota do sistema.
 - **HY2:** todo TCP e UDP pelo servidor Hysteria 2 configurado, **sem fallback direto**. Falha de TLS/autenticação/destino vira erro SOCKS5, nunca sucesso.
 - **Neural Auto:** o Flow compara a rota do sistema e o HY2 para **novas conexões TCP**; pode usar a saída direta e mudar o IP público dessas conexões. UDP usa a rota do sistema.
