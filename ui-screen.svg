@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="3570" viewBox="0 0 1440 3570" role="img" aria-labelledby="screen-title screen-description">
+<title id="screen-title">Rintel RAPO — referência editável da interface</title>
+<desc id="screen-description">Estado ilustrativo, sem telemetria ao vivo. Rede, SOCKS5, WFP, transporte HY2, rotas, QoS, aprendizado, dashboard e biblioteca. Geometria de referência baseada no código, não captura de tela.</desc>
+<g id="canvas"><rect id="background" x="0" y="0" width="1440" height="3570" rx="0" fill="#050c13" stroke="#050c13" stroke-width="1"></rect>
+</g>
+<g id="design-note"><rect id="design-note-surface" x="16" y="16" width="1408" height="65" rx="8" fill="#0c1a27" stroke="#ffd96b" stroke-width="1"></rect>
+<text id="design-note-title" x="32" y="42" fill="#ffd96b" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">REFERÊNCIA EDITÁVEL · ESTADO ILUSTRATIVO, NÃO UMA CAPTURA AO VIVO</text>
+<text id="design-note-body" x="32" y="64" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Layout ampliado para edição • detalhes abertos • valores não coletados = — • nenhum jogo, dispositivo ou credencial real exportado.</text>
+</g>
+<g id="header"><text id="app-title" x="16" y="121" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">RINTEL RAPO</text>
+<text id="scheduling-badge" x="210" y="119" fill="#46e0d5" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">AGENDAMENTO WINDOWS</text>
+<text id="status-badge" x="402" y="119" fill="#ffd96b" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">PAUSADO (STOP)</text>
+<text id="dtt-reference" x="552" y="119" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">DTT: não consultado</text>
+<g id="refresh" opacity="1"><rect id="refresh-surface" x="720" y="96" width="100" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="refresh-label" x="732" y="118" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Atualizar</text>
+</g>
+<g id="scan" opacity="1"><rect id="scan-surface" x="832" y="96" width="160" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="scan-label" x="844" y="118" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Reexaminar Steam</text>
+</g>
+<g id="reset" opacity="1"><rect id="reset-surface" x="1004" y="96" width="196" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="reset-label" x="1016" y="118" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Configuração padrão</text>
+</g>
+<g id="start" opacity="1"><rect id="start-surface" x="1212" y="96" width="100" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="start-label" x="1224" y="118" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Start</text>
+</g>
+</g>
+<g id="training"><rect id="training-surface" x="16" y="150" width="1408" height="238" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="training-heading" x="32" y="179" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">AVATARNOIA FLOW ENGINE 2.0 · FPS REAL</text>
+<text id="training-copy-1" x="32" y="206" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Abra um jogo Steam</text>
+<text id="training-copy-2" x="32" y="227" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">RAPO aprende prioridade, memória/EcoQoS, núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis.</text>
+<text id="training-copy-3" x="32" y="248" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Um jogo por vez; pausa ao sair e retoma o mesmo candidato. ETW de apresentação, sem rastrear entrada ou execução na GPU.</text>
+<text id="training-copy-4" x="32" y="269" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Coleta sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções.</text>
+<g id="start-training" opacity="0.45"><rect id="start-training-surface" x="32" y="288" width="270" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="start-training-label" x="44" y="310" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Iniciar aprendizado contínuo</text>
+</g>
+<text id="training-footer-1" x="32" y="345" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível.</text>
+<text id="training-footer-2" x="32" y="366" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">▸ Licença do coletor integrado · PresentData / PresentMon 2.3.0 · Intel · MIT</text>
+</g>
+<g id="subtitle"><text id="subtitle-text" x="16" y="418" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">APO e RAPO para jogos Steam: aprendizado em tempo real, núcleos físicos, afinidade, threads e SMT/Hyper-Threading via APIs públicas do Windows</text>
+</g>
+<g id="network-optimization"><rect id="network-optimization-surface" x="16" y="438" width="1408" height="1060" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="network-optimization-heading" x="32" y="467" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">OTIMIZAÇÃO DE REDE</text>
+<g id="network-priority"><rect id="network-priority-box" x="32" y="483" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="network-priority-label" x="57" y="495" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Priorizar rede do jogo (DSCP 46)</text>
+</g>
+<rect id="priority-surface" x="32" y="516" width="440" height="106" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="priority-title" x="46" y="539" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">PRIORIDADE</text>
+<text id="priority-value" x="46" y="569" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="750">Desativado</text>
+<text id="priority-hint" x="46" y="600" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Sem prioridade de rede</text>
+<rect id="traffic-surface" x="492" y="516" width="440" height="106" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="traffic-title" x="506" y="539" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">TRÁFEGO</text>
+<text id="traffic-value" x="506" y="569" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="750">—</text>
+<text id="traffic-hint" x="506" y="600" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Envio + recebimento do sistema · não coletado</text>
+<rect id="tcp-rtt-surface" x="952" y="516" width="440" height="106" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="tcp-rtt-title" x="966" y="539" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">RTT TCP EXTERNO</text>
+<text id="tcp-rtt-value" x="966" y="569" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="750">—</text>
+<text id="tcp-rtt-hint" x="966" y="600" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">DNS público; não é ping do jogo</text>
+<rect id="icmp-surface" x="32" y="634" width="1360" height="84" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="icmp-title" x="46" y="657" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">ICMP · IPs TCP DO PROCESSO</text>
+<text id="icmp-value" x="46" y="683" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="400">—  Nenhum destino observado nesta referência</text>
+<text id="icmp-hint" x="46" y="705" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo.</text>
+<rect id="relay-surface" x="32" y="730" width="662" height="586" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-title" x="48" y="754" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">RELAY LOCAL · SOCKS5 TCP/UDP</text>
+<text id="relay-status" x="48" y="783" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="750">Desativado</text>
+<g id="relay"><rect id="relay-box" x="48" y="802" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-label" x="73" y="814" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Habilitar relay local</text>
+</g>
+<text id="relay-copy-1" x="48" y="846" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Endereço local: — (não coletado)</text>
+<text id="relay-copy-2" x="48" y="867" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Conexões ativas: — · Associações UDP: — · Aceitas: —</text>
+<text id="relay-copy-3" x="48" y="888" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Saída UDP fixa: — · Enviado: — KiB · Recebido: — KiB</text>
+<text id="relay-copy-4" x="48" y="909" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Conexões pré-abertas: — usadas · — descartadas</text>
+<text id="relay-copy-5" x="48" y="930" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400"></text>
+<text id="relay-copy-6" x="48" y="951" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Configure SOCKS5 no cliente compatível: TCP CONNECT e UDP ASSOCIATE.</text>
+<text id="relay-copy-7" x="48" y="972" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">A opção WFP abaixo representa o tunelamento transparente por processo.</text>
+<rect id="wfp-divider" x="48" y="994" width="630" height="1" rx="0" fill="#1e394c" stroke="#1e394c" stroke-width="1"></rect>
+<g id="wfp"><rect id="wfp-box" x="48" y="1013" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="wfp-label" x="73" y="1025" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Tunelar processo via WFP (Desativado)</text>
+</g>
+<text id="wfp-copy-1" x="48" y="1054" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Alvo: — · nenhum processo real representado</text>
+<text id="wfp-copy-2" x="48" y="1075" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Estado e erro do WFP dependem do host; este desenho não ativa o driver.</text>
+<text id="interfaces-1" x="48" y="1112" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">▾ Autorizar outras saídas (detalhe de referência)</text>
+<text id="interfaces-2" x="48" y="1133" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">A saída atual do Windows sempre permanece elegível. Autorizar outra</text>
+<text id="interfaces-3" x="48" y="1154" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">interface pode contornar sua VPN e mudar o IP público; afeta somente</text>
+<text id="interfaces-4" x="48" y="1175" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">conexões SOCKS5 novas.</text>
+<text id="interfaces-5" x="48" y="1196" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Nenhuma interface coletada; nenhuma autorização selecionada.</text>
+<text id="interfaces-6" x="48" y="1217" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Reinicie o relay para atualizar a lista após trocar adaptadores.</text>
+<rect id="transport-surface" x="710" y="730" width="682" height="586" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="transport-title" x="726" y="754" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">▾ TRANSPORTE · CONFIGURAÇÃO DESTA SESSÃO</text>
+<text id="transport-reference" x="726" y="777" fill="#ffd96b" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Painel condicional expandido para edição; HY2 não configurado nesta referência.</text>
+<g id="relay-mode"><text id="relay-mode-label" x="726" y="803" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Modo</text>
+<rect id="relay-mode-surface" x="726" y="813" width="650" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-mode-value" x="738" y="835" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Direto · rota do sistema</text>
+</g>
+<text id="transport-modes-1" x="726" y="866" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Outras opções: Local · Flow nas interfaces autorizadas; HY2 · sem fallback direto;</text>
+<text id="transport-modes-2" x="726" y="884" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Neural Auto · direto/HY2 nas novas conexões TCP</text>
+<g id="relay-server"><text id="relay-server-label" x="726" y="913" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Servidor HY2 (host:porta)</text>
+<rect id="relay-server-surface" x="726" y="923" width="316" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-server-value" x="738" y="945" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">servidor:443</text>
+</g>
+<g id="relay-server-name"><text id="relay-server-name-label" x="1058" y="913" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Nome TLS (opcional)</text>
+<rect id="relay-server-name-surface" x="1058" y="923" width="318" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-server-name-value" x="1070" y="945" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400"></text>
+</g>
+<g id="relay-auth"><text id="relay-auth-label" x="726" y="984" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Autenticação HY2 · campo vazio, nenhuma credencial</text>
+<rect id="relay-auth-surface" x="726" y="994" width="650" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-auth-value" x="738" y="1016" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400"></text>
+</g>
+<g id="relay-ca"><text id="relay-ca-label" x="726" y="1055" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">CA PEM (opcional; substitui as raízes do Windows)</text>
+<rect id="relay-ca-surface" x="726" y="1065" width="650" height="65" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-ca-value" x="738" y="1087" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400"></text>
+</g>
+<g id="relay-configure" opacity="1"><rect id="relay-configure-surface" x="726" y="1143" width="210" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-configure-label" x="738" y="1165" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Aplicar configuração</text>
+</g>
+<text id="transport-warning-1" x="726" y="1201" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar.</text>
+<text id="transport-warning-2" x="726" y="1220" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Credencial somente em memória, não salva; TLS sempre validado.</text>
+<text id="transport-warning-3" x="726" y="1239" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">HY2 exige servidor remoto compatível. Neural Auto pode usar saída direta</text>
+<text id="transport-warning-4" x="726" y="1258" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">e mudar o IP público de novas conexões. UDP mantém a saída da sessão,</text>
+<text id="transport-warning-5" x="726" y="1277" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">sem estimativa de RTT por envio.</text>
+<rect id="relay-model-surface" x="32" y="1328" width="1360" height="150" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="relay-model-title" x="48" y="1352" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">MODELO NEURAL · RELAY</text>
+<text id="relay-model-state" x="48" y="1379" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="750">Flow 9→16→1 · Parado</text>
+<text id="relay-model-copy-1" x="48" y="1405" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote.</text>
+<text id="relay-model-copy-2" x="48" y="1427" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Destino / saída                         Medido                         Previsão (TCP/UDP)                         Amostras / falhas</text>
+<text id="relay-model-copy-3" x="48" y="1449" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Sem observações nesta referência. Previsão após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</text>
+</g>
+<g id="network-routes"><rect id="network-routes-surface" x="16" y="1510" width="1408" height="870" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="network-routes-heading" x="32" y="1539" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">ROTAS POR IP · INTERFACE / GATEWAY</text>
+<text id="route-warning-1" x="32" y="1564" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões.</text>
+<text id="route-warning-2" x="32" y="1585" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Este recurso de rotas não é túnel/relay, driver ou alteração de payload; não garante ping ou compatibilidade com anti-cheat.</text>
+<text id="route-warning-3" x="32" y="1606" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Somente rotas criadas nesta sessão são removidas se inalteradas. Saída normal aguarda limpeza por até 30 s.</text>
+<text id="route-warning-4" x="32" y="1627" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Falha/crash pode deixar rotas e políticas até reiniciar. Sem varredura insegura de sessões anteriores. Erros: %TEMP%\rintel-rapo-routes.log.</text>
+<rect id="route-fieldset" x="32" y="1653" width="1360" height="511" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-legend" x="48" y="1677" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">CONFIGURAÇÃO EXPLÍCITA DE REDE</text>
+<g id="route-refresh" opacity="1"><rect id="route-refresh-surface" x="48" y="1694" width="269" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-refresh-label" x="60" y="1716" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Atualizar gateways/interfaces</text>
+</g>
+<g id="route-destination"><text id="route-destination-label" x="333" y="1694" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">IP numérico de destino</text>
+<rect id="route-destination-surface" x="333" y="1704" width="304" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-destination-value" x="345" y="1726" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">192.0.2.42 ou 2001:db8::42</text>
+</g>
+<g id="route-candidate"><text id="route-candidate-label" x="653" y="1694" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Gateway/interface existentes</text>
+<rect id="route-candidate-surface" x="653" y="1704" width="426" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-candidate-value" x="665" y="1726" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Selecione uma saída</text>
+</g>
+<g id="route-apply" opacity="1"><rect id="route-apply-surface" x="1095" y="1704" width="261" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-apply-label" x="1107" y="1726" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Aplicar rota manual</text>
+</g>
+<text id="route-ip-hint-1" x="48" y="1770" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto.</text>
+<text id="authorized-heading" x="48" y="1806" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA</text>
+<text id="authorized-empty-1" x="48" y="1830" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Sem saída alternativa representada: atualize a lista. Automático não altera rotas com apenas um gateway.</text>
+<g id="network-consent"><rect id="network-consent-box" x="48" y="1848" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="network-consent-label" x="73" y="1860" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo.</text>
+</g>
+<text id="consent-note" x="73" y="1885" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Nada será alterado apenas por detectar um jogo.</text>
+<g id="route-learn" opacity="0.45"><rect id="route-learn-surface" x="48" y="1900" width="380" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-learn-label" x="60" y="1922" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Aprender e aplicar · rotas autorizadas</text>
+</g>
+<text id="qos-heading" x="48" y="1962" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">QOS DE SAÍDA POR EXECUTÁVEL · Mbps DECIMAIS</text>
+<text id="qos-warning-1" x="48" y="1987" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Afeta a saída inteira do executável alvo. Pode atrasar o próprio jogo. Não é pacing de pacotes, SQM/CAKE ou controle do download/fila da operadora.</text>
+<text id="qos-warning-2" x="48" y="2008" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Informe taxas autorizadas; velocidade da placa não é upload medido. DSCP e políticas anteriores são preservados; conflitos ambíguos recusam aplicação.</text>
+<text id="qos-warning-3" x="48" y="2029" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Alvo atual: — (não coletado; caminho completo revalidado pelo host).</text>
+<g id="rate-mbps"><text id="rate-mbps-label" x="48" y="2060" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Limite manual em Mbps</text>
+<rect id="rate-mbps-surface" x="48" y="2070" width="240" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="rate-mbps-value" x="60" y="2092" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">1.25</text>
+</g>
+<g id="rate-apply" opacity="0.45"><rect id="rate-apply-surface" x="304" y="2070" width="238" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="rate-apply-label" x="316" y="2092" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Aplicar limite de saída</text>
+</g>
+<g id="rate-list"><text id="rate-list-label" x="558" y="2060" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Taxas autorizadas em Mbps (mínimo duas)</text>
+<rect id="rate-list-surface" x="558" y="2070" width="405" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="rate-list-value" x="570" y="2092" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">1.25, 2.5</text>
+</g>
+<g id="rate-learn" opacity="0.45"><rect id="rate-learn-surface" x="979" y="2070" width="377" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="rate-learn-label" x="991" y="2092" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Aprender e aplicar · taxas autorizadas</text>
+</g>
+<text id="rates-placeholder-note" x="48" y="2143" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">IPs e taxas acima são placeholders da interface, não valores aplicados.</text>
+<g id="network-stop" opacity="0.45"><rect id="network-stop-surface" x="32" y="2180" width="394" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="network-stop-label" x="44" y="2202" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Parar aprendizado e restaurar referência</text>
+</g>
+<g id="route-remove-all" opacity="1"><rect id="route-remove-all-surface" x="438" y="2180" width="470" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="route-remove-all-label" x="450" y="2202" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Remover todos os ajustes de rede desta sessão</text>
+</g>
+<g id="rate-remove" opacity="0.45"><rect id="rate-remove-surface" x="920" y="2180" width="322" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="rate-remove-label" x="932" y="2202" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Remover limite de saída próprio</text>
+</g>
+<text id="owned-title" x="32" y="2242" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">ROTAS REGISTRADAS NESTA SESSÃO</text>
+<text id="owned-empty" x="32" y="2265" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Nenhuma rota host própria registrada no estado ilustrativo. Nenhum limite próprio ou política ActiveStore representado.</text>
+<text id="icmp-learning-title" x="32" y="2298" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">APRENDIZADO ONLINE · ICMP, NÃO LATÊNCIA DE ENVIO</text>
+<text id="icmp-learning-1" x="32" y="2320" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Flow 9→16→1 em memória por rota/taxa realmente medida. Previsões ordenam candidatos; nunca confirmam ganho. Timeout não é 0 ms.</text>
+<text id="icmp-learning-2" x="32" y="2341" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Três respostas por janela; referência antes/depois; melhora &gt;10% e 3 ms sem sobreposição e dois pares favoráveis antes de promover.</text>
+<text id="icmp-learning-3" x="32" y="2362" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Revalida continuamente; regressão/erro pede restauração. Incerteza descritiva; sem prova de causalidade. Rotas e taxas não são treinadas juntas.</text>
+</g>
+<g id="profile-summary"><rect id="profile-summary-surface" x="16" y="2392" width="1408" height="92" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="profile-summary-heading" x="32" y="2421" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">PERFIL EM USO</text>
+<text id="profile-empty" x="32" y="2449" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO. Estado ilustrativo, não uma leitura do host.</text>
+</g>
+<g id="power-plan"><rect id="power-plan-surface" x="16" y="2496" width="1408" height="100" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="power-plan-heading" x="32" y="2525" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">PLANO DE ENERGIA ATIVO NO WINDOWS</text>
+<text id="power-copy-1" x="32" y="2552" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">—  Plano e GUID não coletados para esta referência.</text>
+<text id="power-copy-2" x="32" y="2573" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.</text>
+</g>
+<g id="telemetry"><rect id="telemetry-surface" x="16" y="2608" width="1408" height="152" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="telemetry-heading" x="32" y="2637" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">TELEMETRIA DO PROGRAMA / JOGO: —</text>
+<rect id="metric-0" x="32" y="2653" width="331" height="89" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="metric-title-0" x="48" y="2675" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">CPU</text>
+<text id="metric-value-0" x="48" y="2705" fill="#46e0d5" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="750">—</text>
+<text id="metric-hint-0" x="48" y="2727" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Uso não coletado</text>
+<rect id="metric-1" x="375" y="2653" width="331" height="89" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="metric-title-1" x="391" y="2675" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">MEMÓRIA</text>
+<text id="metric-value-1" x="391" y="2705" fill="#46e0d5" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="750">—</text>
+<text id="metric-hint-1" x="391" y="2727" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Uso não coletado</text>
+<rect id="metric-2" x="718" y="2653" width="331" height="89" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="metric-title-2" x="734" y="2675" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">REDE TOTAL</text>
+<text id="metric-value-2" x="734" y="2705" fill="#46e0d5" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="750">—</text>
+<text id="metric-hint-2" x="734" y="2727" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Tráfego não coletado</text>
+<rect id="metric-3" x="1061" y="2653" width="331" height="89" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="metric-title-3" x="1077" y="2675" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">RTT TCP EXTERNO</text>
+<text id="metric-value-3" x="1077" y="2705" fill="#46e0d5" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="750">—</text>
+<text id="metric-hint-3" x="1077" y="2727" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">DNS público, não ping do jogo</text>
+</g>
+<g id="cores"><rect id="cores-surface" x="16" y="2772" width="1408" height="135" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="cores-heading" x="32" y="2801" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">USO POR NÚCLEO LÓGICO</text>
+<text id="core-copy-1" x="32" y="2827" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">TOPOLOGIA DETECTADA PELO WINDOWS</text>
+<text id="core-copy-2" x="32" y="2848" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">—  Topologia, carga por núcleo lógico, classificação P/E e caches não coletados.</text>
+<text id="core-copy-3" x="32" y="2869" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Sem barras de carga ou contagem de núcleos inventadas. A grade real depende do hardware.</text>
+</g>
+<g id="scheduling"><rect id="scheduling-surface" x="16" y="2919" width="1408" height="228" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="scheduling-heading" x="32" y="2948" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">OPÇÕES E DIRETRIZES DE AGENDAMENTO</text>
+<rect id="auto-yield-surface" x="32" y="2964" width="662" height="75" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<g id="auto-yield"><rect id="auto-yield-box" x="46" y="2979" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="auto-yield-label" x="71" y="2991" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Auto-Yield (afinidade)</text>
+</g>
+<text id="auto-yield-hint" x="46" y="3020" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Cede afinidade se outro programa mudar a máscara de uma thread já fixada.</text>
+<rect id="windowed-surface" x="710" y="2964" width="682" height="75" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<g id="windowed"><rect id="windowed-box" x="724" y="2979" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="windowed-label" x="749" y="2991" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Manter ajustes em segundo plano</text>
+</g>
+<text id="windowed-hint" x="724" y="3020" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Mantém prioridade e afinidade mesmo com o jogo fora de foco.</text>
+<rect id="minimize-tray-surface" x="32" y="3051" width="662" height="75" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<g id="minimize-tray"><rect id="minimize-tray-box" x="46" y="3066" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="minimize-tray-label" x="71" y="3078" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Minimizar para a Barra de Ícones (Tray)</text>
+</g>
+<text id="minimize-tray-hint" x="46" y="3107" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Oculta da barra de tarefas; menu Start/Stop na bandeja.</text>
+<rect id="admin-surface" x="710" y="3051" width="682" height="75" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="admin-title" x="724" y="3076" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Privilégios de Administrador</text>
+<text id="admin-hint" x="724" y="3103" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Solicita UAC; processos protegidos podem negar acesso.</text>
+<g id="elevate" opacity="1"><rect id="elevate-surface" x="1100" y="3070" width="276" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="elevate-label" x="1112" y="3092" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Reabrir como administrador</text>
+</g>
+</g>
+<g id="running"><rect id="running-surface" x="16" y="3159" width="1408" height="92" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="running-heading" x="32" y="3188" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">JOGOS DETECTADOS EM EXECUÇÃO: —</text>
+<text id="running-empty" x="32" y="3216" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Nenhum processo real representado. Detecção de jogos não consultada para este desenho.</text>
+</g>
+<g id="library"><text id="library-title" x="16" y="3287" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="750">BIBLIOTECA STEAM: —</text>
+<text id="aion-status" x="16" y="3312" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">AION 2: estado não consultado. Nenhuma compatibilidade com jogo ou anti-cheat é afirmada.</text>
+<g id="search"><text id="search-label" x="16" y="3341" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Buscar jogo</text>
+<rect id="search-surface" x="16" y="3351" width="430" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="search-value" x="28" y="3373" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Buscar jogo na biblioteca Steam...</text>
+</g>
+<rect id="library-row-surface" x="16" y="3403" width="1408" height="72" rx="8" fill="#091520" stroke="#1e394c" stroke-width="1"></rect>
+<text id="library-row-name" x="32" y="3430" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="750">Modelo de item · não é jogo instalado</text>
+<text id="library-row-note" x="32" y="3454" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Controles da biblioteca; Perfil APO é condicional a AION 2.</text>
+<g id="library-qos"><rect id="library-qos-box" x="494" y="3428" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="library-qos-label" x="519" y="3440" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Prioridade de memória / EcoQoS</text>
+</g>
+<g id="library-pcores"><rect id="library-pcores-box" x="766" y="3428" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="library-pcores-label" x="791" y="3440" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">P-cores</text>
+</g>
+<g id="library-auto"><rect id="library-auto-box" x="870" y="3428" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="library-auto-label" x="895" y="3440" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">Auto Prioridade</text>
+</g>
+<g id="library-rapo"><rect id="library-rapo-box" x="1030" y="3428" width="15" height="15" rx="3" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="library-rapo-label" x="1055" y="3440" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="400">RAPO</text>
+</g>
+<g id="apo-profile" opacity="1"><rect id="apo-profile-surface" x="1150" y="3420" width="174" height="34" rx="8" fill="#0c1a27" stroke="#1e394c" stroke-width="1"></rect>
+<text id="apo-profile-label" x="1162" y="3442" fill="#f3f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Perfil APO</text>
+</g>
+</g>
+<g id="footer"><text id="footer-note" x="16" y="3514" fill="#8da9bb" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="400">Referência de layout baseada no código atual; não é exportação DOM nem cópia exata de um viewport. Controles são formas editáveis, sem ações.</text>
+<text id="footer-sources" x="16" y="3540" fill="#68869a" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="400">Fontes: ui-wasm/src/dashboard.rs · ui-wasm/index.html · ui-wasm/src/lib.rs · ui.json (somente leitura)</text>
+</g>
+</svg>

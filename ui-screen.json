@@ -1,0 +1,3652 @@
+{
+  "format": "rapo-editable-screen",
+  "version": 1,
+  "language": "pt-BR",
+  "canvas": {
+    "width": 1440,
+    "height": 3570,
+    "units": "px"
+  },
+  "basis": {
+    "kind": "source-based-illustrative-reference",
+    "sources": [
+      "ui-wasm/src/dashboard.rs",
+      "ui-wasm/index.html",
+      "ui-wasm/src/lib.rs",
+      "ui.json"
+    ],
+    "liveCapture": false,
+    "geometry": "Expanded reference layout following source colors, typography, sections and controls; not measured browser geometry.",
+    "state": "Illustrative inactive state; unknown telemetry is an em dash. No hardware, game inventory, addresses, credentials or runtime policy was collected.",
+    "conditionalPanels": "HY2 transport, interface authorization, ICMP/table placeholders and a library item are intentionally exposed for editing, even when hidden in a real empty state.",
+    "defaultStateClaim": false
+  },
+  "editing": {
+    "nodeMapping": "Every JSON node maps 1:1 to an SVG element by id. attributes are SVG attributes; coordinates are absolute canvas pixels; text y is the baseline. Children preserve paint order.",
+    "semanticMetadata": "semantic properties describe visual controls only; not executable bindings or current runtime state.",
+    "runtimeIntegration": "Design-only assets. Neither file is loaded by the executable; editing either does not change application behavior or its compiled UI.",
+    "pairSynchronization": "The files start with matching nodes. There is no installed importer or automatic sync: keep corresponding IDs, SVG attributes and text aligned manually when editing either file.",
+    "fontFallback": "Segoe UI, Arial, sans-serif",
+    "externalDependencies": [],
+    "limitations": [
+      "Custom scene JSON, not a Figma native document or the runtime translations file.",
+      "Local font substitution can change text metrics.",
+      "Single expanded scroll canvas, not an application viewport or a live responsive layout; the actual UI wraps and reflows with window width.",
+      "Dynamic profiles, errors, real policies, routes, predictions and process rows need actual runtime data; no values are fabricated.",
+      "Reference includes condensed safety copy; application source remains authoritative."
+    ]
+  },
+  "styles": {
+    "colors": {
+      "background": "#050c13",
+      "section": "#091520",
+      "card": "#0c1a27",
+      "border": "#1e394c",
+      "text": "#f3f8fb",
+      "muted": "#8da9bb",
+      "subtle": "#68869a",
+      "accent": "#46e0d5",
+      "blue": "#55d7ff",
+      "warning": "#ffd96b",
+      "error": "#ff6877"
+    },
+    "fontFamily": "Segoe UI, Arial, sans-serif"
+  },
+  "nodes": [
+    {
+      "id": "canvas",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "background",
+          "type": "rect",
+          "attributes": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 3570,
+            "rx": 0,
+            "fill": "#050c13",
+            "stroke": "#050c13",
+            "stroke-width": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "design-note",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "design-note-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 16,
+            "width": 1408,
+            "height": 65,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#ffd96b",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "design-note-title",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 42,
+            "fill": "#ffd96b",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 700
+          },
+          "text": "REFERÊNCIA EDITÁVEL · ESTADO ILUSTRATIVO, NÃO UMA CAPTURA AO VIVO"
+        },
+        {
+          "id": "design-note-body",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 64,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Layout ampliado para edição • detalhes abertos • valores não coletados = — • nenhum jogo, dispositivo ou credencial real exportado."
+        }
+      ]
+    },
+    {
+      "id": "header",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "app-title",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 121,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 24,
+            "font-weight": 800
+          },
+          "text": "RINTEL RAPO"
+        },
+        {
+          "id": "scheduling-badge",
+          "type": "text",
+          "attributes": {
+            "x": 210,
+            "y": 119,
+            "fill": "#46e0d5",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 600
+          },
+          "text": "AGENDAMENTO WINDOWS"
+        },
+        {
+          "id": "status-badge",
+          "type": "text",
+          "attributes": {
+            "x": 402,
+            "y": 119,
+            "fill": "#ffd96b",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 600
+          },
+          "text": "PAUSADO (STOP)"
+        },
+        {
+          "id": "dtt-reference",
+          "type": "text",
+          "attributes": {
+            "x": 552,
+            "y": 119,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "DTT: não consultado"
+        },
+        {
+          "id": "refresh",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "refresh-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 720,
+                "y": 96,
+                "width": 100,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "refresh-label",
+              "type": "text",
+              "attributes": {
+                "x": 732,
+                "y": 118,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Atualizar"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "scan",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "scan-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 832,
+                "y": 96,
+                "width": 160,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "scan-label",
+              "type": "text",
+              "attributes": {
+                "x": 844,
+                "y": 118,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Reexaminar Steam"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "reset",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "reset-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1004,
+                "y": 96,
+                "width": 196,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "reset-label",
+              "type": "text",
+              "attributes": {
+                "x": 1016,
+                "y": 118,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Configuração padrão"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "start",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "start-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1212,
+                "y": 96,
+                "width": 100,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "start-label",
+              "type": "text",
+              "attributes": {
+                "x": 1224,
+                "y": 118,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Start"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "training",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "training-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 150,
+            "width": 1408,
+            "height": 238,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "training-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 179,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "AVATARNOIA FLOW ENGINE 2.0 · FPS REAL"
+        },
+        {
+          "id": "training-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 206,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Abra um jogo Steam"
+        },
+        {
+          "id": "training-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 227,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "RAPO aprende prioridade, memória/EcoQoS, núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis."
+        },
+        {
+          "id": "training-copy-3",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 248,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Um jogo por vez; pausa ao sair e retoma o mesmo candidato. ETW de apresentação, sem rastrear entrada ou execução na GPU."
+        },
+        {
+          "id": "training-copy-4",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 269,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Coleta sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções."
+        },
+        {
+          "id": "start-training",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "start-training-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 32,
+                "y": 288,
+                "width": 270,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "start-training-label",
+              "type": "text",
+              "attributes": {
+                "x": 44,
+                "y": 310,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Iniciar aprendizado contínuo"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "training-footer-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 345,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."
+        },
+        {
+          "id": "training-footer-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 366,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "▸ Licença do coletor integrado · PresentData / PresentMon 2.3.0 · Intel · MIT"
+        }
+      ]
+    },
+    {
+      "id": "subtitle",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "subtitle-text",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 418,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "APO e RAPO para jogos Steam: aprendizado em tempo real, núcleos físicos, afinidade, threads e SMT/Hyper-Threading via APIs públicas do Windows"
+        }
+      ]
+    },
+    {
+      "id": "network-optimization",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "network-optimization-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 438,
+            "width": 1408,
+            "height": 1060,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "network-optimization-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 467,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "OTIMIZAÇÃO DE REDE"
+        },
+        {
+          "id": "network-priority",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "network-priority-box",
+              "type": "rect",
+              "attributes": {
+                "x": 32,
+                "y": 483,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "network-priority-label",
+              "type": "text",
+              "attributes": {
+                "x": 57,
+                "y": 495,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Priorizar rede do jogo (DSCP 46)"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "priority-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 516,
+            "width": 440,
+            "height": 106,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "priority-title",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 539,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "PRIORIDADE"
+        },
+        {
+          "id": "priority-value",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 569,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 20,
+            "font-weight": 750
+          },
+          "text": "Desativado"
+        },
+        {
+          "id": "priority-hint",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 600,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Sem prioridade de rede"
+        },
+        {
+          "id": "traffic-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 492,
+            "y": 516,
+            "width": 440,
+            "height": 106,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "traffic-title",
+          "type": "text",
+          "attributes": {
+            "x": 506,
+            "y": 539,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "TRÁFEGO"
+        },
+        {
+          "id": "traffic-value",
+          "type": "text",
+          "attributes": {
+            "x": 506,
+            "y": 569,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 20,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "traffic-hint",
+          "type": "text",
+          "attributes": {
+            "x": 506,
+            "y": 600,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Envio + recebimento do sistema · não coletado"
+        },
+        {
+          "id": "tcp-rtt-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 952,
+            "y": 516,
+            "width": 440,
+            "height": 106,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "tcp-rtt-title",
+          "type": "text",
+          "attributes": {
+            "x": 966,
+            "y": 539,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "RTT TCP EXTERNO"
+        },
+        {
+          "id": "tcp-rtt-value",
+          "type": "text",
+          "attributes": {
+            "x": 966,
+            "y": 569,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 20,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "tcp-rtt-hint",
+          "type": "text",
+          "attributes": {
+            "x": 966,
+            "y": 600,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "DNS público; não é ping do jogo"
+        },
+        {
+          "id": "icmp-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 634,
+            "width": 1360,
+            "height": 84,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "icmp-title",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 657,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "ICMP · IPs TCP DO PROCESSO"
+        },
+        {
+          "id": "icmp-value",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 683,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 14,
+            "font-weight": 400
+          },
+          "text": "—  Nenhum destino observado nesta referência"
+        },
+        {
+          "id": "icmp-hint",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 705,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo."
+        },
+        {
+          "id": "relay-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 730,
+            "width": 662,
+            "height": 586,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "relay-title",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 754,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "RELAY LOCAL · SOCKS5 TCP/UDP"
+        },
+        {
+          "id": "relay-status",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 783,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 20,
+            "font-weight": 750
+          },
+          "text": "Desativado"
+        },
+        {
+          "id": "relay",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-box",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 802,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-label",
+              "type": "text",
+              "attributes": {
+                "x": 73,
+                "y": 814,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Habilitar relay local"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "relay-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 846,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Endereço local: — (não coletado)"
+        },
+        {
+          "id": "relay-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 867,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Conexões ativas: — · Associações UDP: — · Aceitas: —"
+        },
+        {
+          "id": "relay-copy-3",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 888,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Saída UDP fixa: — · Enviado: — KiB · Recebido: — KiB"
+        },
+        {
+          "id": "relay-copy-4",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 909,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Conexões pré-abertas: — usadas · — descartadas"
+        },
+        {
+          "id": "relay-copy-5",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 930,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": ""
+        },
+        {
+          "id": "relay-copy-6",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 951,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Configure SOCKS5 no cliente compatível: TCP CONNECT e UDP ASSOCIATE."
+        },
+        {
+          "id": "relay-copy-7",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 972,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "A opção WFP abaixo representa o tunelamento transparente por processo."
+        },
+        {
+          "id": "wfp-divider",
+          "type": "rect",
+          "attributes": {
+            "x": 48,
+            "y": 994,
+            "width": 630,
+            "height": 1,
+            "rx": 0,
+            "fill": "#1e394c",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "wfp",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "wfp-box",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 1013,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "wfp-label",
+              "type": "text",
+              "attributes": {
+                "x": 73,
+                "y": 1025,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Tunelar processo via WFP (Desativado)"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "wfp-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1054,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Alvo: — · nenhum processo real representado"
+        },
+        {
+          "id": "wfp-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1075,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Estado e erro do WFP dependem do host; este desenho não ativa o driver."
+        },
+        {
+          "id": "interfaces-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1112,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "▾ Autorizar outras saídas (detalhe de referência)"
+        },
+        {
+          "id": "interfaces-2",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1133,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "A saída atual do Windows sempre permanece elegível. Autorizar outra"
+        },
+        {
+          "id": "interfaces-3",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1154,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "interface pode contornar sua VPN e mudar o IP público; afeta somente"
+        },
+        {
+          "id": "interfaces-4",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1175,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "conexões SOCKS5 novas."
+        },
+        {
+          "id": "interfaces-5",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1196,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Nenhuma interface coletada; nenhuma autorização selecionada."
+        },
+        {
+          "id": "interfaces-6",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1217,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Reinicie o relay para atualizar a lista após trocar adaptadores."
+        },
+        {
+          "id": "transport-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 710,
+            "y": 730,
+            "width": 682,
+            "height": 586,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "transport-title",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 754,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 700
+          },
+          "text": "▾ TRANSPORTE · CONFIGURAÇÃO DESTA SESSÃO"
+        },
+        {
+          "id": "transport-reference",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 777,
+            "fill": "#ffd96b",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Painel condicional expandido para edição; HY2 não configurado nesta referência."
+        },
+        {
+          "id": "relay-mode",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-mode-label",
+              "type": "text",
+              "attributes": {
+                "x": 726,
+                "y": 803,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Modo"
+            },
+            {
+              "id": "relay-mode-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 726,
+                "y": 813,
+                "width": 650,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-mode-value",
+              "type": "text",
+              "attributes": {
+                "x": 738,
+                "y": 835,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Direto · rota do sistema"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "Direto · rota do sistema"
+          }
+        },
+        {
+          "id": "transport-modes-1",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 866,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Outras opções: Local · Flow nas interfaces autorizadas; HY2 · sem fallback direto;"
+        },
+        {
+          "id": "transport-modes-2",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 884,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Neural Auto · direto/HY2 nas novas conexões TCP"
+        },
+        {
+          "id": "relay-server",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-server-label",
+              "type": "text",
+              "attributes": {
+                "x": 726,
+                "y": 913,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Servidor HY2 (host:porta)"
+            },
+            {
+              "id": "relay-server-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 726,
+                "y": 923,
+                "width": 316,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-server-value",
+              "type": "text",
+              "attributes": {
+                "x": 738,
+                "y": 945,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "servidor:443"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "servidor:443"
+          }
+        },
+        {
+          "id": "relay-server-name",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-server-name-label",
+              "type": "text",
+              "attributes": {
+                "x": 1058,
+                "y": 913,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Nome TLS (opcional)"
+            },
+            {
+              "id": "relay-server-name-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1058,
+                "y": 923,
+                "width": 318,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-server-name-value",
+              "type": "text",
+              "attributes": {
+                "x": 1070,
+                "y": 945,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": ""
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": ""
+          }
+        },
+        {
+          "id": "relay-auth",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-auth-label",
+              "type": "text",
+              "attributes": {
+                "x": 726,
+                "y": 984,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Autenticação HY2 · campo vazio, nenhuma credencial"
+            },
+            {
+              "id": "relay-auth-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 726,
+                "y": 994,
+                "width": 650,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-auth-value",
+              "type": "text",
+              "attributes": {
+                "x": 738,
+                "y": 1016,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": ""
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": ""
+          }
+        },
+        {
+          "id": "relay-ca",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "relay-ca-label",
+              "type": "text",
+              "attributes": {
+                "x": 726,
+                "y": 1055,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "CA PEM (opcional; substitui as raízes do Windows)"
+            },
+            {
+              "id": "relay-ca-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 726,
+                "y": 1065,
+                "width": 650,
+                "height": 65,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-ca-value",
+              "type": "text",
+              "attributes": {
+                "x": 738,
+                "y": 1087,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": ""
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": ""
+          }
+        },
+        {
+          "id": "relay-configure",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "relay-configure-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 726,
+                "y": 1143,
+                "width": 210,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "relay-configure-label",
+              "type": "text",
+              "attributes": {
+                "x": 738,
+                "y": 1165,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Aplicar configuração"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "transport-warning-1",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 1201,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar."
+        },
+        {
+          "id": "transport-warning-2",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 1220,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Credencial somente em memória, não salva; TLS sempre validado."
+        },
+        {
+          "id": "transport-warning-3",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 1239,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "HY2 exige servidor remoto compatível. Neural Auto pode usar saída direta"
+        },
+        {
+          "id": "transport-warning-4",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 1258,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "e mudar o IP público de novas conexões. UDP mantém a saída da sessão,"
+        },
+        {
+          "id": "transport-warning-5",
+          "type": "text",
+          "attributes": {
+            "x": 726,
+            "y": 1277,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "sem estimativa de RTT por envio."
+        },
+        {
+          "id": "relay-model-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 1328,
+            "width": 1360,
+            "height": 150,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "relay-model-title",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1352,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 10,
+            "font-weight": 700
+          },
+          "text": "MODELO NEURAL · RELAY"
+        },
+        {
+          "id": "relay-model-state",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1379,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 18,
+            "font-weight": 750
+          },
+          "text": "Flow 9→16→1 · Parado"
+        },
+        {
+          "id": "relay-model-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1405,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote."
+        },
+        {
+          "id": "relay-model-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1427,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Destino / saída                         Medido                         Previsão (TCP/UDP)                         Amostras / falhas"
+        },
+        {
+          "id": "relay-model-copy-3",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1449,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Sem observações nesta referência. Previsão após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado."
+        }
+      ]
+    },
+    {
+      "id": "network-routes",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "network-routes-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 1510,
+            "width": 1408,
+            "height": 870,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "network-routes-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 1539,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "ROTAS POR IP · INTERFACE / GATEWAY"
+        },
+        {
+          "id": "route-warning-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 1564,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões."
+        },
+        {
+          "id": "route-warning-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 1585,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Este recurso de rotas não é túnel/relay, driver ou alteração de payload; não garante ping ou compatibilidade com anti-cheat."
+        },
+        {
+          "id": "route-warning-3",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 1606,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Somente rotas criadas nesta sessão são removidas se inalteradas. Saída normal aguarda limpeza por até 30 s."
+        },
+        {
+          "id": "route-warning-4",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 1627,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Falha/crash pode deixar rotas e políticas até reiniciar. Sem varredura insegura de sessões anteriores. Erros: %TEMP%\\rintel-rapo-routes.log."
+        },
+        {
+          "id": "route-fieldset",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 1653,
+            "width": 1360,
+            "height": 511,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "route-legend",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1677,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 700
+          },
+          "text": "CONFIGURAÇÃO EXPLÍCITA DE REDE"
+        },
+        {
+          "id": "route-refresh",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "route-refresh-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 1694,
+                "width": 269,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-refresh-label",
+              "type": "text",
+              "attributes": {
+                "x": 60,
+                "y": 1716,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Atualizar gateways/interfaces"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "route-destination",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "route-destination-label",
+              "type": "text",
+              "attributes": {
+                "x": 333,
+                "y": 1694,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "IP numérico de destino"
+            },
+            {
+              "id": "route-destination-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 333,
+                "y": 1704,
+                "width": 304,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-destination-value",
+              "type": "text",
+              "attributes": {
+                "x": 345,
+                "y": 1726,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "192.0.2.42 ou 2001:db8::42"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "192.0.2.42 ou 2001:db8::42"
+          }
+        },
+        {
+          "id": "route-candidate",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "route-candidate-label",
+              "type": "text",
+              "attributes": {
+                "x": 653,
+                "y": 1694,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Gateway/interface existentes"
+            },
+            {
+              "id": "route-candidate-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 653,
+                "y": 1704,
+                "width": 426,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-candidate-value",
+              "type": "text",
+              "attributes": {
+                "x": 665,
+                "y": 1726,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Selecione uma saída"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "Selecione uma saída"
+          }
+        },
+        {
+          "id": "route-apply",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "route-apply-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1095,
+                "y": 1704,
+                "width": 261,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-apply-label",
+              "type": "text",
+              "attributes": {
+                "x": 1107,
+                "y": 1726,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Aplicar rota manual"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "route-ip-hint-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1770,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto."
+        },
+        {
+          "id": "authorized-heading",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1806,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 700
+          },
+          "text": "GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA"
+        },
+        {
+          "id": "authorized-empty-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1830,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Sem saída alternativa representada: atualize a lista. Automático não altera rotas com apenas um gateway."
+        },
+        {
+          "id": "network-consent",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "network-consent-box",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 1848,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "network-consent-label",
+              "type": "text",
+              "attributes": {
+                "x": 73,
+                "y": 1860,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo."
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "consent-note",
+          "type": "text",
+          "attributes": {
+            "x": 73,
+            "y": 1885,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Nada será alterado apenas por detectar um jogo."
+        },
+        {
+          "id": "route-learn",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "route-learn-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 1900,
+                "width": 380,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-learn-label",
+              "type": "text",
+              "attributes": {
+                "x": 60,
+                "y": 1922,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Aprender e aplicar · rotas autorizadas"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "qos-heading",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1962,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 700
+          },
+          "text": "QOS DE SAÍDA POR EXECUTÁVEL · Mbps DECIMAIS"
+        },
+        {
+          "id": "qos-warning-1",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 1987,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Afeta a saída inteira do executável alvo. Pode atrasar o próprio jogo. Não é pacing de pacotes, SQM/CAKE ou controle do download/fila da operadora."
+        },
+        {
+          "id": "qos-warning-2",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2008,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Informe taxas autorizadas; velocidade da placa não é upload medido. DSCP e políticas anteriores são preservados; conflitos ambíguos recusam aplicação."
+        },
+        {
+          "id": "qos-warning-3",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2029,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Alvo atual: — (não coletado; caminho completo revalidado pelo host)."
+        },
+        {
+          "id": "rate-mbps",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "rate-mbps-label",
+              "type": "text",
+              "attributes": {
+                "x": 48,
+                "y": 2060,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Limite manual em Mbps"
+            },
+            {
+              "id": "rate-mbps-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 48,
+                "y": 2070,
+                "width": 240,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "rate-mbps-value",
+              "type": "text",
+              "attributes": {
+                "x": 60,
+                "y": 2092,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "1.25"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "1.25"
+          }
+        },
+        {
+          "id": "rate-apply",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "rate-apply-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 304,
+                "y": 2070,
+                "width": 238,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "rate-apply-label",
+              "type": "text",
+              "attributes": {
+                "x": 316,
+                "y": 2092,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Aplicar limite de saída"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "rate-list",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "rate-list-label",
+              "type": "text",
+              "attributes": {
+                "x": 558,
+                "y": 2060,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Taxas autorizadas em Mbps (mínimo duas)"
+            },
+            {
+              "id": "rate-list-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 558,
+                "y": 2070,
+                "width": 405,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "rate-list-value",
+              "type": "text",
+              "attributes": {
+                "x": 570,
+                "y": 2092,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "1.25, 2.5"
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "1.25, 2.5"
+          }
+        },
+        {
+          "id": "rate-learn",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "rate-learn-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 979,
+                "y": 2070,
+                "width": 377,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "rate-learn-label",
+              "type": "text",
+              "attributes": {
+                "x": 991,
+                "y": 2092,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Aprender e aplicar · taxas autorizadas"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "rates-placeholder-note",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2143,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "IPs e taxas acima são placeholders da interface, não valores aplicados."
+        },
+        {
+          "id": "network-stop",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "network-stop-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 32,
+                "y": 2180,
+                "width": 394,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "network-stop-label",
+              "type": "text",
+              "attributes": {
+                "x": 44,
+                "y": 2202,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Parar aprendizado e restaurar referência"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "route-remove-all",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "route-remove-all-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 438,
+                "y": 2180,
+                "width": 470,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "route-remove-all-label",
+              "type": "text",
+              "attributes": {
+                "x": 450,
+                "y": 2202,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Remover todos os ajustes de rede desta sessão"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        },
+        {
+          "id": "rate-remove",
+          "type": "g",
+          "attributes": {
+            "opacity": 0.45
+          },
+          "children": [
+            {
+              "id": "rate-remove-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 920,
+                "y": 2180,
+                "width": 322,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "rate-remove-label",
+              "type": "text",
+              "attributes": {
+                "x": 932,
+                "y": 2202,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Remover limite de saída próprio"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": true
+          }
+        },
+        {
+          "id": "owned-title",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2242,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 700
+          },
+          "text": "ROTAS REGISTRADAS NESTA SESSÃO"
+        },
+        {
+          "id": "owned-empty",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2265,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Nenhuma rota host própria registrada no estado ilustrativo. Nenhum limite próprio ou política ActiveStore representado."
+        },
+        {
+          "id": "icmp-learning-title",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2298,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 700
+          },
+          "text": "APRENDIZADO ONLINE · ICMP, NÃO LATÊNCIA DE ENVIO"
+        },
+        {
+          "id": "icmp-learning-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2320,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Flow 9→16→1 em memória por rota/taxa realmente medida. Previsões ordenam candidatos; nunca confirmam ganho. Timeout não é 0 ms."
+        },
+        {
+          "id": "icmp-learning-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2341,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Três respostas por janela; referência antes/depois; melhora >10% e 3 ms sem sobreposição e dois pares favoráveis antes de promover."
+        },
+        {
+          "id": "icmp-learning-3",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2362,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Revalida continuamente; regressão/erro pede restauração. Incerteza descritiva; sem prova de causalidade. Rotas e taxas não são treinadas juntas."
+        }
+      ]
+    },
+    {
+      "id": "profile-summary",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "profile-summary-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 2392,
+            "width": 1408,
+            "height": 92,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "profile-summary-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2421,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "PERFIL EM USO"
+        },
+        {
+          "id": "profile-empty",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2449,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO. Estado ilustrativo, não uma leitura do host."
+        }
+      ]
+    },
+    {
+      "id": "power-plan",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "power-plan-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 2496,
+            "width": 1408,
+            "height": 100,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "power-plan-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2525,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "PLANO DE ENERGIA ATIVO NO WINDOWS"
+        },
+        {
+          "id": "power-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2552,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "—  Plano e GUID não coletados para esta referência."
+        },
+        {
+          "id": "power-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2573,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano."
+        }
+      ]
+    },
+    {
+      "id": "telemetry",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "telemetry-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 2608,
+            "width": 1408,
+            "height": 152,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "telemetry-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2637,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "TELEMETRIA DO PROGRAMA / JOGO: —"
+        },
+        {
+          "id": "metric-0",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 2653,
+            "width": 331,
+            "height": 89,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "metric-title-0",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2675,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 700
+          },
+          "text": "CPU"
+        },
+        {
+          "id": "metric-value-0",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2705,
+            "fill": "#46e0d5",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 22,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "metric-hint-0",
+          "type": "text",
+          "attributes": {
+            "x": 48,
+            "y": 2727,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Uso não coletado"
+        },
+        {
+          "id": "metric-1",
+          "type": "rect",
+          "attributes": {
+            "x": 375,
+            "y": 2653,
+            "width": 331,
+            "height": 89,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "metric-title-1",
+          "type": "text",
+          "attributes": {
+            "x": 391,
+            "y": 2675,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 700
+          },
+          "text": "MEMÓRIA"
+        },
+        {
+          "id": "metric-value-1",
+          "type": "text",
+          "attributes": {
+            "x": 391,
+            "y": 2705,
+            "fill": "#46e0d5",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 22,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "metric-hint-1",
+          "type": "text",
+          "attributes": {
+            "x": 391,
+            "y": 2727,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Uso não coletado"
+        },
+        {
+          "id": "metric-2",
+          "type": "rect",
+          "attributes": {
+            "x": 718,
+            "y": 2653,
+            "width": 331,
+            "height": 89,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "metric-title-2",
+          "type": "text",
+          "attributes": {
+            "x": 734,
+            "y": 2675,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 700
+          },
+          "text": "REDE TOTAL"
+        },
+        {
+          "id": "metric-value-2",
+          "type": "text",
+          "attributes": {
+            "x": 734,
+            "y": 2705,
+            "fill": "#46e0d5",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 22,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "metric-hint-2",
+          "type": "text",
+          "attributes": {
+            "x": 734,
+            "y": 2727,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Tráfego não coletado"
+        },
+        {
+          "id": "metric-3",
+          "type": "rect",
+          "attributes": {
+            "x": 1061,
+            "y": 2653,
+            "width": 331,
+            "height": 89,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "metric-title-3",
+          "type": "text",
+          "attributes": {
+            "x": 1077,
+            "y": 2675,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 700
+          },
+          "text": "RTT TCP EXTERNO"
+        },
+        {
+          "id": "metric-value-3",
+          "type": "text",
+          "attributes": {
+            "x": 1077,
+            "y": 2705,
+            "fill": "#46e0d5",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 22,
+            "font-weight": 750
+          },
+          "text": "—"
+        },
+        {
+          "id": "metric-hint-3",
+          "type": "text",
+          "attributes": {
+            "x": 1077,
+            "y": 2727,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "DNS público, não ping do jogo"
+        }
+      ]
+    },
+    {
+      "id": "cores",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "cores-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 2772,
+            "width": 1408,
+            "height": 135,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "cores-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2801,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "USO POR NÚCLEO LÓGICO"
+        },
+        {
+          "id": "core-copy-1",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2827,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "TOPOLOGIA DETECTADA PELO WINDOWS"
+        },
+        {
+          "id": "core-copy-2",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2848,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "—  Topologia, carga por núcleo lógico, classificação P/E e caches não coletados."
+        },
+        {
+          "id": "core-copy-3",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2869,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Sem barras de carga ou contagem de núcleos inventadas. A grade real depende do hardware."
+        }
+      ]
+    },
+    {
+      "id": "scheduling",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "scheduling-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 2919,
+            "width": 1408,
+            "height": 228,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "scheduling-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 2948,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "OPÇÕES E DIRETRIZES DE AGENDAMENTO"
+        },
+        {
+          "id": "auto-yield-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 2964,
+            "width": 662,
+            "height": 75,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "auto-yield",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "auto-yield-box",
+              "type": "rect",
+              "attributes": {
+                "x": 46,
+                "y": 2979,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "auto-yield-label",
+              "type": "text",
+              "attributes": {
+                "x": 71,
+                "y": 2991,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Auto-Yield (afinidade)"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "auto-yield-hint",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 3020,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Cede afinidade se outro programa mudar a máscara de uma thread já fixada."
+        },
+        {
+          "id": "windowed-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 710,
+            "y": 2964,
+            "width": 682,
+            "height": 75,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "windowed",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "windowed-box",
+              "type": "rect",
+              "attributes": {
+                "x": 724,
+                "y": 2979,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "windowed-label",
+              "type": "text",
+              "attributes": {
+                "x": 749,
+                "y": 2991,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Manter ajustes em segundo plano"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "windowed-hint",
+          "type": "text",
+          "attributes": {
+            "x": 724,
+            "y": 3020,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Mantém prioridade e afinidade mesmo com o jogo fora de foco."
+        },
+        {
+          "id": "minimize-tray-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 32,
+            "y": 3051,
+            "width": 662,
+            "height": 75,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "minimize-tray",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "minimize-tray-box",
+              "type": "rect",
+              "attributes": {
+                "x": 46,
+                "y": 3066,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "minimize-tray-label",
+              "type": "text",
+              "attributes": {
+                "x": 71,
+                "y": 3078,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Minimizar para a Barra de Ícones (Tray)"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "minimize-tray-hint",
+          "type": "text",
+          "attributes": {
+            "x": 46,
+            "y": 3107,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Oculta da barra de tarefas; menu Start/Stop na bandeja."
+        },
+        {
+          "id": "admin-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 710,
+            "y": 3051,
+            "width": 682,
+            "height": 75,
+            "rx": 8,
+            "fill": "#0c1a27",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "admin-title",
+          "type": "text",
+          "attributes": {
+            "x": 724,
+            "y": 3076,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 700
+          },
+          "text": "Privilégios de Administrador"
+        },
+        {
+          "id": "admin-hint",
+          "type": "text",
+          "attributes": {
+            "x": 724,
+            "y": 3103,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Solicita UAC; processos protegidos podem negar acesso."
+        },
+        {
+          "id": "elevate",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "elevate-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1100,
+                "y": 3070,
+                "width": 276,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "elevate-label",
+              "type": "text",
+              "attributes": {
+                "x": 1112,
+                "y": 3092,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Reabrir como administrador"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "running",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "running-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 3159,
+            "width": 1408,
+            "height": 92,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "running-heading",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 3188,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "JOGOS DETECTADOS EM EXECUÇÃO: —"
+        },
+        {
+          "id": "running-empty",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 3216,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 400
+          },
+          "text": "Nenhum processo real representado. Detecção de jogos não consultada para este desenho."
+        }
+      ]
+    },
+    {
+      "id": "library",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "library-title",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 3287,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 13,
+            "font-weight": 750
+          },
+          "text": "BIBLIOTECA STEAM: —"
+        },
+        {
+          "id": "aion-status",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 3312,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "AION 2: estado não consultado. Nenhuma compatibilidade com jogo ou anti-cheat é afirmada."
+        },
+        {
+          "id": "search",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "search-label",
+              "type": "text",
+              "attributes": {
+                "x": 16,
+                "y": 3341,
+                "fill": "#8da9bb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 12,
+                "font-weight": 600
+              },
+              "text": "Buscar jogo"
+            },
+            {
+              "id": "search-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 16,
+                "y": 3351,
+                "width": 430,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "search-value",
+              "type": "text",
+              "attributes": {
+                "x": 28,
+                "y": 3373,
+                "fill": "#68869a",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Buscar jogo na biblioteca Steam..."
+            }
+          ],
+          "semantic": {
+            "role": "input",
+            "value": "",
+            "placeholder": "Buscar jogo na biblioteca Steam..."
+          }
+        },
+        {
+          "id": "library-row-surface",
+          "type": "rect",
+          "attributes": {
+            "x": 16,
+            "y": 3403,
+            "width": 1408,
+            "height": 72,
+            "rx": 8,
+            "fill": "#091520",
+            "stroke": "#1e394c",
+            "stroke-width": 1
+          }
+        },
+        {
+          "id": "library-row-name",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 3430,
+            "fill": "#f3f8fb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 15,
+            "font-weight": 750
+          },
+          "text": "Modelo de item · não é jogo instalado"
+        },
+        {
+          "id": "library-row-note",
+          "type": "text",
+          "attributes": {
+            "x": 32,
+            "y": 3454,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Controles da biblioteca; Perfil APO é condicional a AION 2."
+        },
+        {
+          "id": "library-qos",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "library-qos-box",
+              "type": "rect",
+              "attributes": {
+                "x": 494,
+                "y": 3428,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "library-qos-label",
+              "type": "text",
+              "attributes": {
+                "x": 519,
+                "y": 3440,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Prioridade de memória / EcoQoS"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "library-pcores",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "library-pcores-box",
+              "type": "rect",
+              "attributes": {
+                "x": 766,
+                "y": 3428,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "library-pcores-label",
+              "type": "text",
+              "attributes": {
+                "x": 791,
+                "y": 3440,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "P-cores"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "library-auto",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "library-auto-box",
+              "type": "rect",
+              "attributes": {
+                "x": 870,
+                "y": 3428,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "library-auto-label",
+              "type": "text",
+              "attributes": {
+                "x": 895,
+                "y": 3440,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "Auto Prioridade"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "library-rapo",
+          "type": "g",
+          "attributes": {},
+          "children": [
+            {
+              "id": "library-rapo-box",
+              "type": "rect",
+              "attributes": {
+                "x": 1030,
+                "y": 3428,
+                "width": 15,
+                "height": 15,
+                "rx": 3,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "library-rapo-label",
+              "type": "text",
+              "attributes": {
+                "x": 1055,
+                "y": 3440,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 400
+              },
+              "text": "RAPO"
+            }
+          ],
+          "semantic": {
+            "role": "checkbox",
+            "checked": false,
+            "stateBasis": "illustrative"
+          }
+        },
+        {
+          "id": "apo-profile",
+          "type": "g",
+          "attributes": {
+            "opacity": 1
+          },
+          "children": [
+            {
+              "id": "apo-profile-surface",
+              "type": "rect",
+              "attributes": {
+                "x": 1150,
+                "y": 3420,
+                "width": 174,
+                "height": 34,
+                "rx": 8,
+                "fill": "#0c1a27",
+                "stroke": "#1e394c",
+                "stroke-width": 1
+              }
+            },
+            {
+              "id": "apo-profile-label",
+              "type": "text",
+              "attributes": {
+                "x": 1162,
+                "y": 3442,
+                "fill": "#f3f8fb",
+                "font-family": "Segoe UI, Arial, sans-serif",
+                "font-size": 13,
+                "font-weight": 600
+              },
+              "text": "Perfil APO"
+            }
+          ],
+          "semantic": {
+            "role": "button",
+            "disabled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "type": "g",
+      "attributes": {},
+      "children": [
+        {
+          "id": "footer-note",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 3514,
+            "fill": "#8da9bb",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 12,
+            "font-weight": 400
+          },
+          "text": "Referência de layout baseada no código atual; não é exportação DOM nem cópia exata de um viewport. Controles são formas editáveis, sem ações."
+        },
+        {
+          "id": "footer-sources",
+          "type": "text",
+          "attributes": {
+            "x": 16,
+            "y": 3540,
+            "fill": "#68869a",
+            "font-family": "Segoe UI, Arial, sans-serif",
+            "font-size": 11,
+            "font-weight": 400
+          },
+          "text": "Fontes: ui-wasm/src/dashboard.rs · ui-wasm/index.html · ui-wasm/src/lib.rs · ui.json (somente leitura)"
+        }
+      ]
+    }
+  ]
+}

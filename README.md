@@ -146,6 +146,9 @@ A interface usa Rust/wasm em **WebView2**, com estado e comandos executados pelo
 
 HTML, JavaScript, wasm, `ui.json`, `ui_figma.svg` e licença do coletor ficam incorporados no `.exe`; não é necessário distribuir a pasta `ui-wasm/pkg`. A inicialização não lê arquivos laterais. Edite os fontes e recompile para incorporar mudanças. Para extrair cópias de `ui.json` e `ui_figma.svg`, execute `rintel-rapo.exe --export-ui-assets`; arquivos existentes nunca são sobrescritos.
 
+Para edição externa do desenho atual, use `ui-screen.svg` (grupos, formas e textos editáveis) e `ui-screen.json` (cena com os mesmos IDs, coordenadas e estilos), também publicados na release. São uma referência ilustrativa expandida de 1440 × 3570 px, baseada nos fontes, não uma captura ao vivo. Dados indisponíveis aparecem como `—`; os campos secretos ficam vazios. O JSON é um formato de cena próprio, não um documento nativo do Figma nem configuração do aplicativo. Não há importação ou sincronização automática: editar esses arquivos não altera o executável. `--export-ui-assets` continua exportando somente os arquivos legados `ui.json` e `ui_figma.svg`, sem sobrescrever cópias existentes.
+
+
 ### Validar o pacote no Windows
 
 1. Abra o `.exe` sem argumentos. Verifique cabeçalho, telemetria, núcleos, opções, busca e biblioteca Steam.
