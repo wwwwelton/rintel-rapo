@@ -22,6 +22,15 @@ pub const ENTRIES: [(&str, &str, &str); 10] = [
     ("r.FilmGrain", "0", "Desligar granulação de filme (imagem mais limpa; muda o visual)"),
     ("r.LensFlareQuality", "0", "Desligar lens flare (menos brilho na tela; muda o visual)"),
 ];
+/// Reflex (index 1) already keeps the frame queue empty; on top of it these frame-sync options only cost FPS,
+/// so they stay saved but are not written while Reflex is checked.
+const REFLEX: usize = 1;
+const SUPERSEDED_BY_REFLEX: [usize; 2] = [3, 4];
+
+fn superseded(selected: &[bool; ENTRIES.len()], index: usize) -> bool {
+    selected[REFLEX] && SUPERSEDED_BY_REFLEX.contains(&index)
+}
+
 const BEGIN: &str = "; RAPO BEGIN - removido automaticamente ao fechar o RAPO";
 const END: &str = "; RAPO END";
 const SECTION: &str = "[SystemSettings]";
@@ -32,6 +41,8 @@ pub struct Option_ {
     pub value: String,
     pub label: String,
     pub enabled: bool,
+    /// Checked but not written: Reflex already covers it.
+    pub superseded: bool,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize)]
@@ -107,7 +118,7 @@ impl EngineIni {
     /// Makes the file hold `selected` when `on`, and no RAPO line otherwise.
     fn sync(&mut self, on: bool) {
         let Some(path) = self.path.clone() else { return };
-        let wanted: [bool; ENTRIES.len()] = std::array::from_fn(|i| on && self.selected[i]);
+        let wanted: [bool; ENTRIES.len()] = std::array::from_fn(|i| on && self.selected[i] && !superseded(&self.selected, i));
         let any = wanted.contains(&true);
         let lines: Vec<String> = ENTRIES.iter().zip(wanted).filter(|(_, w)| *w).map(|((k, v, _), _)| format!("{k}={v}")).collect();
         let owned: [bool; ENTRIES.len()] = std::array::from_fn(|i| self.written[i] || self.owned[i]);
@@ -143,7 +154,7 @@ impl EngineIni {
             path: self.path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
             active: self.active,
             applied: self.written.contains(&true),
-            options: ENTRIES.iter().zip(self.selected).map(|((key, value, label), enabled)| Option_ { key: key.to_string(), value: value.to_string(), label: label.to_string(), enabled }).collect(),
+            options: ENTRIES.iter().zip(self.selected).enumerate().map(|(i, ((key, value, label), enabled))| Option_ { key: key.to_string(), value: value.to_string(), label: label.to_string(), enabled, superseded: enabled && superseded(&self.selected, i) }).collect(),
             override_fps: self.override_fps.clone(),
             error: self.error.clone(),
         }
@@ -298,6 +309,23 @@ mod tests {
         assert!(!state.applied && state.options[5].enabled, "Off keeps the saved selection");
         fs::remove_file(path).unwrap();
     }
+    #[test]
+    fn reflex_supersedes_frame_sync_options_without_unchecking_them() {
+        let path = temp("reflex", GAME);
+        let mut ini = EngineIni::at(Some(path.clone()));
+        for i in [1, 3, 4] { ini.set(i, true); }
+        ini.set_active(true);
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("t.Streamline.Reflex.Enable=1") && !text.contains("r.GTSyncType") && !text.contains("r.OneFrameThreadLag"));
+        assert!(ini.state().options[3].enabled && ini.state().options[3].superseded);
+        ini.set(1, false);
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("r.GTSyncType=1") && text.contains("r.OneFrameThreadLag=0"), "without Reflex they are written again");
+        assert!(!ini.state().options[3].superseded);
+        drop(ini);
+        fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn existing_section_gets_block_last_and_keeps_user_lines() {
         let original = "[SystemSettings]\nr.VSync=1\n\n[Other]\na=1\n";

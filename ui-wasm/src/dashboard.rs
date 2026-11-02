@@ -54,6 +54,8 @@ pub struct EngineIniOption {
     pub value: String,
     pub label: String,
     pub enabled: bool,
+    #[serde(default)]
+    pub superseded: bool,
 }
 
 #[derive(Default, Deserialize)]
@@ -197,8 +199,9 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
         if ini.applied { "Ajustes do RAPO ativos no arquivo agora" } else { "Arquivo sem linhas do RAPO" }, escape(&ini.path)).unwrap();
     for option in &ini.options {
         let key = escape(&option.key);
-        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · <code>{key}={}</code></span></label>",
-            if option.enabled { " checked" } else { "" }, escape(&option.label), escape(&option.value)).unwrap();
+        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · <code>{key}={}</code>{}</span></label>",
+            if option.enabled { " checked" } else { "" }, escape(&option.label), escape(&option.value),
+            if option.superseded { " · <strong>não gravado: o Reflex já controla a fila de frames</strong>" } else { "" }).unwrap();
     }
     html.push_str("<p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p>");
     if let Some(line) = &ini.override_fps {
@@ -500,8 +503,8 @@ mod tests {
                 mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
             wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, options: vec![
-                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true },
-                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false }],
+                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true, superseded: true },
+                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false, superseded: false }],
                 override_fps: Some("t.OverrideFPS=<30>".into()), error: String::new() },
         };
         view.routes = Routes {
@@ -531,6 +534,7 @@ mod tests {
         assert!(html.contains("C:\\&lt;x&gt;") && html.contains("t.OverrideFPS=&lt;30&gt;"), "Engine.ini path and foreign lines are untrusted");
         assert!(html.contains("data-key=\"t.MaxFPS\" checked>") && html.contains("data-key=\"r.MotionBlurQuality\"><span>"), "each option shows its own state");
         assert!(html.contains("data-action=\"engine-ini-active\" checked>") && html.contains("ON · opções marcadas"), "the On/Off switch reflects the saved state");
+        assert_eq!(html.matches("não gravado: o Reflex").count(), 1, "only superseded options carry the note");
         assert!(html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"><div class=\"core-bar-fill core-low\" style=\"width: 18.2%\">"), "usage metrics get a 0–100% bar");
         assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }
