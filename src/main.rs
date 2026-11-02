@@ -17,6 +17,7 @@ pub mod process_ping;
 pub mod routes;
 mod network_learning;
 pub mod relay;
+pub mod wfp;
 mod network_qos;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -110,6 +111,7 @@ mod app {
         power_plan: Option<power::ActivePlan>,
         power_error: String,
         relay: crate::relay::RelayServer,
+        wfp: crate::wfp::WfpManager,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -178,6 +180,7 @@ mod app {
                 wfp: crate::wfp::WfpManager::new(),
             };
             let _ = app.relay.start();
+            app.wfp.set_enabled(true, "Aion2.exe", 1080);
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
                 Err(error) => app.training_message = error,
