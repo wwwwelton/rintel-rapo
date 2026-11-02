@@ -1,0 +1,3 @@
+# Vendored sources are checksummed (.cargo-checksum.json); line-ending conversion breaks them on Windows checkouts.
+vendor/** -text
+native/hy2/vendor/** -text
