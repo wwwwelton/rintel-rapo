@@ -125,6 +125,24 @@ O painel geral exibe o FPS/frame pacing da própria interface quando há um proc
 
 Versões anteriores podiam alterar os valores globais do Windows `NetworkThrottlingIndex` e `SystemResponsiveness`. Esta versão **não os modifica nem os restaura automaticamente**: se você usou a opção antiga, inspecione sua configuração de sistema antes de ajustá-la manualmente, para não apagar personalizações suas ou de outros programas.
 
+### Engine.ini do AION 2 (perfil opcional com ON/OFF)
+
+O painel **ENGINE.INI DO AION 2** grava variáveis em `%LOCALAPPDATA%\AION2\Saved_Steam\Config\Windows\Engine.ini`, num bloco `; RAPO BEGIN` … `; RAPO END` dentro de `[SystemSettings]`. Elas foram pensadas para RTX 5070 12 GB em 4K, com foco em menor input lag, sem fila de frames e mais FPS. **Começa em OFF e sem opções marcadas.** As opções marcadas e o ON/OFF ficam salvos em `HKEY_CURRENT_USER\Software\RintelRAPO\EngineIni` e voltam ao abrir o RAPO; só com ON as opções marcadas vão para o arquivo.
+
+| Opção | Linha | Efeito |
+|---|---|---|
+| Limitar FPS em 120 | `t.MaxFPS=120` | Evita fila de frames quando a GPU está no limite |
+| Ativar NVIDIA Reflex | `t.Streamline.Reflex.Enable=1` | Ativa o plugin Reflex presente no jogo |
+| Reflex em baixa latência | `t.Streamline.Reflex.Mode=1` | Mantém a fila de renderização vazia |
+| Sem fila de frames | `r.GTSyncType=1` | A game thread espera a thread RHI (apresentação), sem preparar frames à frente da GPU |
+| Sem frame extra da render thread | `r.OneFrameThreadLag=0` | Remove um frame de atraso; pode reduzir FPS |
+| Desligar motion blur | `r.MotionBlurQuality=0` | Mais FPS em 4K; muda o visual |
+| Desligar profundidade de campo | `r.DepthOfFieldQuality=0` | Mais FPS em 4K; muda o visual |
+
+O jogo lê o arquivo ao iniciar: ligue o perfil antes de abrir o AION 2. Com ON, marcar ou desmarcar uma opção atualiza o arquivo na hora. OFF ou fechar o RAPO (janela ou bandeja) remove o bloco, sem apagar o perfil salvo, e o restante do arquivo volta byte a byte. A gravação usa arquivo temporário + renomeação. Se o jogo reescrever o arquivo sem os comentários, a remoção apaga apenas as linhas exatas que o RAPO gravou. Um bloco deixado por encerramento forçado é substituído pelo perfil salvo na próxima abertura, ou removido se o perfil estiver em OFF. Somente o AION 2 é afetado; o efeito real depende de o build do jogo respeitar essas variáveis.
+
+Resolução, DLSS/FSR, VSync e pool de texturas continuam no menu do jogo; DLSS em 4K é o maior ganho de FPS disponível, mas fica a cargo do jogo. `t.OverrideFPS` **não é oferecido**: ele não limita FPS, fixa o tempo de cada frame e acelera ou desacelera a simulação no cliente, comportamento semelhante a speedhack num jogo online com anti-cheat. Se o RAPO encontrar essa linha no arquivo, mostra um alerta para removê-la manualmente. FPS e latência não alteram o dano calculado pelo servidor; ajudam apenas na resposta aos comandos.
+
 ## Compilar e executar
 
 Instale Rust, o target `wasm32-unknown-unknown` e `wasm-bindgen-cli` **0.2.130**. Gere a interface antes do binário:
@@ -157,6 +175,7 @@ Para edição externa do desenho atual, use `ui-screen.svg` (formas e textos edi
 3. Minimize para a bandeja, restaure a janela e use Start/Stop e Sair no menu. Teste UAC cancelado e aceito separadamente; ao aceitar, a instância anterior deve fechar.
 4. Em um processo/jogo com conexões TCP existentes, compare os destinos ICMP com `Get-NetTCPConnection -OwningProcess <PID> -State Established` (somente leitura). Verifique IPv4 e IPv6 quando disponíveis; sem TCP/para jogo somente UDP deve haver aviso honesto, sem fallback de DNS sob rótulo de jogo. Confirme no máximo 4 IPs, aviso dos excedentes e timeout/indisponibilidade em vez de `0 ms`. Troque/remova o alvo enquanto uma sonda espera e confira limpeza imediata, sem reaparecer IPs antigos; o RTT externo deve permanecer separado. Não modifique firewall/rede para forçar o teste.
 5. Confira o SHA-256 do `.exe` final assinado com `Get-FileHash .\\rintel-rapo.exe -Algorithm SHA256`. A assinatura atual é autoassinada: não implica confiança pública nem elimina avisos do SmartScreen.
+6. Na primeira abertura de um `.exe` assinado por certificado autoassinado que ainda não está em `CurrentUser\Root`, o RAPO pergunta se deve instalá-lo em **Autoridades de Certificação Raiz Confiáveis** e **Editores Confiáveis** do usuário atual; o Windows mostra o próprio aviso de segurança para confirmar a raiz. A pergunta aparece uma vez por certificado (impressão digital guardada em `HKEY_CURRENT_USER\Software\RintelRAPO\CertificatePrompted`); executáveis sem assinatura, assinados por CA ou já confiáveis não perguntam. Recusar não impede o uso do RAPO. Aceite somente se o `.exe` veio da página oficial de releases: qualquer programa assinado com aquela chave passa a ser aceito nesse usuário. Para desfazer, remova o certificado `Rintel RAPO Open Source` em `certmgr.msc` (Raiz Confiáveis e Editores Confiáveis).
 
 O workflow de release só aceita disparo manual (`workflow_dispatch`); nenhum push publica release. Execute-o apenas depois da validação final no Windows. Ele gera `rintel-rapo-windows-x64.zip` (e `.zip.sha256`), `.exe`, certificado `.cer`, checksum, `mudwfp_proxy.exe`, `MUDWFP.sys`, `mudwfp.inf`, `NOTICE.md` e `THIRD_PARTY_NOTICES.txt`; ausência de qualquer arquivo interrompe a publicação. O build cruzado e o smoke do wasm no navegador não substituem esse teste do WebView2 e dos ajustes em processos reais.
 

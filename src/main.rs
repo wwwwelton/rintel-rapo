@@ -18,6 +18,7 @@ pub mod routes;
 mod network_learning;
 pub mod relay;
 pub mod wfp;
+pub mod engine_ini;
 mod network_qos;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -31,6 +32,8 @@ mod steam;
 mod windows;
 #[cfg(windows)]
 mod release;
+#[cfg(windows)]
+mod certificate;
 #[cfg(windows)]
 mod netqos;
 #[cfg(all(test, windows))]
@@ -112,6 +115,7 @@ mod app {
         power_error: String,
         relay: crate::relay::RelayServer,
         wfp: crate::wfp::WfpManager,
+        engine_ini: crate::engine_ini::EngineIni,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -178,8 +182,10 @@ mod app {
                 power_error: String::new(),
                 relay: crate::relay::RelayServer::new(1080),
                 wfp: crate::wfp::WfpManager::new(),
+                engine_ini: crate::engine_ini::EngineIni::new(),
             };
             let _ = app.relay.start();
+            // Every Engine.ini option starts off; dropping EngineIni removes RAPO's lines when RAPO closes.
             match crate::learning::load_profiles() {
                 Ok(profiles) => app.learned_profiles = profiles,
                 Err(error) => app.training_message = error,
@@ -586,6 +592,7 @@ mod app {
                     "network_priority": self.network_priority,
                     "relay": self.relay.state(),
                     "wfp": self.wfp.state(),
+                    "engine_ini": self.engine_ini.state(),
                     "routes": self.routes.state,
                     "route_endpoints": tm.process_ping.endpoints.iter().map(|e| &e.destination).collect::<Vec<_>>(),
                     "network_target_pid": if tm.has_target { tm.target_pid } else { 0 },
@@ -774,6 +781,8 @@ mod app {
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }
+                crate::command::Command::SetEngineIniOption { index, on } => self.engine_ini.set(index, on),
+                crate::command::Command::SetEngineIniActive(on) => self.engine_ini.set_active(on),
                 crate::command::Command::SetWindowed(on) => self.windowed_mode = on,
                 crate::command::Command::ToggleProcess { pid } => {
                     let Some(process) = self.running.iter().find(|p| p.pid == pid).cloned() else {
@@ -857,6 +866,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("{error}");
         return Ok(());
     }
+    certificate::prompt_once();
     let result = webview::run();
     if let Err(error) = &result {
         let message: Vec<u16> = format!("Não foi possível abrir a interface WebView2: {error}\nVerifique a instalação do Microsoft Edge WebView2 Runtime.").encode_utf16().chain(Some(0)).collect();

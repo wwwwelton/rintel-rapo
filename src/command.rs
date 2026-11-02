@@ -45,6 +45,10 @@ pub enum Command {
     SetRelayInterfaces(Vec<String>),
     ConfigureRelay { mode: crate::relay::Mode, config: crate::relay::Hy2Config },
     SetWfp(bool),
+    /// Enables or disables one `engine_ini::ENTRIES` option in AION 2's Engine.ini.
+    SetEngineIniOption { index: usize, on: bool },
+    /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
+    SetEngineIniActive(bool),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -69,6 +73,7 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "network-priority" => Some(Command::SetNetworkPriority(checked?)),
         "relay" => Some(Command::SetRelay(checked?)),
         "wfp" => Some(Command::SetWfp(checked?)),
+        "engine-ini-active" => Some(Command::SetEngineIniActive(checked?)),
         _ => None,
     }
 }
@@ -102,6 +107,11 @@ pub fn from_json(body: &str) -> Option<Command> {
             if candidates.len() > 64 { return None; }
             let candidates = candidates.iter().map(|v| v.as_str().filter(|id| !id.is_empty() && id.len() <= 512).map(str::to_owned)).collect::<Option<Vec<_>>>()?;
             return Some(Command::SetRelayInterfaces(candidates));
+        }
+        "engine-ini" => {
+            let key = event.get("key")?.as_str()?;
+            let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
+            return Some(Command::SetEngineIniOption { index, on: checked? });
         }
         "route-refresh" => return Some(Command::RefreshRoutes),
         "route-apply" => return Some(Command::ApplyRoute { destination: text("destination")?, candidate: text("candidate")? }),
@@ -185,6 +195,10 @@ mod tests {
         assert_eq!(from_json(r#"{"action":"windowed","checked":false}"#), Some(Command::SetWindowed(false)));
         assert_eq!(from_json(r#"{"action":"search","text":"AION 2"}"#), Some(Command::SetSearch("AION 2".into())));
         assert_eq!(from_json("not JSON"), None);
+        assert_eq!(from_json(r#"{"action":"engine-ini","key":"t.MaxFPS","checked":true}"#), Some(Command::SetEngineIniOption { index: 0, on: true }));
+        for body in [r#"{"action":"engine-ini","key":"t.OverrideFPS","checked":true}"#, r#"{"action":"engine-ini","key":"t.MaxFPS"}"#] {
+            assert_eq!(from_json(body), None, "{body}");
+        }
         for body in [r#"{"action":"relay"}"#, r#"{"action":"relay","checked":"true"}"#,
             r#"{"action":"relay-interfaces","candidates":[2]}"#, r#"{"action":"relay-interfaces","candidates":[""]}"#] {
             assert_eq!(from_json(body), None);

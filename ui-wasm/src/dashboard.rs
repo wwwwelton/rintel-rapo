@@ -34,6 +34,26 @@ pub struct Dashboard {
     pub relay: Relay,
     #[serde(default)]
     pub wfp: Wfp,
+    #[serde(default)]
+    pub engine_ini: EngineIni,
+}
+
+#[derive(Default, Deserialize)]
+pub struct EngineIni {
+    pub path: String,
+    pub active: bool,
+    pub applied: bool,
+    pub options: Vec<EngineIniOption>,
+    pub override_fps: Option<String>,
+    pub error: String,
+}
+
+#[derive(Deserialize)]
+pub struct EngineIniOption {
+    pub key: String,
+    pub value: String,
+    pub label: String,
+    pub enabled: bool,
 }
 
 #[derive(Default, Deserialize)]
@@ -140,6 +160,38 @@ pub struct Rate { pub exe: String, pub policy: String, pub bps: u64, pub confirm
 
 const RELAY_MODES: [(&str, &str); 4] = [("direct", "Direto · rota do sistema"), ("local", "Local · Flow nas interfaces autorizadas"),
     ("hy2", "HY2 · sem fallback direto"), ("neural_auto", "Neural Auto · direto/HY2 nas novas conexões TCP")];
+
+/// First `<number>%` in a host-formatted metric, e.g. `"18.2% · Sistema 22.0%"` -> 18.2.
+fn first_percent(text: &str) -> Option<f32> {
+    let number = &text[..text.find('%')?];
+    let start = number.trim_end_matches(|c: char| c.is_ascii_digit() || c == '.').len();
+    number[start..].parse::<f32>().ok().filter(|p| p.is_finite())
+}
+
+/// 0–100% meter with the core color thresholds: green, amber above 50%, red above 85%.
+fn usage_bar(html: &mut String, percent: f32, label: &str) {
+    let percent = percent.clamp(0.0, 100.0);
+    let color = if percent > 85.0 { "core-high" } else if percent > 50.0 { "core-med" } else { "core-low" };
+    write!(html, "<div class=\"core-bar-bg\" role=\"meter\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"{percent:.0}\" aria-label=\"{}\"><div class=\"core-bar-fill {color}\" style=\"width: {percent:.1}%\"></div></div>", escape(label)).unwrap();
+}
+
+fn render_engine_ini(html: &mut String, ini: &EngineIni) {
+    write!(html, "<section class=\"power-plan\"><h2>ENGINE.INI DO AION 2</h2><label class=\"property-toggle\"><input type=\"checkbox\" data-action=\"engine-ini-active\"{}> <div class=\"property-text\"><span class=\"property-name\">{}</span><span class=\"property-desc\">{}</span></div></label><p><code>{}</code></p><h3>PERFIL SALVO</h3>",
+        if ini.active { " checked" } else { "" },
+        if ini.active { "ON · opções marcadas gravadas no Engine.ini" } else { "OFF · nenhuma linha do RAPO no Engine.ini" },
+        if ini.applied { "Ajustes do RAPO ativos no arquivo agora" } else { "Arquivo sem linhas do RAPO" }, escape(&ini.path)).unwrap();
+    for option in &ini.options {
+        let key = escape(&option.key);
+        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · <code>{key}={}</code></span></label>",
+            if option.enabled { " checked" } else { "" }, escape(&option.label), escape(&option.value)).unwrap();
+    }
+    html.push_str("<p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p>");
+    if let Some(line) = &ini.override_fps {
+        write!(html, "<p class=\"alert\" role=\"alert\">Encontrado no Engine.ini fora do RAPO: <code>{}</code>. Ele não é um limitador de FPS; remova-o manualmente se não foi intencional.</p>", escape(line)).unwrap();
+    }
+    if !ini.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&ini.error)).unwrap(); }
+    html.push_str("</section>");
+}
 
 fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     let (class, status) = if relay.running { ("net-card-active", "Escutando") }
@@ -326,6 +378,7 @@ pub fn render(view: &Dashboard) -> String {
         None => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(&view.power_plan.error)).unwrap(); }
     }
     html.push_str("</section>");
+    render_engine_ini(&mut html, &view.engine_ini);
     write!(html, "<section class=\"telemetry-section\"><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><div class=\"telemetry-grid\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
@@ -333,13 +386,18 @@ pub fn render(view: &Dashboard) -> String {
         if !sub.is_empty() {
             write!(html, "<span class=\"box-sub\">{}</span>", escape(sub)).unwrap();
         }
+        // Bars only where the value is a share of a whole; FPS, MB/s and ms have no natural maximum.
+        if let Some(percent) = label.starts_with("USO DE").then(|| first_percent(value)).flatten() {
+            usage_bar(&mut html, percent, label);
+        }
         html.push_str("</div>");
     }
     html.push_str("</div></section><section class=\"cores-section\"><h2>USO POR NÚCLEO LÓGICO</h2><p>TOPOLOGIA DETECTADA PELO WINDOWS</p><div class=\"core-grid\">");
     for (index, load, p_core) in &view.cores {
         let percent = load.clamp(0.0, 1.0) * 100.0;
-        let color_class = if percent > 85.0 { "core-high" } else if percent > 50.0 { "core-med" } else { "core-low" };
-        write!(html, "<div class=\"core-box\"><div class=\"core-header\"><span class=\"core-num\">{:02}</span><span class=\"badge {}\">{}</span><span class=\"core-pct\">{:.0}%</span></div><div class=\"core-bar-bg\"><div class=\"core-bar-fill {}\" style=\"width: {:.1}%\"></div></div></div>", index, if *p_core { "badge-accent" } else { "badge-muted" }, if *p_core { "P-core" } else { "E-core" }, percent, color_class, percent).unwrap();
+        write!(html, "<div class=\"core-box{}\"><div class=\"core-header\"><span class=\"core-num\">CPU {:02}</span><span class=\"badge {}\">{}</span></div><span class=\"core-pct\">{:.0}%</span>", if *p_core { " core-p" } else { "" }, index, if *p_core { "badge-accent" } else { "badge-muted" }, if *p_core { "P-core" } else { "E-core" }, percent).unwrap();
+        usage_bar(&mut html, percent, &format!("Uso do núcleo {index}"));
+        html.push_str("</div>");
     }
     html.push_str("</div><div class=\"cache-badges\">");
     for cache in &view.cache { write!(html, "<span class=\"badge badge-muted\">{}</span> ", escape(cache)).unwrap(); }
@@ -382,7 +440,9 @@ mod tests {
     fn protected_process_controls_and_untrusted_text() {
         let mut view = Dashboard {
             alerts: vec!["<img src=x onerror=alert(1)>".into()], subtitle: String::new(), target: String::new(),
-            metrics: vec![("ICMP · DESTINO OBSERVADO".into(), "Timeout · <img src=x> & destino".into())], cores: vec![], cache: vec![],
+            metrics: vec![("ICMP · DESTINO OBSERVADO".into(), "Timeout · <img src=x> & destino".into()),
+                ("USO DE CPU TOTAL".into(), "18.2% · Sistema 22.0%".into()),
+                ("ICMP · ROTA OBSERVADA".into(), "2001:db8::42 · gateway fe80::1%2".into())], cores: vec![], cache: vec![],
             running: vec![Process { pid: 42, game: "<script>".into(), exe: "a\"b".into(), state: String::new(), enabled: false, auto: false, qos: false, priority: false, can_toggle: false }],
             auto_yield: true, windowed: false, minimize_tray: false, library_count: 0, aion2_status: String::new(), pin_status: None,
             profile: None,
@@ -393,7 +453,10 @@ mod tests {
                 interfaces: vec![RouteCandidate { id: "relay\"<&>".into(), interface: "<img src=relay>".into(), index: 2, gateway: "192.0.2.1".into(), ipv6: false }],
                 mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
-            wfp: Wfp::default(),
+            wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, options: vec![
+                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true },
+                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false }],
+                override_fps: Some("t.OverrideFPS=<30>".into()), error: String::new() },
         };
         view.routes = Routes {
             candidates: vec![RouteCandidate { id: "x\"<&>".into(), interface: "<img src=x>".into(), index: 2, gateway: "fe80::1%2".into(), ipv6: true }],
@@ -419,6 +482,11 @@ mod tests {
         assert!(html.contains("&lt;script&gt;hy2&lt;/script&gt;:443") && html.contains("&lt;img src=udp&gt;"));
         assert!(html.contains("<fieldset id=\"relay-transport\" disabled>"), "transport settings are locked while the relay runs");
         assert!(html.contains("<option value=\"hy2\" selected>") && html.contains("Transporte · HY2"));
+        assert!(html.contains("C:\\&lt;x&gt;") && html.contains("t.OverrideFPS=&lt;30&gt;"), "Engine.ini path and foreign lines are untrusted");
+        assert!(html.contains("data-key=\"t.MaxFPS\" checked>") && html.contains("data-key=\"r.MotionBlurQuality\"><span>"), "each option shows its own state");
+        assert!(html.contains("data-action=\"engine-ini-active\" checked>") && html.contains("ON · opções marcadas"), "the On/Off switch reflects the saved state");
+        assert!(html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"><div class=\"core-bar-fill core-low\" style=\"width: 18.2%\">"), "usage metrics get a 0–100% bar");
+        assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }
     #[test]
     fn udp_destinations_are_visible_when_tcp_connections_are_zero() {
