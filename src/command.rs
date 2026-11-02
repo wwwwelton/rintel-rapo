@@ -44,6 +44,7 @@ pub enum Command {
     SetRelay(bool),
     SetRelayInterfaces(Vec<String>),
     ConfigureRelay { mode: crate::relay::Mode, config: crate::relay::Hy2Config },
+    SetWfp(bool),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -67,6 +68,7 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "apo-profile" => Some(Command::ApplyAion2Profile { directory: directory()? }),
         "network-priority" => Some(Command::SetNetworkPriority(checked?)),
         "relay" => Some(Command::SetRelay(checked?)),
+        "wfp" => Some(Command::SetWfp(checked?)),
         _ => None,
     }
 }

@@ -175,6 +175,7 @@ mod app {
                 power_plan: None,
                 power_error: String::new(),
                 relay: crate::relay::RelayServer::new(1080),
+                wfp: crate::wfp::WfpManager::new(),
             };
             let _ = app.relay.start();
             match crate::learning::load_profiles() {
@@ -481,6 +482,7 @@ mod app {
 
     impl Drop for App {
         fn drop(&mut self) {
+            self.wfp.stop();
             self.relay.stop();
             self.routes.shutdown();
             if let Some(training) = self.training.take() {
@@ -581,6 +583,7 @@ mod app {
                     "network_tweaks": network_tweaks,
                     "network_priority": self.network_priority,
                     "relay": self.relay.state(),
+                    "wfp": self.wfp.state(),
                     "routes": self.routes.state,
                     "route_endpoints": tm.process_ping.endpoints.iter().map(|e| &e.destination).collect::<Vec<_>>(),
                     "network_target_pid": if tm.has_target { tm.target_pid } else { 0 },
@@ -602,6 +605,7 @@ mod app {
             }
             self.routes.poll(&self.telemetry.metrics.process_ping);
             self.relay.poll();
+            self.wfp.poll();
             let pause_requested = self.tray.take_fps_pause_request();
             if pause_requested {
                 self.fps.pause_sampling();
@@ -693,6 +697,16 @@ mod app {
                 crate::command::Command::SetRelay(on) => {
                     if on { let _ = self.relay.start(); } else { self.relay.stop(); }
                 }
+                crate::command::Command::SetWfp(on) => {
+                    let target = if self.telemetry.metrics.has_target {
+                        self.running.iter().find(|p| p.pid == self.telemetry.metrics.target_pid)
+                            .and_then(|p| std::path::Path::new(&p.exe).file_name()?.to_str())
+                            .unwrap_or("Aion2.exe")
+                    } else {
+                        "Aion2.exe"
+                    };
+                    self.wfp.set_enabled(on, target, 1080);
+                }
                 crate::command::Command::SetRelayInterfaces(interfaces) => self.relay.set_interfaces(interfaces),
                 crate::command::Command::ConfigureRelay { mode, config } => { let _ = self.relay.configure(mode, config); }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
@@ -737,7 +751,17 @@ mod app {
                 }
                 crate::command::Command::SetMinimizeToTray(on) => self.tray.set_minimize_to_tray(on),
                 crate::command::Command::SetRapo(directory) => {
+                    let on = directory.is_some();
                     self.select_rapo(directory);
+                    let target = if self.telemetry.metrics.has_target {
+                        self.running.iter().find(|p| p.pid == self.telemetry.metrics.target_pid)
+                            .and_then(|p| std::path::Path::new(&p.exe).file_name()?.to_str())
+                            .unwrap_or("Aion2.exe")
+                    } else {
+                        "Aion2.exe"
+                    };
+                    if on { let _ = self.relay.start(); }
+                    self.wfp.set_enabled(on, target, 1080);
                     self.refresh();
                 }
                 crate::command::Command::ApplyAion2Profile { directory } => {
@@ -752,6 +776,8 @@ mod app {
                     }
                     self.qos_games.insert(directory.clone());
                     self.aion2_prefetched = false;
+                    let _ = self.relay.start();
+                    self.wfp.set_enabled(true, "Aion2.exe", 1080);
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }
