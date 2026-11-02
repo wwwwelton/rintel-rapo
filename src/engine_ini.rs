@@ -9,7 +9,8 @@ use std::{fs, io, path::{Path, PathBuf}};
 /// game/render threads from running frames ahead (Epic "Low Latency Frame Syncing"); a 120 FPS cap below
 /// the GPU limit avoids GPU-bound queuing; motion blur/depth of field are full-screen 4K passes.
 /// Resolution, upscaler (DLSS/FSR), VSync and texture pool stay under the game's own menu.
-pub const ENTRIES: [(&str, &str, &str); 7] = [
+/// The last three are cosmetic full-screen passes that cost GPU time and add no gameplay information.
+pub const ENTRIES: [(&str, &str, &str); 10] = [
     ("t.MaxFPS", "120", "Limitar FPS em 120 (evita fila na GPU e reduz latência)"),
     ("t.Streamline.Reflex.Enable", "1", "Ativar NVIDIA Reflex"),
     ("t.Streamline.Reflex.Mode", "1", "Reflex em modo baixa latência (fila de renderização vazia)"),
@@ -17,6 +18,9 @@ pub const ENTRIES: [(&str, &str, &str); 7] = [
     ("r.OneFrameThreadLag", "0", "Sem frame extra da render thread (menos latência; pode reduzir FPS)"),
     ("r.MotionBlurQuality", "0", "Desligar motion blur (mais FPS; muda o visual)"),
     ("r.DepthOfFieldQuality", "0", "Desligar profundidade de campo (mais FPS; muda o visual)"),
+    ("r.SceneColorFringeQuality", "0", "Desligar aberração cromática (imagem mais nítida; muda o visual)"),
+    ("r.FilmGrain", "0", "Desligar granulação de filme (imagem mais limpa; muda o visual)"),
+    ("r.LensFlareQuality", "0", "Desligar lens flare (menos brilho na tela; muda o visual)"),
 ];
 const BEGIN: &str = "; RAPO BEGIN - removido automaticamente ao fechar o RAPO";
 const END: &str = "; RAPO END";
@@ -51,6 +55,9 @@ pub struct EngineIni {
     active: bool,
     /// Options present in the file; the fallback cleanup removes only these exact lines.
     written: [bool; ENTRIES.len()],
+    /// Every option RAPO has ever written, saved across sessions. The game rewrites Engine.ini on exit
+    /// without RAPO's markers, so copies of these exact lines are removed even outside the block.
+    owned: [bool; ENTRIES.len()],
     /// False in tests: the profile is not read from or saved to the registry.
     persist: bool,
     override_fps: Option<String>,
@@ -67,14 +74,14 @@ impl EngineIni {
         ini.persist = true;
         if ini.path.is_none() { ini.error = "LOCALAPPDATA ausente; Engine.ini do AION 2 não localizado".into(); }
         let loaded = load_profile();
-        if let Ok(Some((selected, active))) = loaded { ini.selected = selected; ini.active = active; }
+        if let Ok(Some((selected, active, owned))) = loaded { ini.selected = selected; ini.active = active; ini.owned = owned; }
         ini.sync(ini.active);
         if let Err(error) = loaded { ini.error = format!("Perfil do Engine.ini: {error}"); }
         ini
     }
 
     pub fn at(path: Option<PathBuf>) -> Self {
-        Self { path, selected: [false; ENTRIES.len()], active: false, written: [false; ENTRIES.len()], persist: false, override_fps: None, error: String::new() }
+        Self { path, selected: [false; ENTRIES.len()], active: false, written: [false; ENTRIES.len()], owned: [false; ENTRIES.len()], persist: false, override_fps: None, error: String::new() }
     }
 
     /// Checks or unchecks one option of the saved profile.
@@ -94,7 +101,7 @@ impl EngineIni {
 
     fn save(&mut self) {
         if !self.persist { return; }
-        if let Err(error) = save_profile(&self.selected, self.active) { self.error = format!("Salvar perfil do Engine.ini: {error}"); }
+        if let Err(error) = save_profile(&self.selected, self.active, &self.owned) { self.error = format!("Salvar perfil do Engine.ini: {error}"); }
     }
 
     /// Makes the file hold `selected` when `on`, and no RAPO line otherwise.
@@ -103,7 +110,8 @@ impl EngineIni {
         let wanted: [bool; ENTRIES.len()] = std::array::from_fn(|i| on && self.selected[i]);
         let any = wanted.contains(&true);
         let lines: Vec<String> = ENTRIES.iter().zip(wanted).filter(|(_, w)| *w).map(|((k, v, _), _)| format!("{k}={v}")).collect();
-        let written: Vec<(&str, &str)> = ENTRIES.iter().zip(self.written).filter(|(_, w)| *w).map(|((k, v, _), _)| (*k, *v)).collect();
+        let owned: [bool; ENTRIES.len()] = std::array::from_fn(|i| self.written[i] || self.owned[i]);
+        let written: Vec<(&str, &str)> = ENTRIES.iter().zip(owned).filter(|(_, w)| *w).map(|((k, v, _), _)| (*k, *v)).collect();
         let result = (|| {
             let text = match fs::read_to_string(&path) {
                 Ok(text) => text,
@@ -120,6 +128,8 @@ impl EngineIni {
         match result {
             Ok(text) => {
                 self.written = if text.is_some() { wanted } else { [false; ENTRIES.len()] };
+                let owned: [bool; ENTRIES.len()] = std::array::from_fn(|i| self.owned[i] || self.written[i]);
+                if owned != self.owned { self.owned = owned; self.save(); }
                 self.override_fps = text.as_deref().and_then(override_fps);
                 self.error.clear();
             }
@@ -148,9 +158,21 @@ impl Drop for EngineIni {
 #[cfg(windows)]
 const PROFILE_KEY: &str = r"Software\RintelRAPO\EngineIni";
 
-/// Profile format: `Active` DWORD and `Options` = enabled keys joined by `;`. Unknown keys are ignored.
+type Flags = [bool; ENTRIES.len()];
+
+fn keys(flags: &Flags) -> String {
+    ENTRIES.iter().zip(flags).filter(|(_, on)| **on).map(|((k, _, _), _)| *k).collect::<Vec<_>>().join(";")
+}
+
+fn flags(keys: &str) -> Flags {
+    let keys: Vec<&str> = keys.split(';').collect();
+    std::array::from_fn(|i| keys.contains(&ENTRIES[i].0))
+}
+
+/// Profile format: `Active` DWORD, `Options` = enabled keys and `Owned` = keys RAPO ever wrote, joined by `;`.
+/// Unknown keys are ignored.
 #[cfg(windows)]
-fn load_profile() -> Result<Option<([bool; ENTRIES.len()], bool)>, String> {
+fn load_profile() -> Result<Option<(Flags, bool, Flags)>, String> {
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
     let key = match RegKey::predef(HKEY_CURRENT_USER).open_subkey(PROFILE_KEY) {
         Ok(key) => key,
@@ -159,24 +181,25 @@ fn load_profile() -> Result<Option<([bool; ENTRIES.len()], bool)>, String> {
     };
     let options: String = key.get_value("Options").unwrap_or_default();
     let active: u32 = key.get_value("Active").unwrap_or(0);
-    let saved: Vec<&str> = options.split(';').collect();
-    Ok(Some((std::array::from_fn(|i| saved.contains(&ENTRIES[i].0)), active != 0)))
+    // Profiles saved before `Owned` existed: anything that was checked may have been written.
+    let owned: String = key.get_value("Owned").unwrap_or_else(|_| options.clone());
+    Ok(Some((flags(&options), active != 0, flags(&owned))))
 }
 
 #[cfg(windows)]
-fn save_profile(selected: &[bool; ENTRIES.len()], active: bool) -> Result<(), String> {
+fn save_profile(selected: &Flags, active: bool, owned: &Flags) -> Result<(), String> {
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
     let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(PROFILE_KEY).map_err(|e| e.to_string())?;
-    let options: Vec<&str> = ENTRIES.iter().zip(selected).filter(|(_, on)| **on).map(|((k, _, _), _)| *k).collect();
-    key.set_value("Options", &options.join(";")).map_err(|e| e.to_string())?;
+    key.set_value("Options", &keys(selected)).map_err(|e| e.to_string())?;
+    key.set_value("Owned", &keys(owned)).map_err(|e| e.to_string())?;
     key.set_value("Active", &u32::from(active)).map_err(|e| e.to_string())
 }
 
 #[cfg(not(windows))]
-fn load_profile() -> Result<Option<([bool; ENTRIES.len()], bool)>, String> { Ok(None) }
+fn load_profile() -> Result<Option<(Flags, bool, Flags)>, String> { Ok(None) }
 
 #[cfg(not(windows))]
-fn save_profile(_: &[bool; ENTRIES.len()], _: bool) -> Result<(), String> { Ok(()) }
+fn save_profile(_: &Flags, _: bool, _: &Flags) -> Result<(), String> { Ok(()) }
 
 /// Write-then-rename so a crash mid-write cannot truncate the game's config.
 fn write_replacing(path: &Path, text: &str) -> io::Result<()> {
@@ -216,8 +239,8 @@ fn apply_text(base: &str, entries: &[String]) -> String {
     join(&lines, eol)
 }
 
-/// Removes the marked block. When the game rewrote the file and dropped the comments,
-/// removes the exact `written` lines under `[SystemSettings]` instead.
+/// Removes the marked block, then every copy of the exact `written` lines under `[SystemSettings]`:
+/// the game rewrites Engine.ini on exit without comments, leaving RAPO's lines unmarked.
 fn remove_text(text: &str, written: &[(&str, &str)]) -> Option<String> {
     let lines: Vec<&str> = text.lines().collect();
     let mut kept = lines.clone();
@@ -226,14 +249,13 @@ fn remove_text(text: &str, written: &[(&str, &str)]) -> Option<String> {
     let block = begin.and_then(|b| lines[b..].iter().position(|l| l.trim() == END).map(|e| b..=b + e));
     if let Some(block) = block {
         kept.drain(block);
-    } else {
-        let mut section = false;
-        kept.retain(|line| {
-            let trimmed = line.trim();
-            if is_header(trimmed) { section = trimmed.eq_ignore_ascii_case(SECTION); return true; }
-            !(section && written.iter().any(|(k, v)| trimmed.split_once('=').is_some_and(|(key, value)| key.trim().eq_ignore_ascii_case(k) && value.trim() == *v)))
-        });
     }
+    let mut section = false;
+    kept.retain(|line| {
+        let trimmed = line.trim();
+        if is_header(trimmed) { section = trimmed.eq_ignore_ascii_case(SECTION); return true; }
+        !(section && written.iter().any(|(k, v)| trimmed.split_once('=').is_some_and(|(key, value)| key.trim().eq_ignore_ascii_case(k) && value.trim() == *v)))
+    });
     (kept.len() != lines.len()).then(|| join(&kept, eol(text)))
 }
 
@@ -290,6 +312,22 @@ mod tests {
         assert_eq!(remove_text(rewritten, &[]), None, "nothing written means nothing is ours");
         assert_eq!(remove_text(rewritten, &[("t.MaxFPS", "120"), ("r.MotionBlurQuality", "0")]).as_deref(),
             Some("[SystemSettings]\nr.MotionBlurQuality=2\n[Other]\nt.MaxFPS=120\n"));
+    }
+
+    #[test]
+    fn copies_left_by_game_rewrites_are_removed_once_owned() {
+        // The game rewrote the file after RAPO closed, three times: unmarked copies plus a fresh block.
+        let rewritten = "[SystemSettings]\nt.MaxFPS=120\nt.MaxFPS=120\nr.VSync=1\n; RAPO BEGIN - removido automaticamente ao fechar o RAPO\nt.MaxFPS=120\n; RAPO END\n[Other]\nt.MaxFPS=120\n";
+        assert_eq!(remove_text(rewritten, &[("t.MaxFPS", "120")]).as_deref(), Some("[SystemSettings]\nr.VSync=1\n[Other]\nt.MaxFPS=120\n"));
+        let path = temp("owned", "[SystemSettings]\nt.MaxFPS=120\nt.MaxFPS=120\n");
+        let mut ini = EngineIni::at(Some(path.clone()));
+        ini.owned[0] = true;
+        ini.set(0, true);
+        ini.set_active(true);
+        assert_eq!(fs::read_to_string(&path).unwrap().matches("t.MaxFPS=120").count(), 1, "on writes exactly one copy");
+        drop(ini);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "[SystemSettings]\n");
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
