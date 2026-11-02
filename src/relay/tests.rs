@@ -325,3 +325,127 @@ fn hy2_mode_relays_tcp_and_udp_through_a_real_server_and_rejected_auth_is_never_
     let predictions = serde_json::to_string(&server.state().predictions).unwrap();
     assert!(predictions.contains("\"gateway\":\"hy2\"") && !predictions.contains("\"gateway\":\"system\""), "HY2 mode has no direct fallback: {predictions}");
 }
+
+#[test]
+fn wfp_transparent_header_relays_directly_without_socks5_handshake() {
+    let target = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let target_addr = target.local_addr().unwrap();
+    let worker = thread::spawn(move || {
+        let (mut conn, _) = target.accept().unwrap();
+        let mut buf = [0; 5];
+        conn.read_exact(&mut buf).unwrap();
+        assert_eq!(&buf, b"hello");
+        conn.write_all(b"world").unwrap();
+    });
+
+    let server = relay();
+    let mut client = client(&server);
+    let mut header = vec![0x23, 0xa4, 0xfa, 0x39];
+    let ip = match target_addr.ip() { IpAddr::V4(ip) => ip.octets(), _ => unreachable!() };
+    header.extend_from_slice(&ip);
+    header.extend_from_slice(&target_addr.port().to_le_bytes());
+    header.extend_from_slice(&[0, 0, 0, 0]);
+    client.write_all(&header).unwrap();
+    client.write_all(b"hello").unwrap();
+
+    let mut reply = [0; 5];
+    client.read_exact(&mut reply).unwrap();
+    assert_eq!(&reply, b"world");
+    worker.join().unwrap();
+}
+
+#[test]
+fn hot_destination_gets_a_prewarmed_spare_that_a_later_connection_uses() {
+    let target = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let addr = target.local_addr().unwrap();
+    target.set_nonblocking(true).unwrap();
+    let stop = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&stop);
+    let echo = thread::spawn(move || {
+        let mut held: Vec<TcpStream> = Vec::new();
+        while !flag.load(Ordering::Relaxed) {
+            if let Ok((conn, _)) = target.accept() { conn.set_nonblocking(true).unwrap(); held.push(conn); }
+            for conn in &mut held {
+                let mut buf = [0u8; 4];
+                if let Ok(4) = conn.read(&mut buf) { let _ = conn.write_all(&buf); }
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+    });
+    let server = relay();
+    let mut header = vec![0x23, 0xa4, 0xfa, 0x39, 127, 0, 0, 1];
+    header.extend_from_slice(&addr.port().to_le_bytes());
+    header.extend_from_slice(&[0, 0, 0, 0]);
+    for round in 0..4 {
+        let mut c = client(&server);
+        c.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        c.write_all(&header).unwrap();
+        c.write_all(b"ping").unwrap();
+        let mut reply = [0u8; 4];
+        c.read_exact(&mut reply).unwrap();
+        assert_eq!(&reply, b"ping", "round {round} still relays correctly");
+        thread::sleep(Duration::from_millis(150));
+    }
+    stop.store(true, Ordering::Relaxed);
+    echo.join().unwrap();
+    assert!(server.state().prewarm_hits >= 1, "a later connection must have reused a spare");
+}
+
+#[test]
+#[ignore]
+fn wfp_udp_round_trip_latency() {
+    let echo = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let target = echo.local_addr().unwrap();
+    echo.set_read_timeout(Some(Duration::from_millis(200))).unwrap();
+    let stop = Arc::new(AtomicBool::new(false)); let flag = Arc::clone(&stop);
+    let t = thread::spawn(move || { let mut b = [0u8; 2048]; while !flag.load(Ordering::Relaxed) { if let Ok((n, from)) = echo.recv_from(&mut b) { let _ = echo.send_to(&b[..n], from); } } });
+    let mut server = RelayServer::new(0); server.start().unwrap();
+    let port: u16 = server.state().address.rsplit(':').next().unwrap().parse().unwrap();
+    let game = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    game.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    let mut pkt = vec![0x23, 0xa4, 0xfa, 0x39, 127, 0, 0, 1];
+    pkt.extend_from_slice(&target.port().to_le_bytes()); pkt.extend_from_slice(&[0, 0, 0, 0]); pkt.extend_from_slice(b"skill");
+    let mut rtts = Vec::new();
+    for _ in 0..200 {
+        let s = Instant::now();
+        game.send_to(&pkt, (Ipv4Addr::LOCALHOST, port)).unwrap();
+        let mut b = [0u8; 2048];
+        if game.recv_from(&mut b).is_ok() { rtts.push(s.elapsed().as_micros() as f64 / 1000.0); }
+        thread::sleep(Duration::from_millis(7)); // game sends a few times per frame, not back-to-back
+    }
+    rtts.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    eprintln!("udp via relay: n={} min={:.2} mediana={:.2} p90={:.2} max={:.2} ms", rtts.len(), rtts[0], rtts[rtts.len()/2], rtts[rtts.len()*9/10], rtts[rtts.len()-1]);
+    stop.store(true, Ordering::Relaxed); t.join().unwrap();
+}
+
+#[test]
+fn wfp_udp_replies_reach_the_sender_and_stop_releases_the_flow_threads() {
+    let echo = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let target = echo.local_addr().unwrap();
+    echo.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
+    let stop = Arc::new(AtomicBool::new(false)); let flag = Arc::clone(&stop);
+    let t = thread::spawn(move || { let mut b = [0u8; 2048]; while !flag.load(Ordering::Relaxed) { if let Ok((n, from)) = echo.recv_from(&mut b) { let _ = echo.send_to(&b[..n], from); } } });
+    let mut server = RelayServer::new(0); server.start().unwrap();
+    let port: u16 = server.state().address.rsplit(':').next().unwrap().parse().unwrap();
+    let game = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    game.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    let mut pkt = vec![0x23, 0xa4, 0xfa, 0x39, 127, 0, 0, 1];
+    pkt.extend_from_slice(&target.port().to_le_bytes()); pkt.extend_from_slice(&[0, 0, 0, 0]); pkt.extend_from_slice(b"skill");
+    game.send_to(&pkt, (Ipv4Addr::LOCALHOST, port)).unwrap();
+    let mut b = [0u8; 64];
+    let (n, _) = game.recv_from(&mut b).unwrap();
+    assert_eq!(&b[..4], &[0x23, 0xa4, 0xfa, 0x39], "reply keeps the WFP framing");
+    assert_eq!(&b[8..10], &target.port().to_le_bytes(), "reply names the destination it came from");
+    assert_eq!(&b[14..n], b"skill");
+    until(|| server.state().udp_destinations == 1);
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+    let before = thread_count();
+    stop.store(true, Ordering::Relaxed); t.join().unwrap();
+    thread::sleep(Duration::from_millis(1500)); // reader threads wake on their 1 s read timeout and see `running == false`
+    assert!(thread_count() <= before, "UDP reader threads must not outlive the relay");
+}
+#[cfg(target_os = "linux")]
+fn thread_count() -> usize { std::fs::read_dir("/proc/self/task").unwrap().count() }
+#[cfg(not(target_os = "linux"))]
+fn thread_count() -> usize { 0 }

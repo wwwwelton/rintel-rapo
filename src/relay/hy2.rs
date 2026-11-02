@@ -26,6 +26,7 @@ impl fmt::Debug for Config {
 }
 impl Config {
     pub fn validate(&self) -> io::Result<()> {
+        if self.server.is_empty() && self.auth.is_empty() { return Ok(()); }
         let invalid = |message: &str| Err(io::Error::new(io::ErrorKind::InvalidInput, message.to_owned()));
         let host_ok = |host: &str| !host.is_empty() && host.len() <= 253 && !host.contains(['\0', '\r', '\n', ' ', '/', '\\']);
         let Some((host, port)) = self.server.rsplit_once(':') else { return invalid("Servidor HY2 deve ser host:porta"); };
@@ -66,6 +67,7 @@ api! {
     udp_send: unsafe extern "C" fn(u64, *const u8, usize, *const u8, usize) -> i32,
     udp_recv: unsafe extern "C" fn(u64, *mut u8, usize, u32, *mut usize, *mut u8, usize, *mut usize) -> i32,
     close: unsafe extern "C" fn(u64),
+    start_local_server: unsafe extern "C" fn(*mut u8, usize, *mut usize) -> i32,
 }
 
 static API: LazyLock<Result<Api, String>> = LazyLock::new(|| unsafe { load() }.map_err(|e| e.to_string()));
@@ -182,6 +184,19 @@ impl Drop for Handle {
 /// One authenticated QUIC connection. Clones share it; it closes with its last owner.
 #[derive(Clone)]
 pub struct Client(Arc<Handle>);
+/// Starts or reuses the embedded loopback Hysteria 2 server and returns its config.
+// ponytail: subida de servidor HY2 local em loopback; sem um VPS remoto intermediário, criar túnel local apenas adicionaria sobrecarga de CPU e latência inútil. Configurar VPS remoto com HY2 se latência intercontinental for necessária.
+pub fn local_server_config() -> io::Result<Config> {
+    let api = api()?;
+    let mut buf = [0u8; 8192];
+    let mut actual = 0usize;
+    let code = unsafe { (api.start_local_server)(buf.as_mut_ptr(), buf.len(), &mut actual) };
+    if code != 0 {
+        return Err(error(code));
+    }
+    serde_json::from_slice(&buf[..actual]).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+}
+
 impl Client {
     /// Blocking TLS + auth handshake bounded to 3 s; call from a worker thread only.
     pub fn connect(config: &Config) -> io::Result<Self> {

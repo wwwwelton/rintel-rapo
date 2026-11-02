@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 const MAX_HISTORY: usize = 128;
 const FRESH: Duration = Duration::from_secs(120);
-const WARMUP: usize = 6;
+const WARMUP: usize = 2;
 
 #[derive(Serialize)]
 pub struct Prediction {
@@ -63,7 +63,7 @@ impl Learning {
             let b_attempts = b.map_or(0, |h| h.attempts);
             if a_attempts < 3 || b_attempts < 3 { return a_attempts.cmp(&b_attempts); }
             let a = a.unwrap(); let b = b.unwrap();
-            if attempts % 16 == 15 { a.selected_at.cmp(&b.selected_at) } else { a.score().total_cmp(&b.score()) }
+            if attempts % 8 == 7 { a.selected_at.cmp(&b.selected_at) } else { a.score().total_cmp(&b.score()) }
         }).map_or(0, |(index, _)| index);
         let index = self.entry(target, &choices[selected], now);
         self.history[index].attempts = self.history[index].attempts.saturating_add(1);
@@ -99,10 +99,11 @@ impl Learning {
     pub fn predictions(&self, now: Instant) -> Vec<Prediction> {
         let mut predictions: Vec<_> = self.history.iter().filter(|h| h.model.samples > 0 && now.saturating_duration_since(h.measured_at) <= FRESH).map(|h| {
             let selected = !self.history.iter().any(|other| other.target == h.target && other.selected_at > h.selected_at);
+            let has_success = !h.failed || h.failures < h.attempts;
             Prediction { destination: h.target, interface: h.egress.interface, source: h.egress.source.ip(),
                 gateway: h.egress.gateway.clone(), samples: h.model.samples, failures: h.failures,
-                observed_ms: (!h.failed).then_some(h.last),
-                predicted_ms: (h.model.samples >= WARMUP && !h.failed).then(|| h.prediction()),
+                observed_ms: has_success.then_some(h.last),
+                predicted_ms: (h.model.samples >= WARMUP && has_success).then(|| h.prediction()),
                 uncertainty_ms: h.residual + h.deviation, selected }
         }).collect();
         predictions.sort_unstable_by_key(|p| (p.destination, p.interface));

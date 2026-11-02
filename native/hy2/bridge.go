@@ -12,11 +12,17 @@ import "C"
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"reflect"
 	"strconv"
@@ -28,6 +34,7 @@ import (
 
 	"github.com/apernet/hysteria/core/v2/client"
 	coreErrs "github.com/apernet/hysteria/core/v2/errors"
+	"github.com/apernet/hysteria/core/v2/server"
 	"github.com/apernet/quic-go"
 )
 
@@ -658,6 +665,84 @@ func rapo_hy2_udp_recv(id C.uint64_t, buffer *C.uint8_t, capacity C.size_t, ms C
 func rapo_hy2_close(id C.uint64_t) {
 	defer func() { _ = recover() }()
 	closeHandle(uint64(id))
+}
+
+var (
+	localServerMu  sync.Mutex
+	localServer    server.Server
+	localServerCfg []byte
+)
+
+type localAuth struct{ secret string }
+
+func (a localAuth) Authenticate(_ net.Addr, given string, _ uint64) (bool, string) {
+	return given == a.secret, "local-rapo"
+}
+
+//export rapo_hy2_start_local_server
+func rapo_hy2_start_local_server(buffer *C.uint8_t, capacity C.size_t, actual *C.size_t) (code C.int32_t) {
+	defer guard(&code)
+	if buffer == nil || actual == nil || capacity < 64 {
+		return -1
+	}
+	localServerMu.Lock()
+	defer localServerMu.Unlock()
+
+	if len(localServerCfg) == 0 {
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return -2
+		}
+		template := &x509.Certificate{
+			SerialNumber:          big.NewInt(1),
+			Subject:               pkix.Name{CommonName: "127.0.0.1"},
+			NotBefore:             time.Now().Add(-time.Hour),
+			NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+			IsCA:                  true,
+			BasicConstraintsValid: true,
+			KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			IPAddresses:           []net.IP{net.IPv4(127, 0, 0, 1)},
+		}
+		der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+		if err != nil {
+			return -3
+		}
+		cert := tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
+		caPEM := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+
+		conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+		if err != nil {
+			return -4
+		}
+		secret := "rapo-local-hy2-token"
+		s, err := server.NewServer(&server.Config{
+			TLSConfig:     server.TLSConfig{Certificates: []tls.Certificate{cert}},
+			Conn:          conn,
+			Authenticator: localAuth{secret: secret},
+		})
+		if err != nil {
+			_ = conn.Close()
+			return -5
+		}
+		go func() { _ = s.Serve() }()
+		localServer = s
+
+		cfg, _ := json.Marshal(map[string]string{
+			"server":      conn.LocalAddr().String(),
+			"auth":        secret,
+			"server_name": "127.0.0.1",
+			"ca_pem":      caPEM,
+		})
+		localServerCfg = cfg
+	}
+
+	if len(localServerCfg) > int(capacity) {
+		return -6
+	}
+	copy(goBytes(buffer, capacity), localServerCfg)
+	*actual = C.size_t(len(localServerCfg))
+	return 0
 }
 
 func main() {}

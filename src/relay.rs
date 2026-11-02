@@ -1,6 +1,7 @@
-//! Explicit local SOCKS5 TCP/UDP relay; no interception or payload rewriting.
+//! Explicit local SOCKS5 TCP/UDP relay plus the transparent WFP framing used by the game redirector.
 mod hy2;
 mod learning;
+mod prewarm;
 mod udp;
 #[cfg(windows)]
 mod native;
@@ -9,8 +10,9 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 pub use hy2::Config as Hy2Config;
+use std::collections::HashMap;
 use std::io::{self, Read, Write};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
 use std::sync::{Arc, Mutex, RwLock, atomic::{AtomicBool, AtomicU64, Ordering}};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -48,6 +50,8 @@ pub struct State {
     pub total_connections: u64,
     pub bytes_tx: u64,
     pub bytes_rx: u64,
+    pub prewarm_hits: u64,
+    pub prewarm_misses: u64,
     pub error: String,
     pub predictions: Vec<learning::Prediction>,
     pub interfaces: Vec<crate::routes::Candidate>,
@@ -66,6 +70,7 @@ struct Shared {
     bytes_rx: AtomicU64,
     error: Mutex<String>,
     learning: Mutex<learning::Learning>,
+    prewarm: Mutex<prewarm::Prewarm>,
     interfaces: Mutex<Vec<crate::routes::Candidate>>,
     allowed_interfaces: RwLock<Vec<String>>,
     /// One authenticated HY2 connection shared by all flows, opened lazily on a worker.
@@ -84,7 +89,13 @@ impl Shared {
         let mut cached = self.hy2.lock().unwrap();
         if let Some(client) = &*cached { return Ok(client.clone()); }
         if !self.running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
-        let client = hy2::Client::connect(&self.config)?;
+        // ponytail: subida de servidor HY2 local em loopback; sem um VPS remoto intermediário, criar túnel local apenas adicionaria sobrecarga de CPU e latência inútil.
+        let config = if self.config.server.is_empty() {
+            hy2::local_server_config()?
+        } else {
+            self.config.clone()
+        };
+        let client = hy2::Client::connect(&config)?;
         *cached = Some(client.clone());
         Ok(client)
     }
@@ -142,15 +153,18 @@ impl RelayServer {
     fn launch(&mut self) -> io::Result<()> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, self.port))?;
         let address = listener.local_addr()?;
+        // Bound before start() returns, so a datagram sent right after it is never dropped.
+        let udp = UdpSocket::bind((Ipv4Addr::LOCALHOST, address.port())).ok();
         let shared = Arc::new(Shared {
             mode: self.mode, config: self.config.clone(), udp_destinations: AtomicU64::new(0),
             running: AtomicBool::new(true), connections: Mutex::new(Vec::new()), total: AtomicU64::new(0),
             bytes_tx: AtomicU64::new(0), bytes_rx: AtomicU64::new(0), error: Mutex::new(String::new()),
             learning: Mutex::new(learning::Learning::default()),
+            prewarm: Mutex::new(prewarm::Prewarm::default()),
             interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None),
         });
         let state = Arc::clone(&shared);
-        let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, state, address))?;
+        let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
         self.run = Some(Run { shared, worker: Some(worker), address });
         self.error.clear();
         Ok(())
@@ -190,6 +204,7 @@ impl RelayServer {
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
         // One guard: a second lock inside the State literal would self-deadlock.
+        let (prewarm_hits, prewarm_misses) = { let pool = run.shared.prewarm.lock().unwrap(); (pool.hits, pool.misses) };
         let (active_connections, udp_associations) = {
             let connections = run.shared.connections.lock().unwrap();
             (connections.len(), connections.iter().filter(|c| c.udp_bound.is_some()).count())
@@ -204,6 +219,7 @@ impl RelayServer {
             total_connections: run.shared.total.load(Ordering::Relaxed),
             bytes_tx: run.shared.bytes_tx.load(Ordering::Relaxed), bytes_rx: run.shared.bytes_rx.load(Ordering::Relaxed),
             error: if self.error.is_empty() { run.shared.error.lock().unwrap().clone() } else { self.error.clone() },
+            prewarm_hits, prewarm_misses,
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),
@@ -221,12 +237,24 @@ impl Drop for RelayServer {
     }
 }
 
-fn serve(listener: TcpListener, shared: Arc<Shared>, address: SocketAddr) {
+fn serve(listener: TcpListener, udp: Option<UdpSocket>, shared: Arc<Shared>, address: SocketAddr) {
     #[cfg(windows)]
     match crate::routes::native::candidates() {
-        Ok(interfaces) => *shared.interfaces.lock().unwrap() = interfaces,
+        Ok(interfaces) => {
+            let ids: Vec<String> = interfaces.iter().map(|c| c.id.clone()).collect();
+            *shared.allowed_interfaces.write().unwrap() = ids;
+            *shared.interfaces.lock().unwrap() = interfaces;
+        }
         Err(error) => *shared.error.lock().unwrap() = format!("Listar interfaces SOCKS5: {error}"),
     }
+    let udp_worker = if let Some(sock) = udp {
+        let state = Arc::clone(&shared);
+        thread::Builder::new().name("rapo-wfp-udp".into()).spawn(move || {
+            serve_wfp_udp(sock, state);
+        }).ok()
+    } else {
+        None
+    };
     let mut workers: Vec<JoinHandle<()>> = Vec::new();
     while shared.running.load(Ordering::Acquire) {
         let incoming = listener.accept();
@@ -256,7 +284,9 @@ fn serve(listener: TcpListener, shared: Arc<Shared>, address: SocketAddr) {
             let guard = ConnectionGuard { shared: state, id };
             let state = &guard.shared;
             if let Err(error) = handle(client, state, id, address) {
-                if state.running.load(Ordering::Acquire) { *state.error.lock().unwrap() = format!("Última conexão SOCKS5: {error}"); }
+                if state.running.load(Ordering::Acquire) && !matches!(error.kind(), io::ErrorKind::ConnectionReset | io::ErrorKind::ConnectionAborted) {
+                    *state.error.lock().unwrap() = format!("Última conexão SOCKS5: {error}");
+                }
             }
         }) {
             Ok(worker) => workers.push(worker),
@@ -269,7 +299,76 @@ fn serve(listener: TcpListener, shared: Arc<Shared>, address: SocketAddr) {
     shared.running.store(false, Ordering::Release);
     shared.close_connections();
     drop(listener);
+    if let Some(w) = udp_worker { let _ = w.join(); }
     for worker in workers { let _ = worker.join(); }
+}
+
+/// UDP flows of the WFP redirector. Each destination owns a socket and a reader thread that blocks
+/// on it, so a reply goes back as soon as it arrives instead of waiting for a poll tick.
+fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
+    // Only bounds how long shutdown waits; incoming datagrams wake the loop immediately.
+    let _ = socket.set_read_timeout(Some(Duration::from_millis(250)));
+    let reply_socket = match socket.try_clone() { Ok(s) => Arc::new(s), Err(_) => return };
+    struct Flow { out: Arc<UdpSocket>, client: Arc<Mutex<SocketAddr>>, sent_at: Arc<Mutex<Instant>>, last_seen: Instant }
+    let mut flows: HashMap<SocketAddr, Flow> = HashMap::new();
+    let mut buf = [0u8; 65535];
+
+    while shared.running.load(Ordering::Acquire) {
+        let (n, src) = match socket.recv_from(&mut buf) {
+            Ok(res) => res,
+            Err(e) if matches!(e.kind(), io::ErrorKind::Interrupted | io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut) => {
+                let now = Instant::now();
+                flows.retain(|_, f| {
+                    let keep = now.duration_since(f.last_seen) <= Duration::from_secs(60);
+                    if !keep { shared.udp_destinations.fetch_sub(1, Ordering::Relaxed); }
+                    keep // dropping the Flow drops `out`; its reader exits on the next read error
+                });
+                continue;
+            }
+            // Windows reports WSAECONNRESET here when an earlier send hit a dead local port; it must not stop the relay.
+            Err(e) if e.kind() == io::ErrorKind::ConnectionReset => continue,
+            Err(_) => break,
+        };
+        if !src.ip().is_loopback() || n < 14 || buf[..4] != [0x23, 0xa4, 0xfa, 0x39] { continue; }
+        let dst = SocketAddr::new(Ipv4Addr::new(buf[4], buf[5], buf[6], buf[7]).into(), u16::from_le_bytes([buf[8], buf[9]]));
+
+        let now = Instant::now();
+        let is_new = !flows.contains_key(&dst);
+        if is_new {
+            let Ok(out) = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) else { continue };
+            let _ = out.set_read_timeout(Some(Duration::from_secs(1)));
+            let out = Arc::new(out);
+            let client = Arc::new(Mutex::new(src));
+            let sent_at = Arc::new(Mutex::new(now));
+            shared.udp_destinations.fetch_add(1, Ordering::Relaxed);
+            let (reader, back, to, stamp, state) = (Arc::clone(&out), Arc::clone(&reply_socket), Arc::clone(&client), Arc::clone(&sent_at), Arc::clone(&shared));
+            let spawned = thread::Builder::new().name("rapo-wfp-udp-rx".into()).spawn(move || {
+                let mut reply = [0u8; 65535];
+                reply[..4].copy_from_slice(&[0x23, 0xa4, 0xfa, 0x39]);
+                if let IpAddr::V4(ip) = dst.ip() { reply[4..8].copy_from_slice(&ip.octets()); }
+                reply[8..10].copy_from_slice(&dst.port().to_le_bytes());
+                reply[10..14].copy_from_slice(&[0; 4]);
+                // Strong count 1 means the flow was dropped and only this thread still holds the socket.
+                while state.running.load(Ordering::Acquire) && Arc::strong_count(&reader) > 1 {
+                    let Ok((rn, _)) = reader.recv_from(&mut reply[14..]) else { continue };
+                    let rtt = Instant::now().saturating_duration_since(*stamp.lock().unwrap());
+                    state.learning.lock().unwrap().observe(dst, &system_egress(dst), rtt, true, Instant::now());
+                    let _ = back.send_to(&reply[..14 + rn], *to.lock().unwrap());
+                    state.bytes_rx.fetch_add(rn as u64, Ordering::Relaxed);
+                }
+            });
+            if spawned.is_err() { shared.udp_destinations.fetch_sub(1, Ordering::Relaxed); continue; }
+            flows.insert(dst, Flow { out, client, sent_at, last_seen: now });
+        }
+        let Some(flow) = flows.get_mut(&dst) else { continue };
+        *flow.client.lock().unwrap() = src;
+        *flow.sent_at.lock().unwrap() = now;
+        flow.last_seen = now;
+        if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
+            shared.bytes_tx.fetch_add(sent as u64, Ordering::Relaxed);
+            shared.total.fetch_add(1, Ordering::Relaxed);
+        }
+    }
 }
 struct ConnectionGuard { shared: Arc<Shared>, id: u64 }
 impl Drop for ConnectionGuard {
@@ -278,50 +377,74 @@ impl Drop for ConnectionGuard {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Target { Address(SocketAddr), Name(String, u16) }
-fn handle(mut client: TcpStream, shared: &Shared, id: u64, listen: SocketAddr) -> io::Result<()> {
+fn handle(mut client: TcpStream, shared: &Arc<Shared>, id: u64, listen: SocketAddr) -> io::Result<()> {
     client.set_read_timeout(Some(Duration::from_millis(250)))?;
     client.set_write_timeout(Some(Duration::from_millis(250)))?;
     client.set_nodelay(true)?;
     let handshake = Handshake { running: &shared.running, deadline: Instant::now() + HANDSHAKE_TIMEOUT };
-    let mut greeting = [0; 2];
-    handshake.read(&mut client, &mut greeting)?;
-    if greeting[0] != 5 { return Err(io::ErrorKind::InvalidData.into()); }
-    let mut methods = [0; 255];
-    let count = greeting[1] as usize;
-    handshake.read(&mut client, &mut methods[..count])?;
-    if !methods[..count].contains(&0) { client.write_all(&[5, 255])?; return Ok(()); }
-    client.write_all(&[5, 0])?;
-    let mut request = [0; 4];
-    handshake.read(&mut client, &mut request)?;
-    if request[0] != 5 || request[2] != 0 { return reply(&mut client, 1, None); }
-    if !matches!(request[1], 1 | 3) { return reply(&mut client, 7, None); }
-    let target = match request[3] {
-        1 => {
-            let mut ip = [0; 4]; handshake.read(&mut client, &mut ip)?;
-            Target::Address(SocketAddr::new(Ipv4Addr::from(ip).into(), handshake.port(&mut client)?))
+    let mut first = [0; 1];
+    handshake.read(&mut client, &mut first)?;
+
+    let (target, is_wfp) = if first[0] == 0x23 {
+        // WFP kernel transparent redirect: read remaining 13 bytes of 14-byte header
+        let mut rem = [0; 13];
+        handshake.read(&mut client, &mut rem)?;
+        if rem[0] != 0xa4 || rem[1] != 0xfa || rem[2] != 0x39 {
+            return Err(io::ErrorKind::InvalidData.into());
         }
-        4 => {
-            let mut ip = [0; 16]; handshake.read(&mut client, &mut ip)?;
-            Target::Address(SocketAddr::new(Ipv6Addr::from(ip).into(), handshake.port(&mut client)?))
-        }
-        3 => {
-            let mut length = [0]; handshake.read(&mut client, &mut length)?;
-            let mut bytes = [0; 255]; handshake.read(&mut client, &mut bytes[..length[0] as usize])?;
-            let name = match std::str::from_utf8(&bytes[..length[0] as usize]) {
-                Ok(name) if !name.is_empty() && !name.contains('\0') => name.to_owned(),
-                _ => return reply(&mut client, 8, None),
-            };
-            Target::Name(name, handshake.port(&mut client)?)
-        }
-        _ => return reply(&mut client, 8, None),
+        let ip = Ipv4Addr::new(rem[3], rem[4], rem[5], rem[6]);
+        let port = u16::from_le_bytes([rem[7], rem[8]]);
+        (Target::Address(SocketAddr::new(ip.into(), port)), true)
+    } else if first[0] == 5 {
+        // Standard RFC 1928 SOCKS5 greeting
+        let mut count_buf = [0; 1];
+        handshake.read(&mut client, &mut count_buf)?;
+        let count = count_buf[0] as usize;
+        let mut methods = [0; 255];
+        handshake.read(&mut client, &mut methods[..count])?;
+        if !methods[..count].contains(&0) { client.write_all(&[5, 255])?; return Ok(()); }
+        client.write_all(&[5, 0])?;
+        let mut request = [0; 4];
+        handshake.read(&mut client, &mut request)?;
+        if request[0] != 5 || request[2] != 0 { return reply(&mut client, 1, None); }
+        if !matches!(request[1], 1 | 3) { return reply(&mut client, 7, None); }
+        let target = match request[3] {
+            1 => {
+                let mut ip = [0; 4]; handshake.read(&mut client, &mut ip)?;
+                Target::Address(SocketAddr::new(Ipv4Addr::from(ip).into(), handshake.port(&mut client)?))
+            }
+            4 => {
+                let mut ip = [0; 16]; handshake.read(&mut client, &mut ip)?;
+                Target::Address(SocketAddr::new(Ipv6Addr::from(ip).into(), handshake.port(&mut client)?))
+            }
+            3 => {
+                let mut length = [0]; handshake.read(&mut client, &mut length)?;
+                let mut bytes = [0; 255]; handshake.read(&mut client, &mut bytes[..length[0] as usize])?;
+                let name = match std::str::from_utf8(&bytes[..length[0] as usize]) {
+                    Ok(name) if !name.is_empty() && !name.contains('\0') => name.to_owned(),
+                    _ => return reply(&mut client, 8, None),
+                };
+                Target::Name(name, handshake.port(&mut client)?)
+            }
+            _ => return reply(&mut client, 8, None),
+        };
+        if request[1] == 3 { return udp::associate(client, shared, id, target, listen); }
+        (target, false)
+    } else {
+        return Err(io::ErrorKind::InvalidData.into());
     };
-    if request[1] == 3 { return udp::associate(client, shared, id, target, listen); }
+
     let mut outbound = match connect_target(&target, shared, listen) {
         Ok(stream) => stream,
-        Err(error) => { reply(&mut client, failure_code(&error), None)?; return Err(error); }
+        Err(error) => {
+            if !is_wfp { reply(&mut client, failure_code(&error), None)?; }
+            return Err(error);
+        }
     };
     shared.register_outbound(id, &outbound)?;
-    reply(&mut client, 0, outbound.local_addr()?)?;
+    if !is_wfp {
+        reply(&mut client, 0, outbound.local_addr()?)?;
+    }
     client.set_read_timeout(Some(Duration::from_millis(250)))?;
     client.set_write_timeout(Some(Duration::from_millis(250)))?;
     outbound.set_timeouts()?;
@@ -391,7 +514,7 @@ fn system_egress(target: SocketAddr) -> Egress {
         source: SocketAddr::new(if target.is_ipv4() { Ipv4Addr::UNSPECIFIED.into() } else { Ipv6Addr::UNSPECIFIED.into() }, 0),
         gateway: "system".into() }
 }
-fn connect_target(target: &Target, shared: &Shared, listen: SocketAddr) -> io::Result<Outbound> {
+fn connect_target(target: &Target, shared: &Arc<Shared>, listen: SocketAddr) -> io::Result<Outbound> {
     let addresses: Vec<_> = match target {
         Target::Address(address) => vec![*address],
         Target::Name(name, port) => (name.as_str(), *port).to_socket_addrs()?.take(16).collect(),
@@ -416,15 +539,36 @@ fn connect_target(target: &Target, shared: &Shared, listen: SocketAddr) -> io::R
         let index = shared.learning.lock().unwrap().choose(address, &choices, Instant::now());
         let choice = &choices[index];
         let start = Instant::now();
-        let result = match choice.id.as_str() {
-            "hy2" => shared.hy2_tcp(address).map(Outbound::Hy2),
-            "direct" => TcpStream::connect_timeout(&address, CONNECT_TIMEOUT).map(Outbound::Direct),
+        // A spare opened ahead of time skips the handshake. It is only used for the default (first)
+        // non-HY2 exit: the spare is opened by the OS route, so it never stands in for another exit.
+        let default_exit = index == 0 && choice.id != "hy2";
+        let spare = if default_exit { shared.prewarm.lock().unwrap().take(address, start) } else { None };
+        let warmed = spare.is_some();
+        let result = match (spare, choice.id.as_str()) {
+            (Some(stream), _) => Ok(Outbound::Direct(stream)),
+            (None, "hy2") => shared.hy2_tcp(address).map(Outbound::Hy2),
+            (None, "direct") => TcpStream::connect_timeout(&address, CONNECT_TIMEOUT).map(Outbound::Direct),
             _ => connect(address, choice, &shared.running).map(Outbound::Direct),
         };
-        shared.learning.lock().unwrap().observe(address, choice, start.elapsed(), result.is_ok(), Instant::now());
+        // A reused spare has no handshake to measure, so it must not teach the Flow a 0 ms path.
+        if !warmed { shared.learning.lock().unwrap().observe(address, choice, start.elapsed(), result.is_ok(), Instant::now()); }
+        if result.is_ok() && default_exit && shared.prewarm.lock().unwrap().used(address, Instant::now()) {
+            refill(shared, address);
+        }
         match result { Ok(stream) => return Ok(stream), Err(error) => last = error }
     }
     Err(last)
+}
+/// Opens the next spare off the hot path, on a short-lived thread that holds its own Arc.
+fn refill(shared: &Arc<Shared>, target: SocketAddr) {
+    let shared = Arc::clone(shared);
+    let _ = thread::Builder::new().name("rapo-prewarm".into()).spawn(move || {
+        if !shared.running.load(Ordering::Acquire) { return; }
+        if let Ok(stream) = TcpStream::connect_timeout(&target, CONNECT_TIMEOUT) {
+            let _ = stream.set_nodelay(true);
+            if shared.running.load(Ordering::Acquire) { shared.prewarm.lock().unwrap().store(target, stream, Instant::now()); }
+        }
+    });
 }
 fn filter_egresses(choices: &mut Vec<Egress>, allowed: &[String]) {
     let mut index = 0;
@@ -441,6 +585,7 @@ fn forward(reader: &mut Outbound, writer: &mut Outbound, counter: &AtomicU64, ru
             if !running.load(Ordering::Acquire) { return Ok(()); }
             let count = match reader.read(&mut buffer) {
                 Err(e) if matches!(e.kind(), io::ErrorKind::Interrupted | io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut) => continue,
+                Err(e) if matches!(e.kind(), io::ErrorKind::ConnectionReset | io::ErrorKind::ConnectionAborted) => return Ok(()),
                 result => result?,
             };
             if count == 0 { return Ok(()); }
@@ -449,6 +594,7 @@ fn forward(reader: &mut Outbound, writer: &mut Outbound, counter: &AtomicU64, ru
                 if !running.load(Ordering::Acquire) { return Ok(()); }
                 let sent = match writer.write(remaining) {
                     Err(e) if matches!(e.kind(), io::ErrorKind::Interrupted | io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut) => continue,
+                    Err(e) if matches!(e.kind(), io::ErrorKind::ConnectionReset | io::ErrorKind::ConnectionAborted) => return Ok(()),
                     result => result?,
                 };
                 if sent == 0 { return Err(io::ErrorKind::WriteZero.into()); }
