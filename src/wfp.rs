@@ -126,7 +126,7 @@ mod windows_impl {
                 .creation_flags(CREATE_NO_WINDOW)
                 .spawn()
             {
-                Ok(child) => {
+                Ok(mut child) => {
                     if self.job != 0 {
                         use std::os::windows::io::AsRawHandle;
                         let ok = unsafe { windows_sys::Win32::System::JobObjects::AssignProcessToJobObject(self.job as _, child.as_raw_handle() as _) };
