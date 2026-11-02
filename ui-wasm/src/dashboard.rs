@@ -53,6 +53,10 @@ pub struct Relay {
     pub total_connections: u64,
     pub bytes_tx: u64,
     pub bytes_rx: u64,
+    #[serde(default)]
+    pub prewarm_hits: u64,
+    #[serde(default)]
+    pub prewarm_misses: u64,
     pub error: String,
     pub predictions: Vec<RelayPrediction>,
     pub interfaces: Vec<RouteCandidate>,
@@ -155,7 +159,6 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
         }
         html.push_str("</select><label for=\"relay-server\">Servidor HY2 (host:porta)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"servidor:443\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. HY2 exige servidor remoto compatível. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
     }
-    html.push_str("</select><label for=\"relay-server\">Servidor HY2 (host:porta)</label><input id=\"relay-server\" data-network-draft=\"relay-server\" maxlength=\"512\" placeholder=\"servidor:443\"><label for=\"relay-server-name\">Nome TLS (opcional)</label><input id=\"relay-server-name\" data-network-draft=\"relay-server-name\" maxlength=\"253\"><label for=\"relay-auth\">Autenticação HY2</label><input id=\"relay-auth\" type=\"password\" autocomplete=\"off\" data-network-draft=\"relay-auth\" maxlength=\"4096\"><label for=\"relay-ca\">CA PEM (opcional; substitui as raízes do Windows)</label><textarea id=\"relay-ca\" data-network-draft=\"relay-ca\" maxlength=\"65536\" rows=\"3\"></textarea><button type=\"button\" data-action=\"relay-configure\">Aplicar configuração</button></fieldset><p class=\"net-disclaimer\">Desabilite o relay antes de alterar. Reenvie todos os campos ao aplicar. Credencial somente em memória, não salva; TLS sempre validado. HY2 exige servidor remoto compatível. Neural Auto pode usar a saída direta e mudar o IP público de novas conexões; UDP mantém a saída escolhida durante a sessão, sem estimativa de RTT por envio.</p></details>");
     if !relay.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&relay.error)).unwrap(); }
     if !relay.interfaces.is_empty() {
         html.push_str("<details><summary>Autorizar outras saídas</summary><p>A saída atual do Windows sempre permanece elegível. Autorizar outra interface pode contornar sua VPN e mudar o IP público; afeta somente conexões SOCKS5 novas.</p>");
@@ -167,22 +170,22 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     }
     html.push_str("</div>");
     let (class, status) = if !relay.running { ("net-card-off", "Parado") }
-        else if relay.predictions.is_empty() { ("net-card-warn", "Aguardando tráfego SOCKS5") }
+        else if relay.predictions.is_empty() { ("net-card-warn", "Aguardando conexões do jogo") }
         else { ("net-card-active", "Aprendendo com conexões reais") };
-    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Estima o tempo de abertura TCP por destino e saída, não o ping da partida. Compara apenas as saídas do modo escolhido (interfaces autorizadas ou direto/HY2); não migra sessões abertas nem envia sondas extras. UDP não é medido.</span>").unwrap();
+    write!(html, "<div class=\"net-card net-card-wide {class}\"><span class=\"net-card-label\">Modelo Neural · Relay</span><span class=\"net-card-value\">Flow 9→16→1 · {status}</span><span class=\"net-card-sub\">Compara o tempo de abertura TCP (e respostas UDP pontuais) por destino e saída, não o ping da partida nem a latência de cada pacote.</span>").unwrap();
     if !relay.predictions.is_empty() {
-        html.push_str("<div class=\"relay-predictions\"><table class=\"net-policy-table\"><thead><tr><th>Destino / saída</th><th>Medido</th><th>Previsão TCP</th><th>Amostras / falhas</th></tr></thead><tbody>");
+        html.push_str("<div class=\"relay-predictions\"><table class=\"net-policy-table\"><thead><tr><th>Destino / saída</th><th>Medido</th><th>Previsão (TCP/UDP)</th><th>Amostras / falhas</th></tr></thead><tbody>");
         for prediction in &relay.predictions {
             let via = match prediction.gateway.as_str() { "hy2" => "túnel HY2".into(), "system" => "rota do sistema".into(), gateway => escape(gateway) };
             write!(html, "<tr><td>{}<br><span class=\"net-card-sub\">if {} · {} via {via}{}</span></td><td>", escape(&prediction.destination), prediction.interface, escape(&prediction.source), if prediction.selected { " · última saída escolhida" } else { "" }).unwrap();
             if let Some(ms) = prediction.observed_ms { write!(html, "{ms:.1} ms").unwrap(); } else { html.push_str("Falha de conexão"); }
             html.push_str("</td><td>");
-            if let Some(ms) = prediction.predicted_ms { write!(html, "{ms:.1} ms<br><span class=\"net-card-sub\">Desvio/resíduo: {:.1} ms</span>", prediction.uncertainty_ms).unwrap(); } else { html.push_str("Aguardando respostas"); }
+            if let Some(ms) = prediction.predicted_ms { write!(html, "{ms:.1} ms<br><span class=\"net-card-sub\">Desvio/resíduo: {:.1} ms</span>", prediction.uncertainty_ms).unwrap(); } else { write!(html, "<span class=\"net-card-sub\">Treinando rede ({}/2)</span>", prediction.samples).unwrap(); }
             write!(html, "</td><td>{} / {}</td></tr>", prediction.samples, prediction.failures).unwrap();
         }
         html.push_str("</tbody></table></div>");
     }
-    html.push_str("<span class=\"net-disclaimer\">Previsão após 6 tentativas medidas e última conexão bem-sucedida. Desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado. Somente uma saída disponível não permite comparar caminhos.</span></div>");
+    html.push_str("<span class=\"net-disclaimer\">Previsão de abertura TCP (e respostas UDP pontuais) após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</span></div>");
 }
 
 fn render_network(html: &mut String, view: &Dashboard) {
