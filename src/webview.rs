@@ -12,7 +12,6 @@ const ORIGIN: &str = "http://rapo.localhost/";
 
 enum HostEvent {
     Command(Command),
-    Frame,
 }
 fn asset(path: &str) -> Response<Cow<'static, [u8]>> {
     let (mime, body): (&str, &[u8]) = match path {
@@ -31,7 +30,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .with_inner_size(tao::dpi::LogicalSize::new(1180.0, 840.0))
         .with_min_inner_size(tao::dpi::LogicalSize::new(960.0, 680.0)).build(&event_loop)?;
     let mut app = Some(App::new());
-    let initial = app.as_ref().unwrap().webview_state();
+    let initial = app.as_ref().unwrap().webview_state(true);
     let proxy = event_loop.create_proxy();
     let webview = WebViewBuilder::new()
         .with_custom_protocol("rapo".into(), |_id, req: Request<Vec<u8>>| asset(req.uri().path()))
@@ -39,9 +38,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .with_navigation_handler(|url| url == ORIGIN || url == format!("{ORIGIN}index.html"))
         .with_initialization_script(&format!("window.INITIAL_STATE = {initial};"))
         .with_ipc_handler(move |req| {
-            if req.body() == "{\"action\":\"frame\"}" {
-                let _ = proxy.send_event(HostEvent::Frame);
-            } else if let Some(command) = crate::command::from_json(req.body()) {
+            if let Some(command) = crate::command::from_json(req.body()) {
                 let _ = proxy.send_event(HostEvent::Command(command));
             }
         }).build(&window)?;
@@ -57,20 +54,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 if app.as_mut().unwrap().apply(command) { *flow = ControlFlow::Exit; }
                 next_render = Instant::now();
             }
-            Event::UserEvent(HostEvent::Frame) => {
-                if !window.is_minimized() {
-                    app.as_mut().unwrap().record_ui_frame();
-                }
-            }
             Event::MainEventsCleared => {
                 let state = app.as_mut().unwrap();
                 let now = Instant::now();
                 if now >= next_tick {
-                    state.tick(window.is_minimized());
+                    state.tick();
                     next_tick = state.next_refresh();
                 }
-                if now >= next_render {
-                    let snapshot = state.webview_state();
+                // Hidden or minimized: skip rendering; the restore event wakes the loop and renders at once.
+                let visible = window.is_visible() && !window.is_minimized();
+                if visible && now >= next_render {
+                    let snapshot = state.webview_state(false);
                     let active = snapshot["header"]["optimizer_running"].as_bool().unwrap_or(false);
                     if icon_active != Some(active) {
                         let (rgba, width, height) = crate::tray::build_window_icon_rgba(active);

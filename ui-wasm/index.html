@@ -337,23 +337,19 @@
         previous.set(id, json);
       }
     };
-    let sampleFrames = false;
-    let animation = null;
-    const frame = () => {
-      animation = null;
-      if (!sampleFrames) return;
-      if (!document.hidden) window.ipc.postMessage('{"action":"frame"}');
-      animation = requestAnimationFrame(frame);
-    };
+    // The host sends UI strings only in INITIAL_STATE; reuse them on every later update.
+    const strings = { header: null, games: null };
     window.rapoUpdate = (state) => {
       try {
+        for (const key of ['header', 'games']) {
+          if (state[key].strings) strings[key] = state[key].strings;
+          else state[key].strings = strings[key] ?? {};
+        }
         update('app', state.header, render_header_json);
         update('games', state.games, render_games_json);
         update('training', state.training, render_training_json);
         update('dashboard', state.dashboard, render_dashboard_json);
         if (document.activeElement !== search) search.value = state.dashboard.search;
-        sampleFrames = state.dashboard.running.length > 0;
-        if (sampleFrames && animation === null) animation = requestAnimationFrame(frame);
         error.textContent = '';
       } catch (e) { error.textContent = `Falha ao renderizar a interface: ${e}`; }
     };

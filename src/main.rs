@@ -3,7 +3,6 @@
 pub mod cache;
 mod capture;
 mod learning;
-pub mod fps;
 pub mod hardware;
 pub mod intel_dtt;
 #[cfg(windows)]
@@ -46,7 +45,6 @@ mod app {
         cache::{self, MemoryQosState},
         cpu::Monitor,
         hardware::{self, CacheTopology},
-        fps::FpsTracker,
         intel_dtt::{self, IntelDttReport},
         pin::Pinner,
         prefetch,
@@ -96,7 +94,6 @@ mod app {
         dtt_report: IntelDttReport,
         cache_topo: CacheTopology,
         telemetry: TelemetryCollector,
-        fps: FpsTracker,
         tray: TrayController,
         training: Option<Training>,
         rapo_game: Option<PathBuf>,
@@ -165,7 +162,6 @@ mod app {
                 last_refresh: Instant::now() - Duration::from_secs(3),
                 dtt_report: intel_dtt::detect_intel_dtt(),
                 cache_topo: hardware::get_cache_topology(),
-                fps: FpsTracker::new(),
                 telemetry: TelemetryCollector::new(),
                 tray: TrayController::new(),
                 training: None,
@@ -279,7 +275,6 @@ mod app {
 
         fn refresh(&mut self) {
             let optimizer_active = self.tray.is_optimizer_running();
-            self.ui_strings = Arc::new(load_ui_strings());
             // Windows notifies plan changes; without that registration, read every refresh.
             if self.power_watch.is_none() || power::take_plan_change() {
                 match power::active_plan() {
@@ -322,7 +317,6 @@ mod app {
                 }
                 Err(e) => {
                     self.running.clear();
-                    self.fps.reset();
                     self.error = e;
                 }
             }
@@ -429,11 +423,6 @@ mod app {
             } else {
                 self.telemetry.refresh(&self.cpu.load, None);
             }
-            if self.running.is_empty() {
-                self.fps.reset();
-            } else {
-                self.fps.refresh_statistics();
-            }
 
             let aion2_selected = self.games.iter().any(|game| {
                 game.is_aion2
@@ -525,7 +514,8 @@ mod app {
 
 
     impl App {
-        pub fn webview_state(&self) -> serde_json::Value {
+        /// `include_strings` is true only for the initial page state; the page caches them.
+        pub fn webview_state(&self, include_strings: bool) -> serde_json::Value {
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
             let tm = &self.telemetry.metrics;
             let mut alerts: Vec<String> = [&self.error, &self.cpu_error, &self.qos_error]
@@ -575,7 +565,6 @@ mod app {
             let rows: Vec<_> = rows.into_iter().zip(&self.game_search_names).filter(|(_, name)| crate::view::library_matches(&self.search, name)).map(|(row, _)| row).collect();
             let header = crate::ui_model::header_model(self.tray.is_optimizer_running(), &self.dtt_report.status, self.running.len());
             let mut metrics = vec![
-                ("FPS DA INTERFACE", format!("{:.0} FPS · Média {:.0} · 1% baixo {:.0}", self.fps.current_fps(), self.fps.avg_fps(), self.fps.p1_low_fps())),
                 ("USO DE CPU TOTAL", format!("{:.1}% · Sistema {:.1}%", tm.cpu_usage_pct, tm.sys_cpu_pct)),
                 ("USO DE GPU", format!("{:.1}% · Engines PDH (estimativa)", tm.gpu_usage_pct)),
                 ("USO DE MEMÓRIA", format!("{} · {:.1}% da RAM", crate::view::memory_label(tm.mem_used_mb), tm.mem_usage_pct)),
@@ -600,8 +589,8 @@ mod app {
             let mut network_tweaks: Vec<_> = self.netqos.applied().iter().map(|(name, dscp)| format!("DSCP {dscp} · {}", name.display())).collect();
             network_tweaks.sort();
             serde_json::json!({
-                "header": { "optimizer_running": header.optimizer_running, "dtt": header.dtt, "default_config_enabled": header.default_config_enabled, "strings": &*self.ui_strings },
-                "games": { "games": rows, "strings": &*self.ui_strings },
+                "header": { "optimizer_running": header.optimizer_running, "dtt": header.dtt, "default_config_enabled": header.default_config_enabled, "strings": include_strings.then_some(&*self.ui_strings) },
+                "games": { "games": rows, "strings": include_strings.then_some(&*self.ui_strings) },
                 "training": crate::snapshot::training_view(&self.training_state()),
                 "dashboard": {
                     "alerts": alerts, "metrics": metrics, "cores": cores, "cache": cache, "running": running,
@@ -636,7 +625,7 @@ mod app {
         }
 
         /// Advances refresh and FPS sampling; returns how soon the next frame is needed.
-        pub fn tick(&mut self, minimized: bool) -> Duration {
+        pub fn tick(&mut self) {
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
             }
@@ -646,30 +635,10 @@ mod app {
                 self.save_paths();
             }
             self.wfp.poll();
-            let pause_requested = self.tray.take_fps_pause_request();
-            if pause_requested {
-                self.fps.pause_sampling();
-            }
-            if !minimized && !pause_requested && !self.running.is_empty() {
-                Duration::from_millis(8)
-            } else {
-                if self.running.is_empty() {
-                    self.fps.reset();
-                } else {
-                    self.fps.pause_sampling();
-                }
-                Duration::from_secs(1)
-            }
         }
 
         pub fn next_refresh(&self) -> Instant {
             self.last_refresh + Duration::from_secs(1)
-        }
-
-        pub fn record_ui_frame(&mut self) {
-            if !self.running.is_empty() {
-                self.fps.record_frame_instant(Instant::now());
-            }
         }
 
         /// Returns true only after a successful elevated replacement has started.
