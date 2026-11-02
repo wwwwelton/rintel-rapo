@@ -34,7 +34,7 @@ impl Settings {
     pub fn bits(self) -> u8 {
         self.priority as u8 | ((self.pin as u8) << 1) | ((self.qos as u8) << 2)
     }
-    fn valid(self) -> bool {
+    pub(crate) fn valid(self) -> bool {
         (1..=64).contains(&self.threads)
             && (1..=20).contains(&self.min_percent)
             && (1..=64).contains(&self.cores)
@@ -46,7 +46,7 @@ pub struct Score {
     pub low_fps: f64,
 }
 impl Score {
-    fn valid(self) -> bool {
+    pub(crate) fn valid(self) -> bool {
         self.fps.is_finite()
             && self.low_fps.is_finite()
             && self.fps > 0.0
@@ -293,45 +293,17 @@ pub struct Profile {
     pub score: Score,
 }
 
+/// Profiles saved by earlier versions in `HKCU\Software\RintelRAPO\LearnedProfiles` (formats 2-4),
+/// imported once into SQLite. Unreadable or malformed values are skipped, never hiding the others.
 #[cfg(windows)]
-pub fn save_profile(profile: &Profile) -> Result<(), String> {
+pub fn registry_profiles() -> Vec<Profile> {
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
-    if !profile.score.valid() || !profile.settings.valid() {
-        return Err("Perfil inválido".into());
-    }
-    let (key, _) = RegKey::predef(HKEY_CURRENT_USER)
-        .create_subkey("Software\\RintelRAPO\\LearnedProfiles")
-        .map_err(|e| e.to_string())?;
-    let value = format!(
-        "4|{}|{}|{}|{}|{}|{}",
-        profile.settings.bits()
-            | ((profile.settings.smt as u8) << 3)
-            | ((profile.settings.p_only as u8) << 4)
-            | ((profile.settings.park_cores as u8) << 5),
-        profile.settings.threads,
-        profile.settings.min_percent,
-        profile.settings.cores,
-        profile.score.fps,
-        profile.score.low_fps
-    );
-    key.set_value(profile.exe.as_os_str(), &value)
-        .map_err(|e| e.to_string())
-}
-#[cfg(windows)]
-pub fn load_profiles() -> Result<Vec<Profile>, String> {
-    use winreg::{enums::HKEY_CURRENT_USER, RegKey};
-    let key = match RegKey::predef(HKEY_CURRENT_USER)
-        .open_subkey("Software\\RintelRAPO\\LearnedProfiles")
-    {
-        Ok(key) => key,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(e.to_string()),
-    };
+    let Ok(key) = RegKey::predef(HKEY_CURRENT_USER).open_subkey("Software\\RintelRAPO\\LearnedProfiles") else { return Vec::new() };
     key.enum_values()
-        .map(|entry| {
-            let (exe, _) = entry.map_err(|e| e.to_string())?;
-            let text: String = key.get_value(&exe).map_err(|e| e.to_string())?;
-            decode(PathBuf::from(exe), &text)
+        .filter_map(|entry| {
+            let (exe, _) = entry.ok()?;
+            let text: String = key.get_value(&exe).ok()?;
+            decode(PathBuf::from(exe), &text).ok()
         })
         .collect()
 }
@@ -629,42 +601,19 @@ mod tests {
     }
     #[cfg(windows)]
     #[test]
-    fn saved_profile_roundtrips_through_windows_registry() {
+    fn registry_profiles_skip_malformed_values_instead_of_failing_all() {
         use winreg::{enums::HKEY_CURRENT_USER, RegKey};
-        let exe = PathBuf::from(format!("C:\\RAPO-test-{}\\遊戲.exe", std::process::id()));
-        let profile = Profile {
-            exe: exe.clone(),
-            settings: Settings {
-                priority: true,
-                pin: true,
-                threads: 3,
-                min_percent: 8,
-                cores: 2,
-                smt: false,
-                p_only: false,
-                park_cores: true,
-                ..Settings::default()
-            },
-            score: Score {
-                fps: 123.0,
-                low_fps: 81.0,
-            },
-        };
-        save_profile(&profile).unwrap();
-        let loaded = load_profiles()
-            .unwrap()
-            .into_iter()
-            .find(|p| p.exe == exe)
-            .unwrap();
-        let key = RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey_with_flags(
-                "Software\\RintelRAPO\\LearnedProfiles",
-                winreg::enums::KEY_SET_VALUE,
-            )
-            .unwrap();
-        key.delete_value(exe.as_os_str()).unwrap();
-        assert_eq!(loaded.settings, profile.settings);
-        assert_eq!(loaded.score.fps, 123.0);
-        assert_eq!(loaded.score.low_fps, 81.0);
+        let good = PathBuf::from(format!("C:\\RAPO-test-{}\\遊戲.exe", std::process::id()));
+        let bad = PathBuf::from(format!("C:\\RAPO-test-{}\\bad.exe", std::process::id()));
+        let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey("Software\\RintelRAPO\\LearnedProfiles").unwrap();
+        key.set_value(good.as_os_str(), &"4|35|3|8|2|123|81").unwrap();
+        key.set_value(bad.as_os_str(), &"4|not-a-profile").unwrap();
+        let loaded = registry_profiles();
+        key.delete_value(good.as_os_str()).unwrap();
+        key.delete_value(bad.as_os_str()).unwrap();
+        let profile = loaded.iter().find(|p| p.exe == good).expect("a valid profile survives a malformed sibling");
+        assert!(profile.settings.priority && profile.settings.pin && profile.settings.park_cores);
+        assert_eq!((profile.settings.threads, profile.settings.cores, profile.score.fps, profile.score.low_fps), (3, 2, 123.0, 81.0));
+        assert!(!loaded.iter().any(|p| p.exe == bad));
     }
 }

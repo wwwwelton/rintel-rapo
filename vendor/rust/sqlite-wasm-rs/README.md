@@ -1,0 +1,118 @@
+[![Crates.io](https://img.shields.io/crates/v/sqlite-wasm-rs.svg)](https://crates.io/crates/sqlite-wasm-rs)
+
+`wasm32-unknown-unknown` bindings to the libsqlite3 library.
+
+## Usage
+
+```toml
+[dependencies]
+sqlite-wasm-rs = { version = "0.6", features = ["wasm-bindgen"] }
+```
+
+```toml
+[dependencies]
+# Encryption is supported by SQLite3MultipleCiphers
+# See <https://utelle.github.io/SQLite3MultipleCiphers>
+sqlite-wasm-rs = { version = "0.6", features = ["wasm-bindgen", "sqlite3mc"] }
+```
+
+```toml
+[dependencies]
+# Encryption is supported by SQLCipher
+# See <https://www.zetetic.net/sqlcipher/>
+sqlite-wasm-rs = { version = "0.6", features = ["wasm-bindgen", "sqlcipher"] }
+```
+
+```rust
+use sqlite_wasm_rs as ffi;
+
+fn open_db() {
+    // open with memory vfs
+    let mut db = std::ptr::null_mut();
+    let ret = unsafe {
+        ffi::sqlite3_open_v2(
+            c"mem.db".as_ptr().cast(),
+            &mut db as *mut _,
+            ffi::SQLITE_OPEN_READWRITE | ffi::SQLITE_OPEN_CREATE,
+            std::ptr::null()
+        )
+    };
+    assert_eq!(ffi::SQLITE_OK, ret);
+    assert_eq!(unsafe { ffi::sqlite3_close(db) }, ffi::SQLITE_OK);
+}
+```
+
+## About VFS
+
+```toml
+[dependencies]
+sqlite-wasm-vfs = { version = "0.3", features = ["sahpool"] }
+```
+
+The following vfs have been implemented:
+
+* [`memory`](./crates/rsqlite-vfs/src/memvfs.rs): as the default vfs, no additional conditions are required, store the database in memory.
+* [`sahpool`](./crates/sqlite-wasm-vfs/src/sahpool.rs): ported from sqlite-wasm, store the database in opfs.
+
+### How to implement a VFS
+
+Here is an example showing how to implement a simple in-memory VFS, see [`implement-a-vfs`](./crates/rsqlite-vfs/examples/implement-a-vfs.rs) example.
+
+```sh
+cargo run -p rsqlite-vfs --example implement-a-vfs
+```
+
+## About multithreading
+
+Multithreading is not supported, SQLite is compiled with `-DSQLITE_THREADSAFE=0`.
+
+For shared-memory builds, set `CFLAGS_wasm32_unknown_unknown="-matomics -mbulk-memory"`.
+
+## Use without wasm-bindgen
+
+No features are enabled by default, provide your own host functions. See [JS Host](./examples/host-js) or [C Host](./examples/host-c) example.
+
+## Use custom SQLite sources and flags
+
+The encryption backends use sources from [`sqlite3mc-src`](https://crates.io/crates/sqlite3mc-src) or [`sqlcipher-src`](https://crates.io/crates/sqlcipher-src).
+
+Set `SQLITE_WASM_RS_SOURCE_DIR` to use custom sources:
+
+- SQLite: a directory containing `sqlite3.c` and `sqlite3.h`.
+- `sqlite3mc`: a directory containing `sqlite3mc_amalgamation.c` and `sqlite3mc_amalgamation.h`.
+- `sqlcipher`: a source tree matching the `sqlcipher-src` crate's `sqlcipher` directory, including LibTomCrypt.
+
+```sh
+SQLITE_WASM_RS_SOURCE_DIR=/path/to/sqlite cargo build --target wasm32-unknown-unknown --features bindgen
+```
+
+Set `SQLITE_WASM_RS_FLAGS` to add SQLite compile flags, with the grammar of `LIBSQLITE3_FLAGS` in `libsqlite3-sys`. Entries are separated by whitespace and are either `-D`/`-U` flags or bare `SQLITE_` names, which get `-D`. They follow the built-in flags, so `-U` removes a built-in option. Enable `bindgen` when a flag changes the C API.
+
+```sh
+SQLITE_WASM_RS_FLAGS="SQLITE_SOUNDEX -DSQLITE_ENABLE_FTS3" cargo build --target wasm32-unknown-unknown
+```
+
+## Minimum supported Rust version (MSRV)
+
+The minimal officially supported rustc version is 1.81.0.
+
+## Extensions
+
+|Extension|About|
+|-|-|
+|[sqlite-vec](./extensions/sqlite-vec)|A vector search SQLite extension that runs anywhere!|
+
+Contributions are welcome!
+
+## Related Project
+
+* [`diesel`](https://github.com/diesel-rs/diesel): A safe, extensible ORM and Query Builder for Rust.
+* [`rusqlite`](https://github.com/rusqlite/rusqlite): Ergonomic bindings to SQLite for Rust.
+* [`sqlite-wasm`](https://github.com/sqlite/sqlite-wasm): SQLite Wasm conveniently wrapped as an ES Module.
+* [`sqlite-web-rs`](https://github.com/xmtp/sqlite-web-rs): A SQLite WebAssembly backend for Diesel.
+* [`wa-sqlite`](https://github.com/rhashimoto/wa-sqlite): WebAssembly SQLite with support for browser storage extensions.
+* [`SQLite3MultipleCiphers`](https://github.com/utelle/SQLite3MultipleCiphers): SQLite3 encryption extension with support for multiple ciphers.
+
+## Friends
+
+- [moli](https://github.com/lexmount/moli) - Best browser for AI Agent, written in pure Rust.

@@ -1,3 +1,4 @@
-# Vendored sources are checksummed (.cargo-checksum.json); line-ending conversion breaks them on Windows checkouts.
-vendor/** -text
-native/hy2/vendor/** -text
+# Vendored sources are checksummed (.cargo-checksum.json); line-ending conversion breaks them on Windows checkouts,
+# and they are third-party bytes, so whitespace linting does not apply.
+vendor/** -text -whitespace
+native/hy2/vendor/** -text -whitespace

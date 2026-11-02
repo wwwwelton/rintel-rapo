@@ -1,0 +1,145 @@
+//! Link-time host services: sleep, randomness, clock, secure entropy and local time.
+//!
+//! Required C ABI symbols:
+//!
+//! - `rust_sqlite_wasm_host_sleep`: sleeps for the requested duration; returns nothing.
+//! - `rust_sqlite_wasm_host_random`: writes up to `len` random bytes to `buf` and
+//!   returns the number written; cryptographic security is not required.
+//! - `rust_sqlite_wasm_host_epoch_timestamp_in_ms`: writes UTC Unix milliseconds
+//!   to `out` and returns a status code.
+//! - `rust_sqlite_wasm_host_fill_entropy`: fills all `len` bytes of `buf` with
+//!   cryptographically secure randomness or fails; returns a status code.
+//! - `rust_sqlite_wasm_host_localtime`: converts Unix seconds to the host's local
+//!   time zone, writes [`LocalTime`] to `out`, and returns a status code.
+//!
+//! Status codes are [`OK`] on success or an [`Error`] discriminant on failure.
+
+use core::fmt;
+use core::time::Duration;
+use rsqlite_vfs::{OsCallback, VfsError, VfsErrorCode, VfsResult};
+
+#[cfg(feature = "wasm-bindgen")]
+mod wasm_bindgen;
+
+/// Successful completion of a fallible C ABI host hook.
+pub const OK: i32 = 0;
+
+/// Status codes returned by fallible host hooks.
+///
+/// Return the discriminant as `i32` from a C ABI hook.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(i32)]
+#[non_exhaustive]
+pub enum Error {
+    /// The host does not implement the requested capability.
+    Unsupported = 1,
+    /// The host service is currently unavailable or failed.
+    Unavailable = 2,
+    /// The host could not represent or convert the requested time.
+    InvalidTime = 3,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unsupported => "host capability is unsupported",
+            Self::Unavailable => "host service is unavailable",
+            Self::InvalidTime => "host returned an invalid time",
+        })
+    }
+}
+
+impl core::error::Error for Error {}
+
+/// A result from a fallible host service.
+pub type Result<T> = core::result::Result<T, Error>;
+
+/// C ABI local Gregorian calendar fields, matching `rust_sqlite_wasm_local_time`.
+///
+/// Ten consecutive `i32` fields (40 bytes, alignment 4 on wasm32), not libc's
+/// `struct tm`. A zero-initialized value is not a valid calendar date.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub struct LocalTime {
+    /// Full calendar year, not an offset from 1900.
+    pub year: i32,
+    /// Month in `1..=12`.
+    pub month: i32,
+    /// Day of the month in `1..=31`, valid for the month and year.
+    pub day: i32,
+    /// Hour in `0..=23`.
+    pub hour: i32,
+    /// Minute in `0..=59`.
+    pub minute: i32,
+    /// Second in `0..=60` (including a leap second).
+    pub second: i32,
+    /// Day of the week in `0..=6`, with Sunday equal to zero.
+    pub weekday: i32,
+    /// Day of the year in `0..=365`, with January 1 equal to zero.
+    pub yearday: i32,
+    /// Daylight saving time: `1` if active, `0` if inactive, `-1` if unknown.
+    pub is_dst: i32,
+    /// Local time minus UTC, in seconds.
+    pub utc_offset_seconds: i32,
+}
+
+mod ffi {
+    use super::LocalTime;
+
+    extern "C" {
+        #[link_name = "rust_sqlite_wasm_host_sleep"]
+        pub fn sleep(seconds: u64, nanoseconds: u32);
+        #[link_name = "rust_sqlite_wasm_host_random"]
+        pub fn random(buf: *mut u8, len: usize) -> usize;
+        #[link_name = "rust_sqlite_wasm_host_epoch_timestamp_in_ms"]
+        pub fn epoch_timestamp_in_ms(out: *mut i64) -> i32;
+        #[link_name = "rust_sqlite_wasm_host_fill_entropy"]
+        pub fn fill_entropy(buf: *mut u8, len: usize) -> i32;
+        #[link_name = "rust_sqlite_wasm_host_localtime"]
+        pub fn localtime(unix_seconds: i64, out: *mut LocalTime) -> i32;
+    }
+}
+
+fn check_status(status: i32) -> Result<()> {
+    match status {
+        OK => Ok(()),
+        value if value == Error::Unsupported as i32 => Err(Error::Unsupported),
+        value if value == Error::InvalidTime as i32 => Err(Error::InvalidTime),
+        _ => Err(Error::Unavailable),
+    }
+}
+
+pub(crate) fn fill_entropy(buf: &mut [u8]) -> Result<()> {
+    check_status(unsafe { ffi::fill_entropy(buf.as_mut_ptr(), buf.len()) })
+}
+
+pub(crate) fn localtime(unix_seconds: i64) -> Result<LocalTime> {
+    let mut out = LocalTime::default();
+    check_status(unsafe { ffi::localtime(unix_seconds, &mut out) })?;
+    Ok(out)
+}
+
+/// VFS platform services supplied by the linked host.
+#[derive(Default)]
+pub struct WasmOsCallback;
+
+impl OsCallback for WasmOsCallback {
+    fn sleep(&self, duration: Duration) {
+        unsafe { ffi::sleep(duration.as_secs(), duration.subsec_nanos()) }
+    }
+
+    fn random(&self, buf: &mut [u8]) -> usize {
+        unsafe { ffi::random(buf.as_mut_ptr(), buf.len()) }
+    }
+
+    fn epoch_timestamp_in_ms(&self) -> VfsResult<i64> {
+        let mut out = 0;
+        check_status(unsafe { ffi::epoch_timestamp_in_ms(&mut out) }).map_err(|error| {
+            VfsError::new(
+                VfsErrorCode::Error,
+                alloc::format!("host clock: {error}").into(),
+            )
+        })?;
+        Ok(out)
+    }
+}

@@ -119,9 +119,15 @@ impl Shared {
 }
 struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, address: SocketAddr }
 
-pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config }
+pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
-    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: Mode::default(), config: Hy2Config::default() } }
+    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: Mode::default(), config: Hy2Config::default(), priors: Vec::new() } }
+    /// Exit statistics saved by earlier sessions; used from the next `start()` on.
+    pub fn set_priors(&mut self, priors: Vec<crate::store::PathStat>) { self.priors = priors; }
+    /// Destination/exit statistics measured by the running relay, for saving.
+    pub fn paths(&self) -> Vec<crate::store::PathStat> {
+        self.run.as_ref().map_or_else(Vec::new, |run| run.shared.learning.lock().unwrap().paths())
+    }
     pub fn mode(&self) -> Mode { self.mode }
     pub fn configure(&mut self, mode: Mode, config: Hy2Config) -> io::Result<()> {
         self.poll();
@@ -159,7 +165,7 @@ impl RelayServer {
             mode: self.mode, config: self.config.clone(), udp_destinations: AtomicU64::new(0),
             running: AtomicBool::new(true), connections: Mutex::new(Vec::new()), total: AtomicU64::new(0),
             bytes_tx: AtomicU64::new(0), bytes_rx: AtomicU64::new(0), error: Mutex::new(String::new()),
-            learning: Mutex::new(learning::Learning::default()),
+            learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
             prewarm: Mutex::new(prewarm::Prewarm::default()),
             interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None),
         });

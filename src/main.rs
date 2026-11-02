@@ -19,6 +19,7 @@ mod network_learning;
 pub mod relay;
 pub mod wfp;
 pub mod engine_ini;
+pub mod store;
 mod network_qos;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -116,6 +117,9 @@ mod app {
         relay: crate::relay::RelayServer,
         wfp: crate::wfp::WfpManager,
         engine_ini: crate::engine_ini::EngineIni,
+        /// SQLite profile store; `None` when it cannot be opened (profiles then live only in RAM).
+        store: Option<crate::store::Store>,
+        paths_saved: Instant,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -183,13 +187,26 @@ mod app {
                 relay: crate::relay::RelayServer::new(1080),
                 wfp: crate::wfp::WfpManager::new(),
                 engine_ini: crate::engine_ini::EngineIni::new(),
+                store: None,
+                paths_saved: Instant::now(),
             };
-            let _ = app.relay.start();
-            // Every Engine.ini option starts off; dropping EngineIni removes RAPO's lines when RAPO closes.
-            match crate::learning::load_profiles() {
-                Ok(profiles) => app.learned_profiles = profiles,
-                Err(error) => app.training_message = error,
+            match crate::store::Store::open_default() {
+                Ok(store) => {
+                    let loaded = store.import(&crate::learning::registry_profiles()).and_then(|_| store.best_profiles());
+                    match loaded {
+                        Ok(profiles) => app.learned_profiles = profiles,
+                        Err(error) => app.training_message = error,
+                    }
+                    // The relay starts from the best exit measured in earlier sessions.
+                    match store.paths() {
+                        Ok(paths) => app.relay.set_priors(paths),
+                        Err(error) => app.training_message = error,
+                    }
+                    app.store = Some(store);
+                }
+                Err(error) => app.training_message = format!("Banco de perfis indisponível; perfis ficam só nesta sessão: {error}"),
             }
+            let _ = app.relay.start();
             app.scan();
             app.refresh();
             app
@@ -491,6 +508,7 @@ mod app {
     impl Drop for App {
         fn drop(&mut self) {
             self.wfp.stop();
+            self.save_paths();
             self.relay.stop();
             self.routes.shutdown();
             if let Some(training) = self.training.take() {
@@ -607,6 +625,16 @@ mod app {
             })
         }
 
+        /// Saves this session's relay exit statistics and refreshes the priors for the next relay start.
+        fn save_paths(&mut self) {
+            self.paths_saved = Instant::now();
+            let Some(store) = &self.store else { return };
+            match store.save_paths(&self.relay.paths()).and_then(|()| store.paths()) {
+                Ok(paths) => self.relay.set_priors(paths),
+                Err(error) => self.error = format!("Salvar caminhos do relay: {error}"),
+            }
+        }
+
         /// Advances refresh and FPS sampling; returns how soon the next frame is needed.
         pub fn tick(&mut self, minimized: bool) -> Duration {
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
@@ -614,6 +642,9 @@ mod app {
             }
             self.routes.poll(&self.telemetry.metrics.process_ping);
             self.relay.poll();
+            if self.paths_saved.elapsed() >= Duration::from_secs(30) {
+                self.save_paths();
+            }
             self.wfp.poll();
             let pause_requested = self.tray.take_fps_pause_request();
             if pause_requested {

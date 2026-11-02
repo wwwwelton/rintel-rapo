@@ -223,12 +223,16 @@ impl App {
                 .filter(|p| windows::same_executable(&p.exe, &process.exe) && self.optimizer.enabled(p.pid))
                 .map(|p| p.pid)
                 .collect(),
+            // Seeded from the saved best profile of this game, not from whatever was applied this refresh.
             search: Search::new(
                 seed,
                 self.pinner
                     .as_ref()
                     .map_or_else(Limits::default, Pinner::limits),
-                self.effective_settings(&process),
+                self.learned_profiles
+                    .iter()
+                    .find(|p| windows::same_executable(&p.exe, &process.exe))
+                    .map_or_else(|| self.effective_settings(&process), |p| p.settings),
             ),
             capture: None,
             started: Instant::now(),
@@ -312,7 +316,8 @@ impl App {
                     settings,
                     score,
                 };
-                if let Err(error) = crate::learning::save_profile(&profile) {
+                // Without a store (open failed at startup) the winner still applies for this session.
+                if let Some(Err(error)) = self.store.as_ref().map(|store| store.save_best(&profile)) {
                     self.restore_training(training, format!("Perfil não salvo: {error}"));
                     return;
                 }
@@ -373,6 +378,9 @@ impl App {
             Err(error) => self.restore_training(training, error),
             Ok(Some(score)) => {
                 training.capture = None;
+                if let Some(Err(error)) = self.store.as_ref().map(|store| store.record_trial(&training.exe, settings, score)) {
+                    self.training_message = format!("Medição não registrada no banco: {error}");
+                }
                 match training.search.record(score) {
                     Err(error) => self.restore_training(training, error),
                     Ok(None) => {

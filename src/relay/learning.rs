@@ -50,20 +50,32 @@ impl History {
     }
 }
 #[derive(Default)]
-pub(super) struct Learning { history: Vec<History>, requests: u64 }
+pub(super) struct Learning { history: Vec<History>, requests: u64, prior: Vec<crate::store::PathStat> }
 impl Learning {
+    /// Starts from statistics saved by earlier sessions, so the first connection uses the best known exit.
+    pub fn with_prior(prior: Vec<crate::store::PathStat>) -> Self { Self { prior, ..Self::default() } }
+    fn prior(&self, target: SocketAddr, egress: &Egress) -> Option<f64> {
+        self.prior.iter().find(|p| p.destination == target && p.authorization == egress.authorization).map(|p| p.mean_ms)
+    }
     pub fn choose(&mut self, target: SocketAddr, choices: &[Egress], now: Instant) -> usize {
         self.history.retain(|h| now.saturating_duration_since(h.measured_at) <= FRESH);
         self.requests = self.requests.wrapping_add(1);
         let attempts = self.history.iter().filter(|h| h.target == target).fold(0usize, |sum, h| sum.saturating_add(h.attempts));
         let history = |choice: &Egress| self.history.iter().find(|h| h.target == target && h.egress.id == choice.id);
+        // Warm: measured 3 times this session, or measured in an earlier session (saved prior).
+        let rank = |choice: &Egress| {
+            let h = history(choice);
+            let tries = h.map_or(0, |h| h.attempts);
+            let estimate = if tries >= 3 { h.map(History::score) } else { self.prior(target, choice) };
+            (estimate, tries, h.map_or(0, |h| h.selected_at))
+        };
         let selected = choices.iter().enumerate().min_by(|(_, a), (_, b)| {
-            let a = history(a); let b = history(b);
-            let a_attempts = a.map_or(0, |h| h.attempts);
-            let b_attempts = b.map_or(0, |h| h.attempts);
-            if a_attempts < 3 || b_attempts < 3 { return a_attempts.cmp(&b_attempts); }
-            let a = a.unwrap(); let b = b.unwrap();
-            if attempts % 8 == 7 { a.selected_at.cmp(&b.selected_at) } else { a.score().total_cmp(&b.score()) }
+            let (a, b) = (rank(a), rank(b));
+            match (a.0, b.0) {
+                (Some(a_score), Some(b_score)) => if attempts % 8 == 7 { a.2.cmp(&b.2) } else { a_score.total_cmp(&b_score) },
+                // Unmeasured exits are probed first, fewest attempts first.
+                _ => (a.0.is_some(), a.1).cmp(&(b.0.is_some(), b.1)),
+            }
         }).map_or(0, |(index, _)| index);
         let index = self.entry(target, &choices[selected], now);
         self.history[index].attempts = self.history[index].attempts.saturating_add(1);
@@ -108,6 +120,13 @@ impl Learning {
         }).collect();
         predictions.sort_unstable_by_key(|p| (p.destination, p.interface));
         predictions
+    }
+    /// Statistics worth saving: every destination/exit pair measured this session.
+    pub fn paths(&self) -> Vec<crate::store::PathStat> {
+        self.history.iter().filter(|h| h.model.samples > 0).map(|h| crate::store::PathStat {
+            destination: h.target, authorization: h.egress.authorization.clone(), mean_ms: h.mean,
+            samples: u32::try_from(h.model.samples).unwrap_or(u32::MAX), failures: u32::try_from(h.failures).unwrap_or(u32::MAX),
+        }).collect()
     }
 }
 
@@ -160,5 +179,20 @@ mod tests {
         fresh.choose(target, &choices, now);
         fresh.observe(target, &choices[0], Duration::from_millis(10), true, now);
         assert!(fresh.predictions(now)[0].predicted_ms.is_none());
+    }
+    #[test]
+    fn saved_prior_makes_the_first_connection_use_the_best_known_exit() {
+        let choices = exits(); let now = Instant::now();
+        let target: SocketAddr = "203.0.113.1:443".parse().unwrap();
+        assert_eq!(Learning::default().choose(target, &choices, now), 0, "without history the first exit is probed");
+        let prior = |authorization: &str, mean_ms| crate::store::PathStat { destination: target, authorization: authorization.into(), mean_ms, samples: 9, failures: 0 };
+        let mut model = Learning::with_prior(vec![prior("1", 80.0), prior("2", 12.0)]);
+        assert_eq!(model.choose(target, &choices, now), 1, "the saved best exit is tried first");
+        model.observe(target, &choices[1], Duration::from_millis(11), true, now);
+        assert_eq!(model.choose(target, &choices, now), 1, "a warm prior is not re-probed against a slower one");
+        let other: SocketAddr = "203.0.113.9:443".parse().unwrap();
+        assert_eq!(model.choose(other, &choices, now), 0, "priors belong to their destination");
+        let saved = model.paths();
+        assert_eq!((saved.len(), saved[0].authorization.as_str(), saved[0].samples), (1, "2", 1), "only measured pairs are saved");
     }
 }
