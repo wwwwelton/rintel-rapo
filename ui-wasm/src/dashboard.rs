@@ -144,12 +144,12 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     let (class, status) = if relay.running { ("net-card-active", "Escutando") }
         else if relay.stopping { ("net-card-warn", "Encerrando conexões") }
         else { ("net-card-off", "Desativado") };
-    write!(html, "<div class=\"net-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} conexões ativas ({} associações UDP, saída UDP fixa: {}) · {} aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB<br>Conexões pré-abertas: {} usadas · {} descartadas</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0, relay.prewarm_hits, relay.prewarm_misses).unwrap();
+    write!(html, "<div class=\"net-card relay-card {class}\"><span class=\"net-card-label\">Relay local · SOCKS5 TCP/UDP</span><span class=\"net-card-value\" role=\"status\">{status}</span><span class=\"net-card-sub\">{}</span><label><input type=\"checkbox\" data-action=\"relay\"{}{}> Habilitar relay local</label><span class=\"net-card-sub\">{} conexões ativas ({} associações UDP, saída UDP fixa: {}) · {} aceitas<br>Enviado: {:.1} KiB · Recebido: {:.1} KiB<br>Conexões pré-abertas: {} usadas · {} descartadas</span>", escape(&relay.address), if relay.running { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }, relay.active_connections, relay.udp_associations, escape(&relay.udp_route), relay.total_connections, relay.bytes_tx as f64 / 1024.0, relay.bytes_rx as f64 / 1024.0, relay.prewarm_hits, relay.prewarm_misses).unwrap();
     html.push_str("<span class=\"net-disclaimer\">Configure SOCKS5 neste endereço no cliente compatível. TCP CONNECT e UDP ASSOCIATE. AION 2: use a opção abaixo para tunelamento transparente.</span>");
     let (_wfp_class, wfp_status) = if wfp.running { ("net-card-active", format!("Tunelando {}", escape(&wfp.target))) }
         else if wfp.enabled { ("net-card-warn", "Aguardando processo".into()) }
         else { ("net-card-off", "Desativado".into()) };
-    write!(html, "<hr style=\"border:0;border-top:1px solid #1E394C;margin:8px 0\"><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
+    write!(html, "<hr><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
     if !wfp.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&wfp.error)).unwrap(); }
     if !relay.hy2_server.is_empty() {
         let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
@@ -230,7 +230,7 @@ pub fn render(view: &Dashboard) -> String {
     }
     if let Some(pin) = &view.pin_status { write!(html, "<p>{}</p>", escape(pin)).unwrap(); }
     html.push_str("<section class=\"network-optimization\"><h2>OTIMIZAÇÃO DE REDE</h2>");
-    write!(html, "<label style=\"margin-bottom:8px;display:inline-flex;align-items:center;gap:8px;cursor:pointer\"><input type=\"checkbox\" data-action=\"network-priority\" style=\"accent-color:#46e0d5;width:16px;height:16px\"{}> Priorizar rede do jogo (DSCP 46)</label>", if view.network_priority { " checked" } else { "" }).unwrap();
+    write!(html, "<label class=\"network-priority-toggle\"><input type=\"checkbox\" data-action=\"network-priority\"{}> Priorizar rede do jogo (DSCP 46)</label>", if view.network_priority { " checked" } else { "" }).unwrap();
     let has_policies = !view.network_tweaks.is_empty();
     html.push_str("<div class=\"net-grid\">");
     // Card 1: DSCP status

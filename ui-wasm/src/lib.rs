@@ -1,4 +1,4 @@
-//! Header rendering for the webview UI. Pure: input JSON -> HTML string.
+//! Pure webview rendering: input JSON -> HTML strings with stable host action hooks.
 //! Compiled natively for tests and to wasm32 for the webview.
 
 use serde::{Deserialize, Serialize};
@@ -71,10 +71,18 @@ pub fn render_header(view: &HeaderView) -> String {
 
     format!(
         r#"<header class="rapo-header">
+<div class="header-identity">
+<span class="product-mark" aria-hidden="true">APO</span>
+<div class="header-copy">
+<p class="hero-eyebrow">Painel de controle</p>
 <h1>{title}</h1>
+</div>
+</div>
+<div class="header-status hero-meta">
 <span class="badge badge-accent">{scheduling}</span>
 <span class="badge {status_class}">{status}</span>
-<div class="actions">
+</div>
+<div class="actions hero-actions">
 {dtt}
 <button id="btn-refresh" data-action="refresh">{refresh}</button>
 <button id="btn-scan-steam" data-action="scan">{scan}</button>
@@ -198,32 +206,34 @@ pub struct TrainingView {
 /// for target picks) so the host maps them with `from_training_event`.
 pub fn render_training(view: &TrainingView) -> String {
     let state_class = if !view.active { "training-idle" } else if view.paused { "training-paused" } else { "training-live" };
-    let mut html = format!("<section class=\"training {state_class}\"><h2>Avatarnoia Flow Engine 2.0 · FPS REAL</h2>");
+    let mut html = format!("<section class=\"training {state_class}\"><div class=\"hero-copy\"><p class=\"hero-eyebrow\">Avatarnoia Flow Engine 2.0 · FPS REAL</p><h2 class=\"hero-title\">Seu hardware. Seu controle.</h2></div>");
     let paragraph = |text: &str| format!("<p>{}</p>", escape(text));
     if let Some(cpu) = &view.cpu_line {
-        html.push_str(&paragraph(cpu));
+        html.push_str(&format!("<p class=\"hero-meta\">{}</p>", escape(cpu)));
     }
     if view.active {
+        html.push_str("<div class=\"hero-meta\">");
         for line in [&view.headline, &view.target_line, &view.progress_line].into_iter().flatten() {
             html.push_str(&paragraph(line));
         }
-        html.push_str(if view.paused { "<h3>CANDIDATO PRESERVADO — NÃO APLICADO</h3>" } else { "<h3>PARÂMETROS EM TREINAMENTO</h3>" });
+        html.push_str("</div>");
+        html.push_str(if view.paused { "<h3 class=\"section-heading\">CANDIDATO PRESERVADO — NÃO APLICADO</h3>" } else { "<h3 class=\"section-heading\">PARÂMETROS EM TREINAMENTO</h3>" });
         if let Some(candidate) = &view.candidate {
             profile::render_settings(&mut html, candidate);
         }
         if let Some(best) = &view.best_line {
             html.push_str(&format!("<p class=\"best-score\">{}</p>", escape(best)));
         }
-        html.push_str(&paragraph("Testa cores, afinidade, threads críticas e irmãos SMT/Hyper-Threading conforme a topologia real do grupo 0. Sair pausa e descarta a janela parcial; voltar reinicia a medição do mesmo candidato. Não altera BIOS nem desativa SMT globalmente."));
-        html.push_str("<button id=\"training-toggle\" type=\"button\" data-action=\"stop_training\">Parar aprendizado e manter último perfil salvo</button>");
+        html.push_str("<p class=\"hero-description\">Testa cores, afinidade, threads críticas e irmãos SMT/Hyper-Threading conforme a topologia real do grupo 0. Sair pausa e descarta a janela parcial; voltar reinicia a medição do mesmo candidato. Não altera BIOS nem desativa SMT globalmente.</p>");
+        html.push_str("<div class=\"hero-actions\"><button id=\"training-toggle\" type=\"button\" data-action=\"stop_training\">Parar aprendizado e manter último perfil salvo</button></div>");
     } else {
         if let Some(armed) = &view.armed_line {
             html.push_str(&paragraph(armed));
-            html.push_str("<button type=\"button\" data-action=\"disable_rapo\">Desativar RAPO</button>");
+            html.push_str("<div class=\"hero-actions\"><button type=\"button\" data-action=\"disable_rapo\">Desativar RAPO</button></div>");
         }
         html.push_str(&paragraph(view.selected_label.as_deref().unwrap_or("Abra um jogo Steam")));
-        html.push_str(&paragraph("RAPO aprende prioridade, memória/EcoQoS, quantidade de núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis. Um jogo por vez; pausa ao sair e retoma o mesmo candidato."));
-        html.push_str(&paragraph("ETW de apresentação, sem rastrear entrada ou execução na GPU, sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções."));
+        html.push_str("<p class=\"hero-description\">RAPO aprende prioridade, memória/EcoQoS, quantidade de núcleos físicos, afinidade P/all, threads críticas e irmãos SMT/Hyper-Threading disponíveis. Um jogo por vez; pausa ao sair e retoma o mesmo candidato.</p>");
+        html.push_str("<p class=\"hero-description\">ETW de apresentação, sem rastrear entrada ou execução na GPU, sem injeção, driver ou leitura da memória do jogo. Acesso negado interrompe a captura, sem contornar proteções.</p>");
         html.push_str("<ul class=\"targets\">");
         for target in &view.targets {
             html.push_str(&format!(
@@ -236,7 +246,7 @@ pub fn render_training(view: &TrainingView) -> String {
         }
         html.push_str("</ul>");
         let disabled = if view.can_start { "" } else { " disabled" };
-        html.push_str(&format!("<button id=\"training-toggle\" type=\"button\" data-action=\"start_training\"{disabled}>Iniciar aprendizado contínuo</button>"));
+        html.push_str(&format!("<div class=\"hero-actions\"><button id=\"training-toggle\" type=\"button\" data-action=\"start_training\"{disabled}>Iniciar aprendizado contínuo</button></div>"));
     }
     html.push_str(&paragraph("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."));
     html.push_str("<details><summary id=\"collector-license\">Licença do coletor integrado</summary><p>PresentData / PresentMon 2.3.0 · Intel · MIT</p><pre>");
