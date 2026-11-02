@@ -39,8 +39,9 @@ fn response(socket: &mut TcpStream) -> (u8, SocketAddr) {
     let mut port = [0; 2]; socket.read_exact(&mut port).unwrap();
     (header[1], SocketAddr::new(ip, u16::from_be_bytes(port)))
 }
+// Generous deadline: under a fully parallel test run, QUIC/TLS startup can exceed a few seconds.
 fn until(mut condition: impl FnMut() -> bool) {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + Duration::from_secs(20);
     while !condition() {
         assert!(Instant::now() < deadline, "relay did not reach expected state");
         thread::sleep(Duration::from_millis(5));

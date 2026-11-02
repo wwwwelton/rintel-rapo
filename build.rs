@@ -135,6 +135,39 @@ fn build_hy2() {
         library
     };
     println!("cargo:rustc-env=RAPO_HY2_EMBED={}", library.display());
+    build_hy2_fixture(&target_os);
+}
+
+/// Test-only HY2 server (native/hy2/fixture), embedded with `include_bytes!` under
+/// `cfg(test)` so test binaries need no Go at runtime; the shipped `.exe` never contains it.
+/// Without Go (prebuilt `RAPO_HY2_LIBRARY` hosts) the env var stays unset and tests fall back
+/// to `RAPO_HY2_FIXTURE`.
+fn build_hy2_fixture(target_os: &str) {
+    println!("cargo:rerun-if-env-changed=RAPO_HY2_FIXTURE");
+    println!("cargo:rustc-check-cfg=cfg(rapo_hy2_fixture_embedded)");
+    println!("cargo:rerun-if-changed=native/hy2/fixture");
+    if let Some(path) = std::env::var_os("RAPO_HY2_FIXTURE").map(std::path::PathBuf::from).filter(|p| p.is_absolute() && p.is_file()) {
+        println!("cargo:rerun-if-changed={}", path.display());
+        println!("cargo:rustc-env=RAPO_HY2_FIXTURE_EMBED={}", path.display());
+        println!("cargo:rustc-cfg=rapo_hy2_fixture_embedded");
+        return;
+    }
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let fixture = out.join(if target_os == "windows" { "rapo_hy2_fixture.exe" } else { "rapo_hy2_fixture" });
+    let arch = match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_str() {
+        "x86_64" => "amd64", "aarch64" => "arm64", "x86" => "386", _ => return,
+    };
+    let built = std::process::Command::new(std::env::var_os("GO").unwrap_or_else(|| "go".into()))
+        .current_dir("native/hy2")
+        .args(["build", "-trimpath", "-ldflags=-s -w -buildid=", "-o"]).arg(&fixture).arg("./fixture")
+        .env("CGO_ENABLED", "0").env("GOOS", target_os).env("GOARCH", arch)
+        .status().is_ok_and(|status| status.success());
+    if built {
+        println!("cargo:rustc-env=RAPO_HY2_FIXTURE_EMBED={}", fixture.display());
+        println!("cargo:rustc-cfg=rapo_hy2_fixture_embedded");
+    } else {
+        println!("cargo:warning=HY2 test fixture not built (Go unavailable); HY2 interop tests need RAPO_HY2_FIXTURE");
+    }
 }
 
 fn write_if_changed(path: &std::path::Path, content: &str) {

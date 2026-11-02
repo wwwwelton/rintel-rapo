@@ -329,13 +329,19 @@ pub(super) mod fixture {
     }
     pub fn start() -> Fixture {
         static BINARY: std::sync::LazyLock<std::path::PathBuf> = std::sync::LazyLock::new(|| {
-            // Prebuilt fixture for hosts without Go (pairs with RAPO_HY2_LIBRARY).
+            // Runtime override for a prebuilt fixture.
             if let Some(prebuilt) = std::env::var_os("RAPO_HY2_FIXTURE") { return prebuilt.into(); }
-            let path = std::env::temp_dir().join(format!("rapo-hy2-fixture-{}{}", std::process::id(), std::env::consts::EXE_SUFFIX));
-            let status = Command::new(std::env::var_os("GO").unwrap_or("go".into())).args(["build", "-o"]).arg(&path).arg("./fixture")
-                .current_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/native/hy2")).status().expect("Go toolchain is required for HY2 interop tests");
-            assert!(status.success(), "building the HY2 fixture failed");
-            path
+            // Built by build.rs and bundled into the test binary only: no Go needed at test time.
+            #[cfg(rapo_hy2_fixture_embedded)]
+            {
+                const BYTES: &[u8] = include_bytes!(env!("RAPO_HY2_FIXTURE_EMBED"));
+                let path = std::env::temp_dir().join(format!("rapo-hy2-fixture-{}{}", std::process::id(), std::env::consts::EXE_SUFFIX));
+                std::fs::write(&path, BYTES).expect("writing the bundled HY2 fixture");
+                #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap(); }
+                return path;
+            }
+            #[allow(unreachable_code)]
+            { panic!("HY2 fixture not bundled (Go was unavailable at build time); set RAPO_HY2_FIXTURE to a prebuilt fixture") }
         });
         let mut child = Command::new(&*BINARY).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
         let mut line = String::new();
