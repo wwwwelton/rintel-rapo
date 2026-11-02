@@ -33,7 +33,7 @@ pub fn render_settings(html: &mut String, settings: &ProfileSettings) {
     field(html, "Limiar de CPU (%)", settings.min_percent, settings.pin);
     field(html, "Núcleos elegíveis", if settings.p_only { "Somente P-cores" } else { "Todos os núcleos" }, settings.pin);
     field(html, "Permitir irmãos SMT / HT", on(settings.smt), settings.pin);
-    field(html, "Desligar núcleos ociosos (reserva de cache)", on(settings.park_cores), settings.pin);
+    field(html, "Restringir processo aos núcleos alocados", on(settings.park_cores), settings.pin);
     html.push_str("</dl>");
 }
 
@@ -56,7 +56,7 @@ mod tests {
             park_cores: true,
         };
         render_settings(&mut html_active, &settings_active);
-        assert!(html_active.contains("<div class=\"parameter parameter-on\"><dt>Desligar núcleos ociosos (reserva de cache)</dt><dd>Ativado</dd></div>"));
+        assert!(html_active.contains("<div class=\"parameter parameter-on\"><dt>Restringir processo aos núcleos alocados</dt><dd>Ativado</dd></div>"));
 
         let mut html_standby = String::new();
         let settings_standby = ProfileSettings {
@@ -65,6 +65,6 @@ mod tests {
             ..settings_active
         };
         render_settings(&mut html_standby, &settings_standby);
-        assert!(html_standby.contains("<div class=\"parameter parameter-off\"><dt>Desligar núcleos ociosos (reserva de cache)</dt><dd>Desativado</dd><small>Sem efeito neste perfil</small></div>"));
+        assert!(html_standby.contains("<div class=\"parameter parameter-off\"><dt>Restringir processo aos núcleos alocados</dt><dd>Desativado</dd><small>Sem efeito neste perfil</small></div>"));
     }
 }

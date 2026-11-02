@@ -324,7 +324,7 @@ impl App {
                 self.learned_profiles.retain(|p| !windows::same_executable(&p.exe, &profile.exe));
                 self.learned_profiles.push(profile);
                 training.saved = Some(settings);
-                self.training_message = format!("Melhor perfil salvo após {} medições; aprendizado continua. Prioridade {}, afinidade {}, {} núcleos, até {} threads, SMT {}, P-only {}, limiar {}%, memória {}. Média {:.1} FPS; 1% low {:.1} FPS.", training.search.completed(), settings.priority, settings.pin, settings.cores, settings.threads, settings.smt, settings.p_only, settings.min_percent, settings.qos, score.fps, score.low_fps);
+                self.training_message = format!("Melhor perfil salvo após {} medições; aprendizado continua. Prioridade {}, afinidade {}, {} núcleos, até {} threads, SMT {}, P-only {}, restringir processo {}, limiar {}%, memória {}. Média {:.1} FPS; 1% low {:.1} FPS.", training.search.completed(), settings.priority, settings.pin, settings.cores, settings.threads, settings.smt, settings.p_only, settings.park_cores, settings.min_percent, settings.qos, score.fps, score.low_fps);
             }
             training.winner = None;
             if let Err(error) = self.set_settings(&training.exe, training.search.current()) {
