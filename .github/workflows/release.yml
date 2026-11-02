@@ -36,7 +36,11 @@ jobs:
       - name: Add wasm target and wasm-bindgen CLI
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli --version 0.2.130 --locked
+          Push-Location $env:RUNNER_TEMP
+          try {
+            cargo install wasm-bindgen-cli --version 0.2.130 --locked
+            if ($LASTEXITCODE -ne 0) { throw "wasm-bindgen CLI installation failed" }
+          } finally { Pop-Location }
 
       - name: Build webview UI (wasm)
         shell: bash
@@ -47,6 +51,10 @@ jobs:
 
       - name: 2. Test (Windows Unit & Integration Suite)
         run: cargo test --workspace
+
+      - name: Reject corrupted bundled driver without installing it
+        shell: pwsh
+        run: ./scripts/test-prepare-wfp.ps1
 
       - name: 📋 Show build environment
         run: |
