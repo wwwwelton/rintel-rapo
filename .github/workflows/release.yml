@@ -96,7 +96,10 @@ jobs:
             "target/release/rintel-rapo.exe",
             "target/release/rintel-rapo.exe.sha256",
             "target/release/rintel-rapo.cer",
-            "native/hy2/THIRD_PARTY_NOTICES.txt"
+            "native/hy2/THIRD_PARTY_NOTICES.txt",
+            "ui-screen.svg",
+            "ui-screen.json",
+            "vendor/wfp/NOTICE.md"
           ) | ForEach-Object {
             if (Test-Path $_) {
               $item = Get-Item $_
@@ -111,6 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.2.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           name: "Rintel RAPO v0.2.${{ github.run_number }} (${{ github.sha }})"
           generate_release_notes: true
           make_latest: "true"
@@ -120,3 +124,6 @@ jobs:
             target/release/rintel-rapo.exe.sha256
             target/release/rintel-rapo.cer
             native/hy2/THIRD_PARTY_NOTICES.txt
+            ui-screen.svg
+            ui-screen.json
+            vendor/wfp/NOTICE.md
