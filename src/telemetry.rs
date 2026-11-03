@@ -1,7 +1,7 @@
 #[cfg(windows)]
 use std::collections::HashMap;
 use std::sync::{
-    atomic::{AtomicBool, AtomicPtr, AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicPtr, Ordering},
     Arc,
 };
 use std::time::Instant;
@@ -19,7 +19,6 @@ pub struct ProcessTelemetry {
     pub disk_read_mbs: f32,
     pub disk_total_read_gb: f32,
     pub net_usage_kbs: f32,
-    pub ping_ms: u32,
     pub process_ping: crate::process_ping::ProcessPing,
 }
 
@@ -222,7 +221,6 @@ impl Drop for Mailbox {
 /// Drop only signals cancellation; the worker closes PDH after any in-flight call returns.
 pub struct TelemetryCollector {
     pub metrics: ProcessTelemetry,
-    ping_ms: Arc<AtomicU32>,
     stop_flag: Arc<AtomicBool>,
     mailbox: Arc<Mailbox>,
     worker: std::thread::Thread,
@@ -236,41 +234,7 @@ impl Default for TelemetryCollector {
 
 impl TelemetryCollector {
     pub fn new() -> Self {
-        let ping_ms = Arc::new(AtomicU32::new(0));
         let stop_flag = Arc::new(AtomicBool::new(false));
-
-        let ping_clone = Arc::clone(&ping_ms);
-        let stop_clone = Arc::clone(&stop_flag);
-
-        std::thread::spawn(move || {
-            let fallbacks: [std::net::SocketAddr; 2] = [
-                "1.1.1.1:53".parse().unwrap(),
-                "8.8.8.8:53".parse().unwrap(),
-            ];
-            while !stop_clone.load(Ordering::Relaxed) {
-                let mut measured_ms = 0u32;
-                for target in &fallbacks {
-                    let start = Instant::now();
-                    if std::net::TcpStream::connect_timeout(
-                        target,
-                        std::time::Duration::from_millis(400),
-                    )
-                    .is_ok()
-                    {
-                        measured_ms = (start.elapsed().as_millis() as u32).max(1);
-                        break;
-                    }
-                }
-                ping_clone.store(measured_ms, Ordering::Relaxed);
-
-                for _ in 0..15 {
-                    if stop_clone.load(Ordering::Relaxed) {
-                        break;
-                    }
-                    std::thread::sleep(std::time::Duration::from_millis(100));
-                }
-            }
-        });
 
         let mailbox = Arc::new(Mailbox::default());
         let worker_mailbox = Arc::clone(&mailbox);
@@ -312,7 +276,6 @@ impl TelemetryCollector {
 
         Self {
             metrics: ProcessTelemetry::default(),
-            ping_ms,
             stop_flag,
             mailbox,
             worker,
@@ -359,7 +322,6 @@ impl TelemetryCollector {
             self.metrics.cpu_usage_pct = sys_cpu;
         }
         self.metrics.sys_cpu_pct = sys_cpu;
-        self.metrics.ping_ms = self.ping_ms.load(Ordering::Relaxed);
     }
 }
 

@@ -48,7 +48,7 @@
   "lbl_gpu_usage": "USO DE GPU",
   "lbl_mem_usage": "USO DE MEMÓRIA",
   "lbl_net_total": "REDE TOTAL (SISTEMA)",
-  "lbl_rtt_tcp": "RTT TCP (EXTERNO)",
+  "lbl_rtt_tcp": "PING DO JOGO (ICMP)",
   "txt_app_subtitle": "APO e RAPO para jogos Steam: aprendizado em tempo real, núcleos físicos, afinidade, threads e SMT/Hyper-Threading via APIs públicas do Windows",
   "txt_app_title": "RINTEL RAPO",
   "txt_combobox_idle": "Abra um jogo Steam",

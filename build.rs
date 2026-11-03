@@ -222,7 +222,7 @@ fn default_ui_tokens() -> Vec<(&'static str, &'static str)> {
         ("lbl_disk_read", "LEITURA DE DISCO (SISTEMA)"),
         ("lbl_disk_read_proc", "I/O DE LEITURA (PROCESSO)"),
         ("lbl_net_total", "REDE TOTAL (SISTEMA)"),
-        ("lbl_rtt_tcp", "RTT TCP (EXTERNO)"),
+        ("lbl_rtt_tcp", "PING DO JOGO (ICMP)"),
         ("txt_cpu_matrix_title", "USO POR NÚCLEO LÓGICO"),
         ("txt_cpu_matrix_sub", "TOPOLOGIA DETECTADA PELO WINDOWS"),
         ("txt_options_title", "OPÇÕES E DIRETRIZES DE AGENDAMENTO"),
@@ -386,7 +386,7 @@ fn generate_figma_ui_and_tokens() {
     </g>
     <g id="metric_rtt_tcp">
       <rect x="512" y="536" width="150" height="70" rx="8" fill="#0C1A27" stroke="#142A39"/>
-      <text id="lbl_rtt_tcp" x="524" y="554" class="text-metric-lbl">RTT TCP (EXTERNO)</text>
+      <text id="lbl_rtt_tcp" x="524" y="554" class="text-metric-lbl">PING DO JOGO (ICMP)</text>
       <text id="val_rtt_tcp" x="524" y="582" class="text-metric-val" fill="#46E0D5">18 ms</text>
     </g>
   </g>

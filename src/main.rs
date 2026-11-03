@@ -570,7 +570,7 @@ mod app {
                 ("USO DE MEMÓRIA", format!("{} · {:.1}% da RAM", crate::view::memory_label(tm.mem_used_mb), tm.mem_usage_pct)),
                 (if tm.has_target { "I/O DE LEITURA (PROCESSO)" } else { "LEITURA DE DISCO (SISTEMA)" }, format!("{:.2} MB/s · Total {:.2} GB (inclui cache no processo)", tm.disk_read_mbs, tm.disk_total_read_gb)),
                 ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
-                ("RTT TCP (EXTERNO)", format!("{} · TCP até DNS público; não é ping do jogo", if tm.ping_ms > 0 { format!("{} ms", tm.ping_ms) } else { "-- ms".into() })),
+                ("PING DO JOGO (ICMP)", crate::process_ping::game_ping_label(tm.has_target, &tm.process_ping)),
             ];
             metrics.push(("ICMP · IPs TCP DO PROCESSO", format!("{} · Não identifica servidor de partida; UDP não expõe destino na tabela Windows", tm.process_ping.summary)));
             for endpoint in &tm.process_ping.endpoints {

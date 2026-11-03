@@ -258,6 +258,25 @@ pub(crate) fn round_trip_ms(ip: std::net::Ipv4Addr) -> Option<u32> {
     }
 }
 
+/// Headline "game ping": the lowest ICMP reply among the IPs the game process holds TCP connections to.
+/// It is the closest thing Windows exposes to the game's latency, but it is not proof of the match server
+/// (UDP flows are invisible in the TCP table and ICMP may be filtered), so every non-measurement says why.
+/// Returns `"<headline> · <detail>"`, the shape the dashboard splits into value and caption.
+pub fn game_ping_label(has_target: bool, ping: &ProcessPing) -> String {
+    if !has_target { return "sem jogo · Nenhum jogo Steam em execução; nada a medir".into(); }
+    let replies: Vec<(u32, &str)> = ping.endpoints.iter()
+        .filter_map(|e| match e.outcome { EchoOutcome::Reply(ms) => Some((ms, e.destination.as_str())), _ => None }).collect();
+    let Some(&(ms, ip)) = replies.iter().min_by_key(|(ms, _)| *ms) else {
+        return if ping.endpoints.is_empty() {
+            "sem medição · O jogo não tem conexão TCP estabelecida; UDP não expõe destino na tabela do Windows".into()
+        } else {
+            "sem resposta · Os IPs TCP do jogo não responderam ao ICMP (podem bloquear ping)".into()
+        };
+    };
+    let value = EchoOutcome::Reply(ms).label();
+    format!("{value} · ICMP ao IP TCP do jogo {ip} · {} de {} responderam; não prova ser o servidor da partida", replies.len(), ping.endpoints.len())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -286,6 +305,21 @@ mod tests {
         assert!(EchoOutcome::Timeout.label().starts_with("Timeout"));
         assert!(EchoOutcome::Unavailable(5).label().contains("Indisponível"));
         assert_eq!(EchoOutcome::Reply(0).label(), "<1 ms");
+    }
+
+    #[test]
+    fn game_ping_is_the_best_reply_and_every_non_measurement_says_why() {
+        let endpoint = |destination: &str, outcome| EndpointPing { destination: destination.into(), outcome, route: None };
+        let sample = |endpoints| ProcessPing { endpoints, ..ProcessPing::default() };
+        let mixed = game_ping_label(true, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Reply(40)), endpoint("10.0.0.2", EchoOutcome::Timeout),
+            endpoint("10.0.0.3", EchoOutcome::Reply(12)), endpoint("10.0.0.4", EchoOutcome::Unavailable(5))]));
+        assert!(mixed.starts_with("12 ms · ") && mixed.contains("10.0.0.3") && mixed.contains("2 de 4 responderam"), "{mixed}");
+        assert!(game_ping_label(true, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Reply(0))])).starts_with("<1 ms · "), "sub-millisecond is not rounded to a fake number");
+        let silent = game_ping_label(true, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Timeout)]));
+        assert!(silent.starts_with("sem resposta · ") && !silent.contains(" ms ·"), "timeouts never become a number: {silent}");
+        assert!(game_ping_label(true, &sample(vec![])).starts_with("sem medição · "), "a game with no TCP flow has nothing to ping");
+        let none = game_ping_label(false, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Reply(9))]));
+        assert!(none.starts_with("sem jogo · "), "without a target stale endpoints must not be shown as the game's ping: {none}");
     }
 
     #[test]
