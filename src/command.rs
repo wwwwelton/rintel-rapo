@@ -240,4 +240,52 @@ mod tests {
         assert_eq!(from_json(r#"{"action":"rate-apply","pid":7,"mb_s":"1.25"}"#), Some(Command::ApplyRate { pid: Some(7), bps: 10_000_000 }));
         assert_eq!(from_json(r#"{"action":"rate-apply","pid":0,"mb_s":"2"}"#), Some(Command::ApplyRate { pid: None, bps: 16_000_000 }), "the system limit needs no running game");
     }
+
+    /// The page always sends `dir`, `checked` and `pid` (null when absent) plus the fields its handler adds.
+    /// These are the exact payloads `ui-wasm/index.html` builds for each control, so a renamed field or a changed
+    /// type on either side turns a working button into a silent no-op here instead of in the field.
+    #[test]
+    fn every_control_the_page_can_send_reaches_its_command() {
+        let page = |action: &str, extra: serde_json::Value| {
+            let mut event = serde_json::json!({ "action": action, "dir": null, "checked": null, "pid": null });
+            for (key, value) in extra.as_object().unwrap() { event[key] = value.clone(); }
+            from_json(&event.to_string())
+        };
+        let none = serde_json::json!({});
+        let dir = "C:\\Steam\\AION2";
+        let route = |action: &str| page(action, serde_json::json!({ "destination": "203.0.113.9", "candidate": "c1", "consent": true, "candidates": ["c1", "c2"], "mb_s": "5", "rates": ["2", "5"] }));
+        for (action, expected) in [
+            ("start", Command::SetOptimizerRunning(true)), ("stop", Command::SetOptimizerRunning(false)),
+            ("refresh", Command::Refresh), ("scan", Command::ScanSteam), ("reset", Command::ResetNetQos),
+            ("elevate", Command::RelaunchElevated), ("start_training", Command::StartTraining),
+            ("stop_training", Command::StopTraining), ("disable_rapo", Command::SetRapo(None)),
+            ("route-refresh", Command::RefreshRoutes), ("route-remove-all", Command::RemoveAllRoutes),
+            ("network-stop", Command::StopNetworkLearning), ("rate-remove", Command::RemoveRate),
+        ] { assert_eq!(page(action, none.clone()), Some(expected), "{action}"); }
+        for (action, expected) in [
+            ("auto-yield", Command::SetAutoYield(true)), ("windowed", Command::SetWindowed(true)),
+            ("minimize-tray", Command::SetMinimizeToTray(true)), ("network-priority", Command::SetNetworkPriority(true)),
+            ("relay", Command::SetRelay(true)), ("wfp", Command::SetWfp(true)), ("engine-ini-active", Command::SetEngineIniActive(true)),
+        ] { assert_eq!(page(action, serde_json::json!({ "checked": true })), Some(expected), "{action}"); }
+        for (action, on) in [("qos", true), ("pcores", false), ("auto", true)] {
+            let expected = match action { "qos" => Command::SetQos { directory: dir.into(), on }, "pcores" => Command::SetPin { directory: dir.into(), on }, _ => Command::SetAuto { directory: dir.into(), on } };
+            assert_eq!(page(action, serde_json::json!({ "dir": dir, "checked": on })), Some(expected), "{action}");
+        }
+        assert_eq!(page("rapo", serde_json::json!({ "dir": dir, "checked": true })), Some(Command::SetRapo(Some(dir.into()))));
+        assert_eq!(page("rapo", serde_json::json!({ "dir": dir, "checked": false })), Some(Command::SetRapo(None)));
+        assert_eq!(page("apo-profile", serde_json::json!({ "dir": dir })), Some(Command::ApplyAion2Profile { directory: dir.into() }));
+        assert_eq!(page("toggle-process", serde_json::json!({ "pid": 54732 })), Some(Command::ToggleProcess { pid: 54732 }));
+        assert_eq!(page("select_training_target", serde_json::json!({ "pid": 58152 })), Some(Command::SelectTrainingTarget { pid: 58152 }));
+        assert_eq!(page("engine-ini", serde_json::json!({ "checked": true, "key": "t.MaxFPS" })), Some(Command::SetEngineIniOption { index: 0, on: true }));
+        assert_eq!(page("relay-interfaces", serde_json::json!({ "checked": false, "candidates": ["c2"] })), Some(Command::SetRelayInterfaces(vec!["c2".into()])));
+        assert_eq!(page("route-apply", serde_json::json!({ "destination": "203.0.113.9", "candidate": "c1" })), Some(Command::ApplyRoute { destination: "203.0.113.9".into(), candidate: "c1".into() }));
+        assert_eq!(route("route-remove"), Some(Command::RemoveRoute("203.0.113.9".into())), "the remove button names the route by data-destination");
+        assert_eq!(route("route-learn"), Some(Command::StartRouteLearning { destination: "203.0.113.9".into(), candidates: vec!["c1".into(), "c2".into()] }));
+        assert_eq!(page("rate-apply", serde_json::json!({ "pid": 54732, "mb_s": "5" })), Some(Command::ApplyRate { pid: Some(54732), bps: 40_000_000 }));
+        assert_eq!(page("rate-learn", serde_json::json!({ "pid": 54732, "destination": "203.0.113.9", "consent": true, "rates": ["2", "5"] })),
+            Some(Command::StartRateLearning { pid: 54732, destination: "203.0.113.9".into(), rates: vec![16_000_000, 40_000_000] }));
+        assert!(matches!(page("relay-configure", serde_json::json!({ "mode": "hy2", "server": "", "server_name": "", "auth": "", "ca_pem": "" })),
+            Some(Command::ConfigureRelay { mode: crate::relay::Mode::Hy2, .. })), "an empty server and secret select the integrated HY2 server");
+        assert_eq!(from_json(r#"{"action":"search","text":"aion"}"#), Some(Command::SetSearch("aion".into())));
+    }
 }
