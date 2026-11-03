@@ -112,6 +112,16 @@ pub fn memory_label(mb: f32) -> String {
     }
 }
 
+/// Game identity without a pid: pids change on every launch and a game may run several processes
+/// (AION2 starts a launcher, the game and web helpers), so no single pid names it.
+pub fn game_label(name: &str, processes: usize, executables: usize) -> String {
+    match (processes, executables) {
+        (0 | 1, _) => name.to_string(),
+        (p, 1) => format!("{name} · {p} processos"),
+        (p, e) => format!("{name} · {p} processos · {e} executáveis"),
+    }
+}
+
 /// Per-core load tone: >85% danger, >50% yellow, otherwise accent.
 pub fn cpu_load_tone(load: f32) -> Tone {
     if load > 0.85 {
@@ -190,5 +200,14 @@ mod tests {
         assert_eq!(cpu_load_tone(0.851), Tone::Danger);
         assert_eq!(cpu_load_tone(0.50), Tone::Accent);
         assert_eq!(cpu_load_tone(0.501), Tone::Yellow);
+    }
+
+    #[test]
+    fn game_label_never_names_a_pid_and_counts_processes_and_executables() {
+        assert_eq!(game_label("AION 2", 1, 1), "AION 2");
+        assert_eq!(game_label("AION 2", 0, 0), "AION 2");
+        assert_eq!(game_label("AION 2", 3, 1), "AION 2 · 3 processos");
+        assert_eq!(game_label("AION 2", 4, 2), "AION 2 · 4 processos · 2 executáveis");
+        assert!(!game_label("AION 2", 4, 2).contains("PID"));
     }
 }

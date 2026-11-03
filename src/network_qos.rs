@@ -119,19 +119,21 @@ mod native {
     pub struct Policy { pub view: RateView, limit: Rule, exempt: Vec<Rule> }
     impl Policy {
         pub fn check_target(pid: u32, exe: &Path) -> Result<(), String> { executable(pid, exe) }
-        /// `game` is the target process, exempted together with Steam and RAPO itself (which relays the game's traffic).
-        pub fn intent(game: Option<(u32, &Path)>, bps: u64) -> Result<Self, String> {
+        /// `game` lists the game's executables (one live pid each, to revalidate it); every distinct one is exempted
+        /// together with Steam and RAPO itself (which relays the game's traffic). The rule matches the path, so
+        /// later pids of the same executable stay exempt even though pids change on every launch.
+        pub fn intent(game: &[(u32, PathBuf)], bps: u64) -> Result<Self, String> {
             if bps == 0 { return Err("Taxa zero não autorizada".into()); }
-            if let Some((pid, exe)) = game { executable(pid, exe)?; }
+            for (pid, exe) in game { executable(*pid, exe)?; }
             let steam = crate::windows::steam_root().map(|root| root.join("steam.exe")).filter(|exe| exe.is_file());
             let rapo = std::env::current_exe().ok();
-            Self::with_exemptions(game.map(|(pid, exe)| (pid, exe.to_path_buf())), [steam, rapo].into_iter().flatten().collect(), bps)
+            Self::with_exemptions(game.to_vec(), [steam, rapo].into_iter().flatten().collect(), bps)
         }
-        fn with_exemptions(game: Option<(u32, PathBuf)>, others: Vec<PathBuf>, bps: u64) -> Result<Self, String> {
+        fn with_exemptions(game: Vec<(u32, PathBuf)>, others: Vec<PathBuf>, bps: u64) -> Result<Self, String> {
             let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e| e.to_string())?.as_nanos();
             let rule = |name: String, exe: Option<PathBuf>, pid: Option<u32>, bps| Rule { name, exe, pid, bps, proof: None, dscp: None, attempted: false };
             let mut exempt: Vec<Rule> = Vec::new();
-            for (pid, exe) in game.map(|(pid, exe)| (Some(pid), exe)).into_iter().chain(others.into_iter().map(|exe| (None, exe))) {
+            for (pid, exe) in game.into_iter().map(|(pid, exe)| (Some(pid), exe)).chain(others.into_iter().map(|exe| (None, exe))) {
                 if exempt.iter().any(|r| r.exe.as_ref().is_some_and(|e| crate::windows::same_executable(e, &exe))) { continue; }
                 exempt.push(rule(format!("RintelRAPO-Exempt-{}-{nonce}-{}", std::process::id(), exempt.len()), Some(exe), pid, UNLIMITED_BPS));
             }
@@ -169,7 +171,7 @@ mod native {
     mod tests {
         use super::*;
         fn policy() -> Policy {
-            Policy::with_exemptions(None, vec![PathBuf::from("C:\\Steam\\steam.exe"), PathBuf::from("C:\\game\\a';&.exe")], 10_000_000).unwrap()
+            Policy::with_exemptions(Vec::new(), vec![PathBuf::from("C:\\Steam\\steam.exe"), PathBuf::from("C:\\game\\a';&.exe")], 10_000_000).unwrap()
         }
         fn granted(request: &serde_json::Value) -> serde_json::Value {
             if request["action"] == "prepare" { serde_json::json!({ "dscp": -1 }) } else { serde_json::json!({ "proof": [["Name", request["name"].clone()]] }) }
@@ -204,20 +206,29 @@ mod native {
         #[test]
         fn duplicate_exemptions_collapse_and_targets_are_revalidated() {
             let steam = PathBuf::from("C:\\Steam\\steam.exe");
-            let policy = Policy::with_exemptions(None, vec![steam.clone(), PathBuf::from("C:\\STEAM\\STEAM.EXE")], 1).unwrap();
+            let policy = Policy::with_exemptions(Vec::new(), vec![steam.clone(), PathBuf::from("C:\\STEAM\\STEAM.EXE")], 1).unwrap();
             assert_eq!(policy.view.exempt.len(), 1);
             for path in ["game.exe", "C:\\game\\config.json", "C:\\missing\\game.exe"] { assert!(Policy::check_target(0, Path::new(path)).is_err()); }
             let exe = std::env::current_exe().unwrap();
             assert!(Policy::check_target(0, &exe).is_err());
             Policy::check_target(std::process::id(), &exe).unwrap();
-            assert!(Policy::intent(None, 0).is_err());
+            assert!(Policy::intent(&[], 0).is_err());
+        }
+        #[test]
+        fn every_distinct_game_executable_is_exempt_once_and_keeps_its_own_pid() {
+            // AION2 ships several executables (AION2.exe, EpicWebHelper.exe) and runs the same one under several pids.
+            let game = vec![(10, PathBuf::from("C:\\g\\AION2.exe")), (11, PathBuf::from("C:\\g\\EpicWebHelper.exe")), (12, PathBuf::from("c:\\G\\aion2.EXE"))];
+            let policy = Policy::with_exemptions(game, vec![PathBuf::from("C:\\Steam\\steam.exe")], 1).unwrap();
+            let names: Vec<_> = policy.exempt.iter().map(|r| (r.exe.as_ref().unwrap().to_string_lossy().into_owned(), r.pid)).collect();
+            assert_eq!(names, [("C:\\g\\AION2.exe".to_string(), Some(10)), ("C:\\g\\EpicWebHelper.exe".to_string(), Some(11)), ("C:\\Steam\\steam.exe".to_string(), None)],
+                "one rule per distinct executable path (case-insensitive), each revalidated by the first pid seen: {names:?}");
         }
         /// Admin only (ActiveStore): the real Rust path end to end, including Steam's forward-slash registry path.
         /// Run elevated: `cargo test --bin rintel-rapo system_limit_round_trip -- --ignored`.
         #[test]
         #[ignore]
         fn system_limit_round_trip_against_the_real_activestore() {
-            let mut policy = Policy::intent(None, 16_000_000).unwrap();
+            let mut policy = Policy::intent(&[], 16_000_000).unwrap();
             assert!(policy.view.exempt.iter().any(|exe| exe.to_ascii_lowercase().ends_with("steam.exe")), "{:?}", policy.view.exempt);
             let created = policy.create();
             let removed = policy.remove();
