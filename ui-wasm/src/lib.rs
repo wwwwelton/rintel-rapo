@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 mod dashboard;
-pub use dashboard::render_dashboard_json;
+pub use dashboard::{render_dashboard_json, render_summary_json};
 mod profile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

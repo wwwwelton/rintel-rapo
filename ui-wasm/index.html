@@ -51,7 +51,7 @@
   .rapo-header, .header-identity, .header-status, .actions, .hero-actions, .hero-meta, .section-heading {
     display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
   }
-  .rapo-header { gap: 18px; padding: 20px 24px; }
+  .rapo-header { gap: 12px 18px; padding: 16px 24px; }
   .header-identity { flex: 1 1 auto; gap: 14px; }
   .header-copy { min-width: 0; }
   .product-mark {
@@ -163,6 +163,7 @@
   .net-history li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--muted); font: 11px/1.6 var(--mono); }
   .net-history li:last-child { border-bottom: 0; }
   .net-history li span:last-child { color: var(--accent); }
+  .net-history li span.icmp-fail { color: var(--warning); }
   .net-policy-table { margin: 8px 0; }
   .net-disclaimer { display: block; color: var(--muted); font-size: 11px; line-height: 1.7; margin-top: 8px; }
   .relay-predictions { min-width: 0; max-width: 100%; overflow-x: auto; }
@@ -221,6 +222,34 @@
   #relay-transport { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
   #relay-transport input, #relay-transport select, #relay-transport textarea { width: 100%; }
   #relay-transport button { justify-self: start; margin-top: 8px; }
+  [hidden] { display: none !important; }
+  .page-subtitle { margin-bottom: 16px; }
+  .library-note { margin: 4px 2px 0; font-size: 12px; }
+  .route-warning { padding: 12px 14px; border-left: 2px solid var(--warning); background: #29251b; border-radius: 0 8px 8px 0; color: var(--text); }
+  details.how-it-works { margin: 14px 0; }
+  .sticky-nav { position: sticky; top: 0; z-index: 5; margin: 0 0 20px; padding: 8px 0 0; background: var(--page); }
+  .summary-strip {
+    display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline;
+    margin: 0 0 8px; padding: 10px 20px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  .summary-strip:empty { display: none; }
+  .summary-item { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .summary-label { color: var(--muted); font: 500 10px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .summary-value { color: var(--text); font-size: 15px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .summary-ok { color: var(--accent); }
+  .summary-warn { color: var(--warning); }
+  .summary-off { color: var(--muted); }
+  .summary-target { margin-left: auto; text-align: right; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  .tabs button { flex: 1 1 0; min-height: 38px; padding: 8px 14px; background: transparent; border-color: transparent; color: var(--muted); }
+  .tabs button:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; color: var(--text); }
+  .tabs button[aria-selected="true"] { background: var(--surface); border-color: #52775f; color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  /* Training hero: same content, less vertical space. */
+  .training { padding: 26px 30px; border-radius: 16px; }
+  .training .hero-eyebrow { margin-bottom: 8px; }
+  .training .hero-title { margin-bottom: 14px; font-size: clamp(22px, 2.2vw, 28px); max-width: none; }
+  .training .hero-description { font-size: 13px; }
   @media (max-width: 900px) {
     main { padding: 22px 24px 36px; }
     .rapo-header { gap: 16px; }
@@ -265,14 +294,26 @@
 </head>
 <body><main>
 <div id="app"></div>
-<div id="training"></div>
+<div class="sticky-nav">
+<div id="summary" class="summary-strip" role="status" aria-live="off"></div>
+<nav class="tabs" role="tablist" aria-label="Seções do painel">
+  <button type="button" role="tab" id="tab-overview" data-tab-target="overview" aria-controls="pane-overview">Visão geral</button>
+  <button type="button" role="tab" id="tab-network" data-tab-target="network" aria-controls="pane-network">Rede</button>
+  <button type="button" role="tab" id="tab-profile" data-tab-target="profile" aria-controls="pane-profile">Perfil</button>
+  <button type="button" role="tab" id="tab-system" data-tab-target="system" aria-controls="pane-system">Sistema</button>
+  <button type="button" role="tab" id="tab-games" data-tab-target="games" aria-controls="pane-games">Jogos</button>
+</nav>
+</div>
 <div id="dashboard"></div>
+<div class="tab-pane" data-tab="overview" id="pane-overview" role="tabpanel" aria-labelledby="tab-overview"><div id="training"></div></div>
+<div class="tab-pane" data-tab="games" id="pane-games" role="tabpanel" aria-labelledby="tab-games" hidden>
 <div class="search-bar"><label for="search">Buscar jogo</label> <input id="search" type="search" placeholder="Buscar jogo na biblioteca Steam..."></div>
 <div id="games"></div>
+</div>
 <p id="ui-error" role="alert"></p>
 </main>
 <script type="module">
-  import init, { render_header_json, render_games_json, render_training_json, render_dashboard_json } from './rapo_ui.js';
+  import init, { render_header_json, render_games_json, render_training_json, render_dashboard_json, render_summary_json } from './rapo_ui.js';
   const error = document.getElementById('ui-error');
   try {
     await init();
@@ -315,15 +356,39 @@
     document.addEventListener('click', (e) => { const b = e.target.closest('button[data-action]'); if (b && !b.disabled) send(b); });
     search.addEventListener('input', () => window.ipc.postMessage(JSON.stringify({ action: 'search', text: search.value })));
     const previous = new Map();
+    // Tab routing: #dashboard is re-rendered with innerHTML, which drops `hidden`, so the active tab is re-applied after every render.
+    const TABS = ['overview', 'network', 'profile', 'system', 'games'];
+    let activeTab = TABS.includes(sessionStorage.getItem('rapo-tab')) ? sessionStorage.getItem('rapo-tab') : 'overview';
+    const applyTab = () => {
+      document.querySelectorAll('.tab-pane[data-tab]').forEach(pane => { pane.hidden = pane.dataset.tab !== activeTab; });
+      document.querySelectorAll('[data-tab-target]').forEach(tab => {
+        const on = tab.dataset.tabTarget === activeTab;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+      });
+    };
+    const selectTab = (name, focus) => {
+      activeTab = name; sessionStorage.setItem('rapo-tab', name); applyTab(); window.scrollTo(0, 0);
+      if (focus) document.getElementById(`tab-${name}`).focus();
+    };
+    document.querySelector('.tabs').addEventListener('click', (e) => { const t = e.target.closest('[data-tab-target]'); if (t) selectTab(t.dataset.tabTarget, false); });
+    document.querySelector('.tabs').addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (step) { e.preventDefault(); selectTab(TABS[(TABS.indexOf(activeTab) + step + TABS.length) % TABS.length], true); }
+      else if (e.key === 'Home') { e.preventDefault(); selectTab(TABS[0], true); }
+      else if (e.key === 'End') { e.preventDefault(); selectTab(TABS[TABS.length - 1], true); }
+    });
     const update = (id, view, render) => {
       const json = JSON.stringify(view);
       if (previous.get(id) !== json) {
         const root = document.getElementById(id);
         const focused = root.contains(document.activeElement) ? { id: document.activeElement.id, data: { ...document.activeElement.dataset } } : null;
-        const openDetails = [...root.querySelectorAll('details')].map(el => el.open);
+        // Keyed by summary text (before any " · " state suffix), not index: sections appear and disappear with the state.
+        const detailsKey = (el) => (el.querySelector(':scope > summary')?.textContent ?? '').split(' · ')[0].trim();
+        const openDetails = new Set([...root.querySelectorAll('details')].filter(el => el.open).map(detailsKey));
         const networkDrafts = [...root.querySelectorAll('[data-network-draft]')].map(el => ({ key: el.dataset.networkDraft, value: el.value, checked: el.checked, start: el.selectionStart, end: el.selectionEnd }));
         root.innerHTML = render(json);
-        root.querySelectorAll('details').forEach((el, i) => { el.open = openDetails[i] ?? false; });
+        root.querySelectorAll('details').forEach(el => { el.open = openDetails.has(detailsKey(el)); });
         root.querySelectorAll('[data-network-draft]').forEach(el => {
           const draft = networkDrafts.find(d => d.key === el.dataset.networkDraft);
           if (!draft) return;
@@ -335,6 +400,7 @@
           replacement?.focus({ preventScroll: true });
         }
         previous.set(id, json);
+        applyTab();
       }
     };
     // The host sends UI strings only in INITIAL_STATE; reuse them on every later update.
@@ -349,6 +415,8 @@
         update('games', state.games, render_games_json);
         update('training', state.training, render_training_json);
         update('dashboard', state.dashboard, render_dashboard_json);
+        update('summary', state.dashboard, render_summary_json);
+        applyTab();
         if (document.activeElement !== search) search.value = state.dashboard.search;
         error.textContent = '';
       } catch (e) { error.textContent = `Falha ao renderizar a interface: ${e}`; }
