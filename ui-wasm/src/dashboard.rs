@@ -309,7 +309,7 @@ fn render_network(html: &mut String, view: &Dashboard) {
     write!(html, "<button data-action=\"route-learn\"{}>Aprender e aplicar · rotas autorizadas</button>", if routes.candidates.len() < 2 { " disabled" } else { "" }).unwrap();
     html.push_str("<h3>QOS DE SAÍDA DO SISTEMA · MB/s DECIMAIS</h3><p>Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido. Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.</p>");
     write!(html, "<p>{}</p><label for=\"rate-mbs\">Limite do sistema em MB/s</label><input id=\"rate-mbs\" data-network-draft=\"rate\" type=\"text\" inputmode=\"decimal\" placeholder=\"5\"><button data-action=\"rate-apply\" data-pid=\"{}\">Aplicar limite do sistema</button><label for=\"rate-list\">Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)</label><input id=\"rate-list\" data-network-draft=\"rates\" type=\"text\" placeholder=\"2, 5\"><button data-action=\"rate-learn\" data-pid=\"{}\"{}>Aprender e aplicar · taxas autorizadas</button></fieldset>",
-        if view.network_target_pid == 0 { "Sem jogo alvo detectado: Steam e RAPO ficam isentos; o jogo só é isento quando estiver em execução.".to_string() } else { format!("Jogo alvo isento: PID {} (caminho completo revalidado pelo host).", view.network_target_pid) },
+        if view.network_target_pid == 0 { "Sem jogo alvo detectado: Steam e RAPO ficam isentos; o jogo só é isento quando estiver em execução.".to_string() } else { format!("Jogo alvo isento: {}. Todos os executáveis do jogo ficam fora do limite, identificados pelo caminho (os PIDs mudam a cada abertura) e revalidados pelo host.", escape(&view.target)) },
         view.network_target_pid, view.network_target_pid, if view.network_target_pid == 0 { " disabled" } else { "" }).unwrap();
     write!(html, "<button data-action=\"network-stop\"{}>Parar aprendizado e restaurar referência</button><button data-action=\"route-remove-all\"{}>Remover todos os ajustes de rede desta sessão</button><button data-action=\"rate-remove\"{}>Remover limite do sistema</button>", if routes.pending || !routes.auto_active { " disabled" } else { "" }, if routes.pending { " disabled" } else { "" }, if routes.pending || routes.rate.is_none() { " disabled" } else { "" }).unwrap();
     if let Some(rate) = &routes.rate {
@@ -474,7 +474,9 @@ fn render_telemetry(html: &mut String, view: &Dashboard) {
     write!(html, "<section class=\"telemetry-section\"><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><div class=\"telemetry-grid\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
-        write!(html, "<div class=\"telemetry-box\"><span class=\"box-label\">{}</span><strong class=\"box-value\">{}</strong>", escape(label), escape(primary)).unwrap();
+        // A figure ("34.5%", "2300.0 KB/s") is shown large; a sentence ("4 IP(s) TCP observado(s); …") is not a figure.
+        let class = if primary.chars().count() <= 14 { "box-value" } else { "box-value box-value-text" };
+        write!(html, "<div class=\"telemetry-box\"><span class=\"box-label\">{}</span><strong class=\"{class}\">{}</strong>", escape(label), escape(primary)).unwrap();
         if !sub.is_empty() {
             write!(html, "<span class=\"box-sub\">{}</span>", escape(sub)).unwrap();
         }
@@ -684,5 +686,20 @@ mod tests {
         let silent = render(&ping("sem resposta · Os IPs TCP do jogo não responderam ao ICMP"));
         assert!(silent.contains("net-card-warn\"><span class=\"net-card-label\">Ping do jogo"), "no reply is shown as a warning, never as a number: {silent}");
         assert!(render_summary(&dashboard(serde_json::json!({}))).find("Ping do jogo").is_none(), "no metric, no invented ping");
+    }
+    #[test]
+    fn qos_target_names_the_game_not_a_pid_and_escapes_it() {
+        let page = render(&dashboard(serde_json::json!({"network_target_pid": 4812, "target": "AION <2> · 4 processos · 2 executáveis"})));
+        assert!(page.contains("Jogo alvo isento: AION &lt;2&gt; · 4 processos · 2 executáveis."), "the game, escaped, is the identity");
+        assert!(page.contains("Todos os executáveis do jogo ficam fora do limite") && !page.contains("Jogo alvo isento: PID"), "no single pid names the game");
+        assert!(page.contains("data-action=\"rate-apply\" data-pid=\"4812\""), "the pid stays as the technical handle of the buttons");
+        assert!(render(&dashboard(serde_json::json!({}))).contains("Sem jogo alvo detectado"), "no target keeps the honest no-game text");
+    }
+    #[test]
+    fn telemetry_figures_are_large_and_sentences_are_not() {
+        let html = render(&dashboard(serde_json::json!({"metrics":[["USO DE CPU TOTAL","34.5% · Sistema 9%"],["REDE TOTAL (SISTEMA)","2300.0 KB/s · x"],
+            ["ICMP · IPs TCP DO PROCESSO","4 IP(s) TCP observado(s); até 4 sondas, 250 ms cada · Não identifica servidor"]]})));
+        assert_eq!(html.matches("<strong class=\"box-value\">").count(), 2, "short figures keep the big style");
+        assert_eq!(html.matches("<strong class=\"box-value box-value-text\">4 IP(s) TCP").count(), 1, "a sentence does not use the big-number style");
     }
 }
