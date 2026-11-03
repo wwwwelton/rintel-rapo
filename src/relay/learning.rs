@@ -44,10 +44,7 @@ impl History {
             self.residual / scale, f64::from(self.target.is_ipv6()), 1.0]
     }
     fn prediction(&self) -> f64 { self.model.predict(&self.input()).clamp(0.0, 1.0) * CONNECT_TIMEOUT.as_secs_f64() * 1000.0 }
-    fn score(&self) -> f64 {
-        let confidence = self.model.samples.min(32) as f64 / 32.0;
-        confidence * self.prediction() + (1.0 - confidence) * self.mean + self.residual + self.deviation
-    }
+    fn score(&self) -> f64 { self.mean + self.deviation }
 }
 #[derive(Default)]
 pub(super) struct Learning { history: Vec<History>, requests: u64, prior: Vec<crate::store::PathStat> }
