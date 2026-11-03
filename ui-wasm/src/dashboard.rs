@@ -203,7 +203,7 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
             if option.enabled { " checked" } else { "" }, escape(&option.label), escape(&option.value),
             if option.superseded { " · <strong>não gravado: o Reflex já controla a fila de frames</strong>" } else { "" }).unwrap();
     }
-    html.push_str("<p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p>");
+    html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p></details>");
     if let Some(line) = &ini.override_fps {
         write!(html, "<p class=\"alert\" role=\"alert\">Encontrado no Engine.ini fora do RAPO: <code>{}</code>. Ele não é um limitador de FPS; remova-o manualmente se não foi intencional.</p>", escape(line)).unwrap();
     }
@@ -291,7 +291,7 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
 fn render_network(html: &mut String, view: &Dashboard) {
     let routes = &view.routes;
     let disabled = if routes.pending || routes.auto_active { " disabled" } else { "" };
-    html.push_str("<section id=\"network-routes\"><h2>ROTAS POR IP · INTERFACE / GATEWAY</h2><p>Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de payload ou garantia de ping/anti-cheat.</p><p>Somente rotas criadas nesta sessão são removidas se inalteradas. Saída normal aguarda limpeza por até 30 s; falha/crash pode deixar rotas e políticas até reiniciar. Não há varredura insegura de sessões anteriores. Erros de saída: %TEMP%\\rintel-rapo-routes.log.</p>");
+    html.push_str("<section id=\"network-routes\"><h2>ROTAS POR IP · INTERFACE / GATEWAY</h2><p class=\"route-warning\">Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de payload ou garantia de ping/anti-cheat.</p><details class=\"how-it-works\"><summary>Limpeza e registro de erros</summary><p>Somente rotas criadas nesta sessão são removidas se inalteradas. Saída normal aguarda limpeza por até 30 s; falha/crash pode deixar rotas e políticas até reiniciar. Não há varredura insegura de sessões anteriores. Erros de saída: %TEMP%\\rintel-rapo-routes.log.</p></details>");
     if !routes.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&routes.error)).unwrap(); }
     write!(html, "<p role=\"status\">{}{}</p><p role=\"status\">{}</p>", if routes.pending { "Operação de rede pendente. " } else { "" }, escape(&routes.message), escape(&routes.automatic)).unwrap();
     write!(html, "<fieldset{disabled}><legend>Configuração explícita de rede</legend><button data-action=\"route-refresh\">Atualizar gateways/interfaces</button><label for=\"route-destination\">IP numérico de destino</label><input id=\"route-destination\" data-network-draft=\"destination\" type=\"text\" maxlength=\"64\" list=\"route-endpoints\" placeholder=\"192.0.2.42 ou 2001:db8::42\" autocomplete=\"off\"><datalist id=\"route-endpoints\">").unwrap();
@@ -325,12 +325,45 @@ fn render_network(html: &mut String, view: &Dashboard) {
     html.push_str("</ul></section>");
 }
 
+/// Metrics the host always emits, in the order shown in the always-visible strip.
+const SUMMARY_METRICS: [(&str, &str); 5] = [("USO DE CPU TOTAL", "CPU"), ("USO DE GPU", "GPU"), ("USO DE MEMÓRIA", "Memória"),
+    ("REDE TOTAL", "Rede"), ("PING DO JOGO", "Ping do jogo")];
+
+/// Compact always-visible status: a few headline metrics plus relay state, so the common
+/// question ("is it working, how is the load?") needs no scrolling or tab switch.
+pub fn render_summary(view: &Dashboard) -> String {
+    let mut html = String::new();
+    for (prefix, name) in SUMMARY_METRICS {
+        let Some((_, value)) = view.metrics.iter().find(|(label, _)| label.starts_with(prefix)) else { continue };
+        let primary = value.split_once(" · ").map_or(value.as_str(), |(first, _)| first);
+        write!(html, "<div class=\"summary-item\"><span class=\"summary-label\">{name}</span><strong class=\"summary-value\">{}</strong></div>", escape(primary)).unwrap();
+    }
+    let (class, text) = if view.relay.running && view.relay.hy2_connected { ("summary-ok", "HY2 ativo".to_string()) }
+        else if view.relay.running { ("summary-warn", "Relay ativo".to_string()) }
+        else { ("summary-off", "Relay parado".to_string()) };
+    write!(html, "<div class=\"summary-item\"><span class=\"summary-label\">Relay</span><strong class=\"summary-value {class}\">{text}</strong></div>").unwrap();
+    if !view.target.is_empty() {
+        write!(html, "<div class=\"summary-item summary-target\"><span class=\"summary-label\">Alvo</span><strong class=\"summary-value\">{}</strong></div>", escape(&view.target)).unwrap();
+    }
+    html
+}
+
+#[wasm_bindgen]
+pub fn render_summary_json(json: &str) -> Result<String, JsValue> {
+    serde_json::from_str::<Dashboard>(json).map(|view| render_summary(&view)).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
 pub fn render(view: &Dashboard) -> String {
-    let mut html = format!("<p>{}</p>", escape(&view.subtitle));
+    // Panes group existing sections by task; each section's own markup is unchanged.
+    let mut html = String::from("<div class=\"tab-pane\" data-tab=\"overview\">");
+    if !view.subtitle.is_empty() { write!(html, "<p class=\"page-subtitle\">{}</p>", escape(&view.subtitle)).unwrap(); }
     for alert in &view.alerts {
         write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(alert)).unwrap();
     }
     if let Some(pin) = &view.pin_status { write!(html, "<p>{}</p>", escape(pin)).unwrap(); }
+    render_telemetry(&mut html, view);
+    render_running(&mut html, view);
+    html.push_str("</div><div class=\"tab-pane\" data-tab=\"network\" hidden>");
     html.push_str("<section class=\"network-optimization\"><h2>OTIMIZAÇÃO DE REDE</h2>");
     write!(html, "<label class=\"network-priority-toggle\"><input type=\"checkbox\" data-action=\"network-priority\"{}> Priorizar rede do jogo (DSCP 46)</label>", if view.network_priority { " checked" } else { "" }).unwrap();
     let has_policies = !view.network_tweaks.is_empty();
@@ -360,11 +393,12 @@ pub fn render(view: &Dashboard) -> String {
         let (primary, _) = value.split_once(" · ").unwrap_or((value, ""));
         write!(html, "<div class=\"net-card\"><span class=\"net-card-label\">Tráfego</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">Envio + recebimento do sistema</span></div>", escape(primary)).unwrap();
     }
-    // Card 4: TCP RTT
-    let tcp_entry = view.metrics.iter().find(|(l, _)| l.contains("RTT TCP"));
-    if let Some((_, value)) = tcp_entry {
-        let (primary, _) = value.split_once(" · ").unwrap_or((value, ""));
-        write!(html, "<div class=\"net-card\"><span class=\"net-card-label\">RTT TCP externo</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">DNS público; não é ping do jogo</span></div>", escape(primary)).unwrap();
+    // Card 4: game ping. The caption is the host's own explanation, so the caveat can never disagree with the value.
+    if let Some((_, value)) = view.metrics.iter().find(|(l, _)| l.starts_with("PING DO JOGO")) {
+        let (primary, caption) = value.split_once(" · ").unwrap_or((value, ""));
+        let measured = primary.ends_with(" ms");
+        write!(html, "<div class=\"net-card {}\"><span class=\"net-card-label\">Ping do jogo · ICMP</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">{}</span></div>",
+            if measured { "" } else { "net-card-warn" }, escape(primary), escape(caption)).unwrap();
     }
     // Card 5 wide: ICMP destinations
     let icmp_entries: Vec<_> = view.metrics.iter().filter(|(l, _)| l.contains("ICMP") && l.contains("DESTINO")).collect();
@@ -372,7 +406,8 @@ pub fn render(view: &Dashboard) -> String {
         html.push_str("<div class=\"net-card net-card-wide\"><span class=\"net-card-label\">ICMP · IPs TCP do processo</span><ul class=\"net-history\">");
         for (_, value) in &icmp_entries {
             let (rtt, ip) = value.split_once(" · ").unwrap_or((value, ""));
-            write!(html, "<li><span>{}</span><span>{}</span></li>", escape(ip), escape(rtt)).unwrap();
+            // The host labels success as "<n> ms" / "<1 ms"; anything else is a timeout or an unavailable probe, never shown in the success color.
+            write!(html, "<li><span>{}</span><span{}>{}</span></li>", escape(ip), if rtt.ends_with(" ms") { "" } else { " class=\"icmp-fail\"" }, escape(rtt)).unwrap();
         }
         html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo.</span></div>");
     }
@@ -404,6 +439,7 @@ pub fn render(view: &Dashboard) -> String {
     }
     html.push_str("</div></section>");
     render_network(&mut html, view);
+    html.push_str("</div><div class=\"tab-pane\" data-tab=\"profile\" hidden>");
     if let Some(profile) = &view.profile {
         let active = profile.priority || profile.qos || profile.pinned_threads > 0;
         write!(html, "<section class=\"profile-summary {}\"><h2>PERFIL EM USO · {} · PID {}</h2><p class=\"profile-source\">{}</p><strong>{}</strong><div class=\"applied-settings\">", if active { "profile-applied" } else { "profile-standby" }, escape(&profile.game), profile.pid, escape(&profile.source), if active { "AJUSTES ATIVOS NESTE PROCESSO" } else { "SEM AJUSTES ATIVOS NESTE PROCESSO" }).unwrap();
@@ -414,6 +450,8 @@ pub fn render(view: &Dashboard) -> String {
     } else {
         html.push_str("<section class=\"profile-summary profile-standby\"><h2>PERFIL EM USO</h2><p>Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO.</p></section>");
     }
+    render_properties(&mut html, view);
+    html.push_str("</div><div class=\"tab-pane\" data-tab=\"system\" hidden>");
     html.push_str("<section class=\"power-plan\"><h2>PLANO DE ENERGIA ATIVO NO WINDOWS</h2>");
     match &view.power_plan.plan {
         Some(plan) => {
@@ -428,6 +466,11 @@ pub fn render(view: &Dashboard) -> String {
     }
     html.push_str("</section>");
     render_engine_ini(&mut html, &view.engine_ini);
+    html.push_str("</div>");
+    html
+}
+
+fn render_telemetry(html: &mut String, view: &Dashboard) {
     write!(html, "<section class=\"telemetry-section\"><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><div class=\"telemetry-grid\">", escape(&view.target)).unwrap();
     for (label, value) in &view.metrics {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
@@ -437,7 +480,7 @@ pub fn render(view: &Dashboard) -> String {
         }
         // Bars only where the value is a share of a whole; FPS, MB/s and ms have no natural maximum.
         if let Some(percent) = label.starts_with("USO DE").then(|| first_percent(value)).flatten() {
-            usage_bar(&mut html, percent, label);
+            usage_bar(html, percent, label);
         }
         html.push_str("</div>");
     }
@@ -445,12 +488,16 @@ pub fn render(view: &Dashboard) -> String {
     for (index, load, p_core) in &view.cores {
         let percent = load.clamp(0.0, 1.0) * 100.0;
         write!(html, "<div class=\"core-box{}\"><div class=\"core-header\"><span class=\"core-num\">CPU {:02}</span><span class=\"badge {}\">{}</span></div><span class=\"core-pct\">{:.0}%</span>", if *p_core { " core-p" } else { "" }, index, if *p_core { "badge-accent" } else { "badge-muted" }, if *p_core { "P-core" } else { "E-core" }, percent).unwrap();
-        usage_bar(&mut html, percent, &format!("Uso do núcleo {index}"));
+        usage_bar(html, percent, &format!("Uso do núcleo {index}"));
         html.push_str("</div>");
     }
     html.push_str("</div><div class=\"cache-badges\">");
     for cache in &view.cache { write!(html, "<span class=\"badge badge-muted\">{}</span> ", escape(cache)).unwrap(); }
-    html.push_str("</div></section><section class=\"properties-section\"><h2>OPÇÕES E DIRETRIZES DE AGENDAMENTO</h2><div class=\"property-grid\">");
+    html.push_str("</div></section>");
+}
+
+fn render_properties(html: &mut String, view: &Dashboard) {
+    html.push_str("<section class=\"properties-section\"><h2>OPÇÕES E DIRETRIZES DE AGENDAMENTO</h2><div class=\"property-grid\">");
     for (action, on, label, hint) in [
         ("auto-yield", view.auto_yield, "Auto-Yield (afinidade)", "Cede afinidade se outro programa mudar a máscara de uma thread já fixada"),
         ("windowed", view.windowed, "Manter ajustes em segundo plano", "Mantém prioridade e afinidade mesmo com o jogo fora de foco"),
@@ -460,6 +507,9 @@ pub fn render(view: &Dashboard) -> String {
     }
     html.push_str("<div class=\"property-box property-box-action\"><div class=\"property-text\"><span class=\"property-name\">Privilégios de Administrador</span><span class=\"property-desc\">Solicita UAC; reinicia para otimizar processos comuns protegidos</span></div><button data-action=\"elevate\" class=\"btn-elevate\" title=\"Solicita UAC; as opções deverão ser selecionadas novamente. Processos protegidos ainda podem negar acesso.\">Reabrir como administrador</button></div>");
     html.push_str("</div></section>");
+}
+
+fn render_running(html: &mut String, view: &Dashboard) {
     write!(html, "<section><h2>JOGOS DETECTADOS EM EXECUÇÃO: {}</h2>", view.running.len()).unwrap();
     if view.running.is_empty() { html.push_str("<p>Nenhum processo dentro das pastas dos jogos Steam instalado em execução.</p>"); }
     for p in &view.running {
@@ -472,8 +522,7 @@ pub fn render(view: &Dashboard) -> String {
         if p.priority { html.push_str("<span class=\"badge\">PRIORIDADE ACIMA DO NORMAL</span>"); }
         html.push_str("</article>");
     }
-    write!(html, "</section><h2>BIBLIOTECA STEAM: {}</h2><p>{}</p>", view.library_count, escape(&view.aion2_status)).unwrap();
-    html
+    write!(html, "</section><p class=\"library-note\">Biblioteca Steam: {} · {}</p>", view.library_count, escape(&view.aion2_status)).unwrap();
 }
 
 #[wasm_bindgen]
@@ -573,5 +622,67 @@ mod tests {
         assert!(html.contains("0 TCP ativas · 0 associações UDP · 2 destinos UDP ativos"));
         assert!(html.contains("HY2 configurado: HY2 local embutido (loopback 127.0.0.1)") && html.contains("data-action=\"relay-configure\""),
             "without a remote server the transport block still offers HY2 through the embedded server");
+    }
+    /// Minimal valid dashboard; `overrides` are merged on top so a test never repeats a key.
+    fn dashboard(overrides: serde_json::Value) -> Dashboard {
+        let mut base = serde_json::json!({"alerts":[],"subtitle":"","target":"","metrics":[],"cores":[],"cache":[],"running":[],"auto_yield":false,"windowed":false,
+            "minimize_tray":false,"library_count":0,"aion2_status":"","pin_status":null,"profile":null,"power_plan":{"plan":null,"error":""},"network_tweaks":[]});
+        base.as_object_mut().unwrap().extend(overrides.as_object().unwrap().clone());
+        serde_json::from_value(base).unwrap()
+    }
+    #[test]
+    fn summary_shows_headline_metrics_in_order_and_escapes_untrusted_text() {
+        let view = dashboard(serde_json::json!({"target":"<b>jogo</b>","metrics":[["REDE TOTAL (SISTEMA)","1.0 KB/s · x"],["USO DE CPU TOTAL","<img src=x> · Sistema 9%"],["USO DE GPU","7.0% · y"]]}));
+        let html = render_summary(&view);
+        assert!(html.find("CPU").unwrap() < html.find("GPU").unwrap() && html.find("GPU").unwrap() < html.find("Rede").unwrap(), "fixed order, not host order: {html}");
+        assert!(html.contains("&lt;img src=x&gt;") && html.contains("&lt;b&gt;jogo&lt;/b&gt;") && !html.contains("<img") && !html.contains("<b>"), "{html}");
+        assert!(!html.contains("Sistema 9%"), "only the headline part of a metric is shown");
+        assert!(!html.contains("Memória"), "a metric the host did not send is omitted, not invented");
+        assert!(html.contains("summary-off") && html.contains("Relay parado"), "no relay state is never shown as working");
+        assert_eq!(render_summary(&dashboard(serde_json::json!({}))).matches("summary-item").count(), 1, "with no metrics or target only the relay state remains");
+    }
+    #[test]
+    fn summary_distinguishes_relay_with_and_without_hy2() {
+        let relay = |connected: bool| render_summary(&dashboard(serde_json::json!({"relay":{"running":true,"stopping":false,"address":"","active_connections":0,"total_connections":0,
+            "bytes_tx":0,"bytes_rx":0,"error":"","predictions":[],"interfaces":[],"allowed_interfaces":[],"mode":"hy2","hy2_server":"","hy2_server_name":"",
+            "hy2_connected":connected,"udp_associations":0,"udp_route":"","udp_destinations":0}})));
+        assert!(relay(true).contains("summary-ok") && relay(true).contains("HY2 ativo"));
+        assert!(relay(false).contains("summary-warn") && relay(false).contains("Relay ativo") && !relay(false).contains("HY2 ativo"));
+    }
+    #[test]
+    fn every_section_lives_in_exactly_one_named_pane_in_order() {
+        let html = render(&dashboard(serde_json::json!({})));
+        // Text before the first marker is empty; each later chunk is one pane's content.
+        let marker = "<div class=\"tab-pane\" data-tab=\"";
+        let panes: Vec<(&str, &str)> = html.split(marker).skip(1).map(|chunk| chunk.split_once('"').unwrap()).collect();
+        assert_eq!(panes.iter().map(|(name, _)| *name).collect::<Vec<_>>(), ["overview", "network", "profile", "system"]);
+        assert!(panes[0].1.starts_with('>') && panes[1..].iter().all(|(_, rest)| rest.starts_with(" hidden>")), "only the overview pane starts visible");
+        for (name, needle) in [("overview", "TELEMETRIA DO PROGRAMA"), ("network", "OTIMIZAÇÃO DE REDE"), ("profile", "OPÇÕES E DIRETRIZES"), ("system", "PLANO DE ENERGIA")] {
+            let hits: Vec<_> = panes.iter().filter(|(_, content)| content.contains(needle)).map(|(n, _)| *n).collect();
+            assert_eq!(hits, [name], "{needle} must appear in the {name} pane only");
+        }
+        assert!(html.ends_with("</div>"));
+    }
+    #[test]
+    fn icmp_timeouts_and_unavailable_probes_never_use_the_success_style() {
+        let html = render(&dashboard(serde_json::json!({"metrics":[
+            ["ICMP · DESTINO OBSERVADO","24 ms · 203.0.113.7"], ["ICMP · DESTINO OBSERVADO","<1 ms · 203.0.113.8"],
+            ["ICMP · DESTINO OBSERVADO","Timeout (250 ms; ICMP pode estar bloqueado) · 203.0.113.9"], ["ICMP · DESTINO OBSERVADO","Indisponível (Windows/IP 11003) · 203.0.113.10"]]})));
+        assert_eq!(html.matches("class=\"icmp-fail\"").count(), 2, "only the timeout and the unavailable probe are failures");
+        assert!(html.contains("<span>24 ms</span>") && html.contains("<span>&lt;1 ms</span>"), "replies, including sub-millisecond, keep the plain style");
+    }
+    #[test]
+    fn game_ping_replaces_the_external_rtt_and_a_non_measurement_never_looks_like_one() {
+        let ping = |value: &str| dashboard(serde_json::json!({"metrics":[["PING DO JOGO (ICMP)", value],["RTT TCP (EXTERNO)","18 ms · TCP até DNS público"]]}));
+        let ok = ping("12 ms · ICMP ao IP TCP do jogo 10.0.0.3 · 2 de 4 responderam; não prova ser o servidor da partida");
+        let summary = render_summary(&ok);
+        assert!(summary.contains("Ping do jogo") && summary.contains(">12 ms<") && !summary.contains("RTT"), "the strip shows the game ping, not the DNS probe: {summary}");
+        let page = render(&ok);
+        assert!(page.contains("Ping do jogo · ICMP") && page.contains("não prova ser o servidor da partida"), "the host's caveat is the card caption");
+        assert!(!page.contains("RTT TCP externo") && !page.contains("DNS público; não é ping"), "the external RTT card is gone");
+        assert!(page.contains("<div class=\"net-card \"><span class=\"net-card-label\">Ping do jogo"), "a real measurement uses the neutral card");
+        let silent = render(&ping("sem resposta · Os IPs TCP do jogo não responderam ao ICMP"));
+        assert!(silent.contains("net-card-warn\"><span class=\"net-card-label\">Ping do jogo"), "no reply is shown as a warning, never as a number: {silent}");
+        assert!(render_summary(&dashboard(serde_json::json!({}))).find("Ping do jogo").is_none(), "no metric, no invented ping");
     }
 }
