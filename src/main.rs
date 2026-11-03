@@ -604,7 +604,11 @@ mod app {
                     "route_endpoints": tm.process_ping.endpoints.iter().map(|e| &e.destination).collect::<Vec<_>>(),
                     "network_target_pid": if tm.has_target { tm.target_pid } else { 0 },
                     "power_plan": { "plan": self.power_plan, "error": self.power_error },
-                    "target": if tm.has_target { format!("{} · PID {}", tm.target_name, tm.target_pid) } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
+                    "target": if tm.has_target {
+                        let same_game: Vec<_> = self.running.iter().filter(|p| p.game == tm.target_name).collect();
+                        let executables = windows::game_executables(&self.running, tm.target_pid).len();
+                        crate::view::game_label(&tm.target_name, same_game.len(), executables)
+                    } else { "SISTEMA GLOBAL — AGUARDANDO JOGO".into() },
                     "auto_yield": self.pinner.as_ref().is_none_or(|p| p.auto_yield),
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),
                     "search": self.search, "library_count": self.games.len(), "aion2_status": self.aion2_status,
@@ -728,15 +732,16 @@ mod app {
                 crate::command::Command::StopNetworkLearning => self.routes.request(crate::routes::Operation::Stop),
                 crate::command::Command::RemoveRate => self.routes.request(crate::routes::Operation::RateRemove),
                 crate::command::Command::ApplyRate { pid, bps } => match pid {
-                    None => self.routes.request(crate::routes::Operation::RateApply { game: None, bps }),
-                    Some(pid) => match self.running.iter().find(|p| p.pid == pid) {
-                        Some(process) => self.routes.request(crate::routes::Operation::RateApply { game: Some((pid, process.exe.clone())), bps }),
-                        None => self.routes.state.error = "Jogo alvo não está mais em execução; o limite não foi aplicado.".into(),
+                    None => self.routes.request(crate::routes::Operation::RateApply { game: Vec::new(), bps }),
+                    Some(pid) => match windows::game_executables(&self.running, pid) {
+                        game if game.is_empty() => self.routes.state.error = "Jogo alvo não está mais em execução; o limite não foi aplicado.".into(),
+                        game => self.routes.request(crate::routes::Operation::RateApply { game, bps }),
                     },
                 },
                 crate::command::Command::StartRateLearning { pid, destination, rates } => {
-                    if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
-                        self.routes.request(crate::routes::Operation::RateStart { pid, exe: process.exe.clone(), rates, destination, sample: self.telemetry.metrics.process_ping.clone() });
+                    let game = windows::game_executables(&self.running, pid);
+                    if let Some((_, exe)) = game.iter().find(|(p, _)| *p == pid) {
+                        self.routes.request(crate::routes::Operation::RateStart { pid, exe: exe.clone(), game: game.clone(), rates, destination, sample: self.telemetry.metrics.process_ping.clone() });
                     } else { self.routes.state.error = "Alvo de saída não está mais em execução.".into(); }
                 }
                 crate::command::Command::SetSearch(text) => self.search = text,

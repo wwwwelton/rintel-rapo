@@ -284,6 +284,18 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
     }
 }
 
+/// One `(pid, exe)` per distinct executable of the game that owns `pid`. Games such as AION2 run several
+/// executables (`AION2.exe` twice, `EpicWebHelper.exe`) whose pids change on every launch, so exempting
+/// "the" pid would miss siblings. The target pid wins for its own executable; empty if `pid` is gone.
+pub fn game_executables(running: &[Running], pid: u32) -> Vec<(u32, PathBuf)> {
+    let Some(target) = running.iter().find(|p| p.pid == pid) else { return Vec::new() };
+    let mut found: Vec<(u32, PathBuf)> = vec![(target.pid, target.exe.clone())];
+    for process in running.iter().filter(|p| same_executable(&p.directory, &target.directory)) {
+        if !found.iter().any(|(_, exe)| same_executable(exe, &process.exe)) { found.push((process.pid, process.exe.clone())); }
+    }
+    found
+}
+
 pub fn aion2_running() -> Result<bool, String> {
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -517,5 +529,18 @@ mod tests {
     fn aion2_image_matches_only_game_executable() {
         assert!(is_aion2_image(&"Aion2.EXE\0".encode_utf16().collect::<Vec<_>>()));
         assert!(!is_aion2_image(&"AION2.exe.old\0".encode_utf16().collect::<Vec<_>>()));
+    }
+
+    #[test]
+    fn game_executables_lists_each_distinct_exe_once_and_keeps_the_target_pid() {
+        let process = |pid, exe: &str| Running { pid, game: "G".into(), directory: PathBuf::from(r"C:\S\common\G"), exe: PathBuf::from(exe) };
+        let other = Running { pid: 99, game: "H".into(), directory: PathBuf::from(r"C:\S\common\H"), exe: PathBuf::from(r"C:\S\common\H\h.exe") };
+        // The launcher (10) and the real game (11) share AION2.exe; the helper runs under another exe.
+        let running = vec![process(10, r"C:\S\common\G\AION2.exe"), process(11, r"c:\s\COMMON\g\aion2.EXE"), process(12, r"C:\S\common\G\Engine\EpicWebHelper.exe"), other];
+        let listed = game_executables(&running, 11);
+        assert_eq!(listed.iter().map(|(pid, _)| *pid).collect::<Vec<_>>(), [11, 12], "one entry per exe; the target pid represents AION2.exe: {listed:?}");
+        assert!(listed.iter().all(|(_, exe)| !exe.ends_with("h.exe")), "another game's executables are never exempted");
+        assert_eq!(game_executables(&running, 12).iter().map(|(pid, _)| *pid).collect::<Vec<_>>(), [12, 10]);
+        assert!(game_executables(&running, 4242).is_empty(), "a vanished target exempts nothing");
     }
 }
