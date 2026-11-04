@@ -40,6 +40,8 @@ fn response(socket: &mut TcpStream) -> (u8, SocketAddr) {
     (header[1], SocketAddr::new(ip, u16::from_be_bytes(port)))
 }
 // Generous deadline: under a fully parallel test run, QUIC/TLS startup can exceed a few seconds.
+// `track_caller` makes the panic name the wait that expired instead of this helper's own line.
+#[track_caller]
 fn until(mut condition: impl FnMut() -> bool) {
     let deadline = Instant::now() + Duration::from_secs(20);
     while !condition() {
@@ -359,7 +361,11 @@ fn embedded_hy2_connects_at_start_and_relays_tcp_and_udp_without_a_server_addres
     assert_eq!(udp_reply(&udp, Duration::from_secs(5)), Some((echo, b"embedded hy2".to_vec())), "UDP through the embedded HY2 server");
     assert_eq!(server.state().udp_route, "hy2");
     server.stop();
-    until(|| { server.poll(); !server.state().stopping });
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while { server.poll(); server.state().stopping } {
+        assert!(Instant::now() < deadline, "relay still stopping 20 s after stop(): {}", serde_json::to_string(&server.state()).unwrap());
+        thread::sleep(Duration::from_millis(5));
+    }
     assert!(!server.state().hy2_connected, "a stopped relay never reports HY2 working");
 }
 
