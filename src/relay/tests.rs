@@ -339,7 +339,11 @@ fn embedded_hy2_connects_at_start_and_relays_tcp_and_udp_without_a_server_addres
     let mut server = RelayServer::new(0);
     server.configure(Mode::Hy2, Hy2Config::default()).unwrap();
     server.start().unwrap();
-    until(|| server.state().hy2_connected);
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !server.state().hy2_connected {
+        assert!(Instant::now() < deadline, "embedded HY2 never connected; hy2_error = {:?}", server.state().hy2_error);
+        thread::sleep(Duration::from_millis(5));
+    }
     assert_eq!(server.state().hy2_error, "", "the GUI reports HY2 working before any game connection");
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
     let target = listener.local_addr().unwrap();
