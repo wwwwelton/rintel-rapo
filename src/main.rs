@@ -19,6 +19,8 @@ pub mod relay;
 pub mod wfp;
 pub mod engine_ini;
 pub mod store;
+pub mod secret;
+pub mod vpn;
 mod network_qos;
 pub mod tray;
 #[cfg(any(test, windows))]
@@ -202,7 +204,7 @@ mod app {
                 }
                 Err(error) => app.training_message = format!("Banco de perfis indisponível; perfis ficam só nesta sessão: {error}"),
             }
-            let _ = app.relay.start();
+            // The relay stays off until the user enables it (SetRelay); nothing else may start it implicitly.
             app.scan();
             app.refresh();
             app
@@ -767,9 +769,7 @@ mod app {
                 }
                 crate::command::Command::SetMinimizeToTray(on) => self.tray.set_minimize_to_tray(on),
                 crate::command::Command::SetRapo(directory) => {
-                    let on = directory.is_some();
                     self.select_rapo(directory);
-                    if on { let _ = self.relay.start(); }
                     self.refresh();
                 }
                 crate::command::Command::ApplyAion2Profile { directory } => {
@@ -784,7 +784,6 @@ mod app {
                     }
                     self.qos_games.insert(directory.clone());
                     self.aion2_prefetched = false;
-                    let _ = self.relay.start();
                     self.clear_runtime_profiles(&directory);
                     self.refresh();
                 }

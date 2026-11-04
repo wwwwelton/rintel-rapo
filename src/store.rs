@@ -2,6 +2,8 @@
 //! plus relay connect statistics per destination and authorized exit. Startup reads the best ones back.
 
 use crate::learning::{Profile, Score, Settings};
+use crate::secret;
+use crate::vpn::{Profile as VpnProfile, Protocol as VpnProtocol};
 use rusqlite::{params, Connection};
 use std::{net::SocketAddr, path::{Path, PathBuf}, time::{SystemTime, UNIX_EPOCH}};
 
@@ -33,7 +35,12 @@ CREATE TABLE IF NOT EXISTS system_best (
 CREATE TABLE IF NOT EXISTS relay_paths (
     destination TEXT NOT NULL, authorization TEXT NOT NULL, updated_at INTEGER NOT NULL,
     mean_ms REAL NOT NULL, samples INTEGER NOT NULL, failures INTEGER NOT NULL,
-    PRIMARY KEY (destination, authorization));";
+    PRIMARY KEY (destination, authorization));
+CREATE TABLE IF NOT EXISTS vpn_profiles (
+    name TEXT PRIMARY KEY, protocol TEXT NOT NULL, updated_at INTEGER NOT NULL,
+    fields TEXT NOT NULL, secrets BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS vpn_active (
+    id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL REFERENCES vpn_profiles(name) ON DELETE CASCADE);";
 
 const SETTINGS: &str = "priority, pin, qos, threads, min_percent, cores, smt, p_only, park_cores";
 
@@ -51,6 +58,7 @@ impl Store {
 
     pub fn open(path: &Path) -> Result<Self, String> {
         let db = Connection::open(path).map_err(text)?;
+        db.pragma_update(None, "foreign_keys", true).map_err(text)?;
         db.execute_batch(SCHEMA).map_err(text)?;
         Ok(Self { db })
     }
@@ -116,6 +124,52 @@ impl Store {
         Ok(rows.filter_map(Result::ok).filter_map(|(destination, authorization, mean_ms, samples, failures)|
             Some(PathStat { destination: destination.parse().ok()?, authorization, mean_ms, samples, failures })).collect())
     }
+
+    /// Stores or replaces a validated profile. Secrets are sealed (DPAPI) before they reach the database; when
+    /// sealing fails the profile is not stored at all, never stored in clear text.
+    pub fn save_vpn(&self, profile: &VpnProfile) -> Result<(), String> {
+        profile.validate()?;
+        let fields = serde_json::to_string(&profile.fields).map_err(|e| e.to_string())?;
+        let secrets = secret::seal(serde_json::to_string(&profile.secrets).map_err(|e| e.to_string())?.as_bytes())?;
+        self.db.execute("INSERT INTO vpn_profiles (name, protocol, updated_at, fields, secrets) VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(name) DO UPDATE SET protocol = ?2, updated_at = ?3, fields = ?4, secrets = ?5",
+            params![profile.name, profile.protocol.id(), now(), fields, secrets]).map(drop).map_err(text)
+    }
+
+    /// Every stored profile with its secrets opened. A row whose secrets cannot be decrypted (another Windows
+    /// account, or tampering) is skipped instead of failing the whole list.
+    pub fn vpn_profiles(&self) -> Result<Vec<VpnProfile>, String> {
+        let mut query = self.db.prepare("SELECT name, protocol, fields, secrets FROM vpn_profiles ORDER BY name").map_err(text)?;
+        let rows = query.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, row.get::<_, Vec<u8>>(3)?))).map_err(text)?;
+        Ok(rows.filter_map(Result::ok).filter_map(|(name, protocol, fields, sealed)| Some(VpnProfile {
+            name, protocol: VpnProtocol::parse(&protocol)?,
+            fields: serde_json::from_str(&fields).ok()?,
+            secrets: serde_json::from_slice(&secret::open(&sealed)?).ok()?,
+        })).filter(|p| p.validate().is_ok()).collect())
+    }
+
+    /// Removes a profile; if it was the active one, no profile stays active.
+    pub fn remove_vpn(&self, name: &str) -> Result<(), String> {
+        let tx = self.db.unchecked_transaction().map_err(text)?;
+        tx.execute("DELETE FROM vpn_active WHERE name = ?1", [name]).map_err(text)?;
+        tx.execute("DELETE FROM vpn_profiles WHERE name = ?1", [name]).map_err(text)?;
+        tx.commit().map_err(text)
+    }
+
+    /// Makes `name` the only active profile, replacing the previous one in a single statement.
+    pub fn set_active_vpn(&self, name: Option<&str>) -> Result<(), String> {
+        let Some(name) = name else { return self.db.execute("DELETE FROM vpn_active", []).map(drop).map_err(text) };
+        self.db.execute("INSERT INTO vpn_active (id, name) VALUES (1, ?1) ON CONFLICT(id) DO UPDATE SET name = ?1", [name])
+            .map(drop).map_err(|_| "Perfil de VPN inexistente".into())
+    }
+
+    pub fn active_vpn(&self) -> Result<Option<String>, String> {
+        match self.db.query_row("SELECT name FROM vpn_active WHERE id = 1", [], |row| row.get(0)) {
+            Ok(name) => Ok(Some(name)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(error) => Err(text(error)),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -169,5 +223,58 @@ mod tests {
         let mut saved = store.paths().unwrap();
         saved.sort_by(|x, y| x.authorization.cmp(&y.authorization));
         assert_eq!(saved, vec![path("7:2:192.0.2.1%0", 18.0), path("system", 35.0)], "unmeasured exits are not stored");
+    }
+
+    fn vpn_profile(name: &str) -> VpnProfile {
+        let mut profile = VpnProfile::new(VpnProtocol::Hysteria2, name);
+        profile.fields.insert("server".into(), "vps.example.com:443".into());
+        profile.secrets.insert("auth".into(), "s3cret-password".into());
+        profile
+    }
+
+    #[test]
+    fn vpn_secrets_are_never_stored_in_clear_text_and_an_unsealable_profile_is_not_stored() {
+        let store = memory();
+        let result = store.save_vpn(&vpn_profile("HY2"));
+        #[cfg(not(windows))]
+        assert!(result.is_err() && store.vpn_profiles().unwrap().is_empty(), "no DPAPI: nothing may be written, not even in clear text");
+        #[cfg(windows)]
+        {
+            result.unwrap();
+            let raw: Vec<u8> = store.db.query_row("SELECT secrets FROM vpn_profiles WHERE name = 'HY2'", [], |r| r.get(0)).unwrap();
+            assert!(!raw.windows(8).any(|w| w == b"s3cret-p"), "the password must not appear in the stored blob");
+            let fields: String = store.db.query_row("SELECT fields FROM vpn_profiles", [], |r| r.get(0)).unwrap();
+            assert!(!fields.contains("s3cret"), "the readable fields never carry a secret");
+            assert_eq!(store.vpn_profiles().unwrap(), vec![vpn_profile("HY2")], "secrets come back through DPAPI");
+        }
+    }
+
+    #[test]
+    fn invalid_vpn_profile_is_rejected_before_anything_is_stored() {
+        let store = memory();
+        let mut bad = vpn_profile("HY2");
+        bad.fields.insert("server".into(), "no-port".into());
+        assert!(store.save_vpn(&bad).is_err());
+        assert_eq!(store.db.query_row::<i64, _, _>("SELECT COUNT(*) FROM vpn_profiles", [], |r| r.get(0)).unwrap(), 0);
+    }
+
+    #[test]
+    fn only_one_vpn_profile_is_active_and_removing_it_clears_the_activation() {
+        let store = memory();
+        // Rows are inserted directly: this exercises the activation rules independent of DPAPI.
+        for name in ["a", "b"] {
+            store.db.execute("INSERT INTO vpn_profiles (name, protocol, updated_at, fields, secrets) VALUES (?1, 'hysteria2', 0, '{}', x'00')", [name]).unwrap();
+        }
+        assert_eq!(store.active_vpn().unwrap(), None, "nothing is active by default");
+        store.set_active_vpn(Some("a")).unwrap();
+        store.set_active_vpn(Some("b")).unwrap();
+        assert_eq!(store.active_vpn().unwrap().as_deref(), Some("b"), "activating one replaces the other");
+        assert_eq!(store.db.query_row::<i64, _, _>("SELECT COUNT(*) FROM vpn_active", [], |r| r.get(0)).unwrap(), 1);
+        assert!(store.set_active_vpn(Some("missing")).is_err(), "an unknown profile cannot be activated");
+        assert_eq!(store.active_vpn().unwrap().as_deref(), Some("b"), "a refused activation changes nothing");
+        store.remove_vpn("a").unwrap();
+        assert_eq!(store.active_vpn().unwrap().as_deref(), Some("b"), "removing another profile keeps the active one");
+        store.remove_vpn("b").unwrap();
+        assert_eq!(store.active_vpn().unwrap(), None, "removing the active profile deactivates it");
     }
 }
