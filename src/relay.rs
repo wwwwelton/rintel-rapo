@@ -602,6 +602,9 @@ fn handle(mut client: TcpStream, shared: &Arc<Shared>, id: u64, listen: SocketAd
     let mut client = Outbound::Direct(client);
     let mut upload_client = client.try_clone()?;
     let mut upload_outbound = outbound.try_clone()?;
+    // Windows may hand back a duplicated socket without SO_RCVTIMEO; an untimed read would never see `stop()`.
+    upload_client.set_timeouts()?;
+    upload_outbound.set_timeouts()?;
     thread::scope(|scope| {
         let upload = thread::Builder::new().name("rapo-socks5-upload".into()).spawn_scoped(scope, || {
             forward(&mut upload_client, &mut upload_outbound, &shared.bytes_tx, &shared.running)
