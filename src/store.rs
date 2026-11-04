@@ -136,6 +136,16 @@ impl Store {
             params![profile.name, profile.protocol.id(), now(), fields, secrets]).map(drop).map_err(text)
     }
 
+    /// Saves an edit coming from the page. Secrets are never sent back to the page, so one left empty keeps the
+    /// stored value of the profile with the same name and protocol; a new profile must supply every required secret.
+    pub fn save_vpn_edit(&self, mut profile: VpnProfile) -> Result<(), String> {
+        profile.secrets.retain(|_, value| !value.is_empty());
+        if let Some(stored) = self.vpn_profiles()?.into_iter().find(|p| p.name == profile.name && p.protocol == profile.protocol) {
+            for (key, value) in stored.secrets { profile.secrets.entry(key).or_insert(value); }
+        }
+        self.save_vpn(&profile)
+    }
+
     /// Every stored profile with its secrets opened. A row whose secrets cannot be decrypted (another Windows
     /// account, or tampering) is skipped instead of failing the whole list.
     pub fn vpn_profiles(&self) -> Result<Vec<VpnProfile>, String> {
@@ -276,5 +286,26 @@ mod tests {
         assert_eq!(store.active_vpn().unwrap().as_deref(), Some("b"), "removing another profile keeps the active one");
         store.remove_vpn("b").unwrap();
         assert_eq!(store.active_vpn().unwrap(), None, "removing the active profile deactivates it");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn editing_from_the_page_keeps_a_stored_secret_when_it_is_sent_empty() {
+        let store = memory();
+        store.save_vpn_edit(vpn_profile("HY2")).unwrap();
+        let mut edit = vpn_profile("HY2");
+        edit.fields.insert("server".into(), "other.example.com:443".into());
+        edit.secrets.insert("auth".into(), String::new());
+        store.save_vpn_edit(edit).unwrap();
+        let saved = &store.vpn_profiles().unwrap()[0];
+        assert_eq!(saved.fields["server"], "other.example.com:443");
+        assert_eq!(saved.secrets["auth"], "s3cret-password", "an empty secret keeps the stored one");
+        let mut changed = vpn_profile("HY2");
+        changed.secrets.insert("auth".into(), "new-password".into());
+        store.save_vpn_edit(changed).unwrap();
+        assert_eq!(store.vpn_profiles().unwrap()[0].secrets["auth"], "new-password", "a typed secret replaces it");
+        let mut fresh = vpn_profile("Novo");
+        fresh.secrets.insert("auth".into(), String::new());
+        assert!(store.save_vpn_edit(fresh).is_err(), "a new profile cannot be created without its required secret");
     }
 }

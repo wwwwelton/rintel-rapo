@@ -50,6 +50,13 @@ pub enum Command {
     SetEngineIniOption { index: usize, on: bool },
     /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
     SetEngineIniActive(bool),
+    /// Creates or updates a VPN profile. A secret left empty keeps the stored value, so the page never needs it back.
+    SaveVpnProfile { protocol: crate::vpn::Protocol, name: String, fields: std::collections::BTreeMap<String, String>, secrets: std::collections::BTreeMap<String, String> },
+    /// Imports the text of a wg-quick `.conf` or `.ovpn` file chosen in the page; the host never reads a path from the page.
+    ImportVpnProfile { protocol: crate::vpn::Protocol, name: String, text: String },
+    /// Makes one profile the only active one; `None` deactivates.
+    ActivateVpnProfile(Option<String>),
+    RemoveVpnProfile(String),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -114,6 +121,24 @@ pub fn from_json(body: &str) -> Option<Command> {
             let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
             return Some(Command::SetEngineIniOption { index, on: checked? });
         }
+        "vpn-save" => {
+            let protocol = crate::vpn::Protocol::parse(event.get("protocol")?.as_str()?)?;
+            let map = |key| -> Option<std::collections::BTreeMap<String, String>> {
+                let object = event.get(key)?.as_object()?;
+                if object.len() > 16 { return None; }
+                object.iter().map(|(k, v)| Some((k.clone(), v.as_str().filter(|s| s.len() <= crate::vpn::MAX_IMPORT)?.to_owned()))).collect()
+            };
+            return Some(Command::SaveVpnProfile { protocol, name: event.get("name")?.as_str().filter(|s| s.len() <= 320)?.to_owned(), fields: map("fields")?, secrets: map("secrets")? });
+        }
+        "vpn-import" => {
+            let protocol = crate::vpn::Protocol::parse(event.get("protocol")?.as_str()?)?;
+            if protocol == crate::vpn::Protocol::Hysteria2 { return None; } // HY2 has no file format
+            let file = event.get("text")?.as_str().filter(|s| s.len() <= crate::vpn::MAX_IMPORT)?.to_owned();
+            return Some(Command::ImportVpnProfile { protocol, name: event.get("name").and_then(|v| v.as_str()).unwrap_or("").to_owned(), text: file });
+        }
+        "vpn-activate" => return Some(Command::ActivateVpnProfile(Some(text("name")?))),
+        "vpn-deactivate" => return Some(Command::ActivateVpnProfile(None)),
+        "vpn-remove" => return Some(Command::RemoveVpnProfile(text("name")?)),
         "route-refresh" => return Some(Command::RefreshRoutes),
         "route-apply" => return Some(Command::ApplyRoute { destination: text("destination")?, candidate: text("candidate")? }),
         "route-remove" => return Some(Command::RemoveRoute(text("destination")?)),
@@ -287,5 +312,33 @@ mod tests {
         assert!(matches!(page("relay-configure", serde_json::json!({ "mode": "hy2", "server": "", "server_name": "", "auth": "", "ca_pem": "" })),
             Some(Command::ConfigureRelay { mode: crate::relay::Mode::Hy2, .. })), "an empty server and secret select the integrated HY2 server");
         assert_eq!(from_json(r#"{"action":"search","text":"aion"}"#), Some(Command::SetSearch("aion".into())));
+    }
+
+    #[test]
+    fn vpn_ipc_is_typed_bounded_and_never_reads_a_path_from_the_page() {
+        let page = |action: &str, extra: serde_json::Value| {
+            let mut event = serde_json::json!({ "action": action, "dir": null, "checked": null, "pid": null });
+            for (key, value) in extra.as_object().unwrap() { event[key] = value.clone(); }
+            from_json(&event.to_string())
+        };
+        let saved = page("vpn-save", serde_json::json!({ "protocol": "hysteria2", "name": "HY2", "fields": { "server": "vps.example.com:443" }, "secrets": { "auth": "x" } }));
+        let Some(Command::SaveVpnProfile { protocol, name, fields, secrets }) = saved else { panic!("vpn-save must decode: {saved:?}") };
+        assert_eq!((protocol, name.as_str(), fields["server"].as_str(), secrets["auth"].as_str()), (crate::vpn::Protocol::Hysteria2, "HY2", "vps.example.com:443", "x"));
+        assert_eq!(page("vpn-import", serde_json::json!({ "protocol": "wireguard", "name": "", "text": "[Interface]" })),
+            Some(Command::ImportVpnProfile { protocol: crate::vpn::Protocol::Wireguard, name: String::new(), text: "[Interface]".into() }), "the page sends the file text, never a path");
+        assert_eq!(page("vpn-activate", serde_json::json!({ "name": "Casa" })), Some(Command::ActivateVpnProfile(Some("Casa".into()))));
+        assert_eq!(page("vpn-deactivate", serde_json::json!({})), Some(Command::ActivateVpnProfile(None)));
+        assert_eq!(page("vpn-remove", serde_json::json!({ "name": "Casa" })), Some(Command::RemoveVpnProfile("Casa".into())));
+        for (action, extra) in [
+            ("vpn-save", serde_json::json!({ "protocol": "ipsec", "name": "x", "fields": {}, "secrets": {} })),
+            ("vpn-save", serde_json::json!({ "protocol": "hysteria2", "name": "x", "fields": { "server": 7 }, "secrets": {} })),
+            ("vpn-save", serde_json::json!({ "protocol": "hysteria2", "name": "x", "fields": {} })),
+            ("vpn-import", serde_json::json!({ "protocol": "hysteria2", "text": "x" })),
+            ("vpn-import", serde_json::json!({ "protocol": "wireguard", "text": "a".repeat(crate::vpn::MAX_IMPORT + 1) })),
+            ("vpn-activate", serde_json::json!({ "name": "" })),
+            ("vpn-remove", serde_json::json!({})),
+        ] { assert_eq!(page(action, extra.clone()), None, "{action} {extra}"); }
+        let many: serde_json::Map<String, serde_json::Value> = (0..17).map(|i| (format!("k{i}"), "v".into())).collect();
+        assert_eq!(page("vpn-save", serde_json::json!({ "protocol": "hysteria2", "name": "x", "fields": many, "secrets": {} })), None, "field count is bounded");
     }
 }

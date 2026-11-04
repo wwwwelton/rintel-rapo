@@ -119,6 +119,9 @@ mod app {
         /// SQLite profile store; `None` when it cannot be opened (profiles then live only in RAM).
         store: Option<crate::store::Store>,
         paths_saved: Instant,
+        /// Secret-free rows shown by the page; rebuilt after every change so a frame never decrypts DPAPI blobs.
+        vpn_rows: Vec<crate::vpn::Row>,
+        vpn_error: String,
     }
 
     fn load_ui_strings() -> HashMap<String, String> {
@@ -187,6 +190,8 @@ mod app {
                 engine_ini: crate::engine_ini::EngineIni::new(),
                 store: None,
                 paths_saved: Instant::now(),
+                vpn_rows: Vec::new(),
+                vpn_error: String::new(),
             };
             match crate::store::Store::open_default() {
                 Ok(store) => {
@@ -201,6 +206,7 @@ mod app {
                         Err(error) => app.training_message = error,
                     }
                     app.store = Some(store);
+                    app.reload_vpn();
                 }
                 Err(error) => app.training_message = format!("Banco de perfis indisponível; perfis ficam só nesta sessão: {error}"),
             }
@@ -615,9 +621,24 @@ mod app {
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),
                     "search": self.search, "library_count": self.games.len(), "aion2_status": self.aion2_status,
                     "subtitle": self.tr("txt_app_subtitle", "APO e RAPO para jogos Steam"),
+                    "vpn": { "rows": self.vpn_rows, "error": self.vpn_error },
                     "pin_status": pin_status.map(|(pid, tid, ms)| format!("AFINIDADE ATIVA · PID {pid} · TID {tid} · {ms}ms · {} threads", self.pinner.as_ref().map_or(0, |p| p.pinned_count(pid))))
                 }
             })
+        }
+
+        /// Records the outcome of a profile command and rebuilds the secret-free rows shown by the page.
+        fn finish_vpn(&mut self, result: Result<(), String>) {
+            self.vpn_error = result.err().unwrap_or_default();
+            self.reload_vpn();
+        }
+
+        fn reload_vpn(&mut self) {
+            let Some(store) = &self.store else { return };
+            match store.vpn_profiles().and_then(|profiles| Ok((profiles, store.active_vpn()?))) {
+                Ok((profiles, active)) => self.vpn_rows = crate::vpn::rows(&profiles, active.as_deref()),
+                Err(error) => self.vpn_error = error,
+            }
         }
 
         /// Saves this session's relay exit statistics and refreshes the priors for the next relay start.
@@ -724,6 +745,24 @@ mod app {
                 }
                 crate::command::Command::SetRelayInterfaces(interfaces) => self.relay.set_interfaces(interfaces),
                 crate::command::Command::ConfigureRelay { mode, config } => { let _ = self.relay.configure(mode, config); }
+                crate::command::Command::SaveVpnProfile { protocol, name, fields, secrets } => {
+                    let mut profile = crate::vpn::Profile::new(protocol, &name);
+                    (profile.fields, profile.secrets) = (fields, secrets);
+                    let result = self.store.as_ref().ok_or_else(|| "Banco de perfis indisponível".to_owned()).and_then(|store| store.save_vpn_edit(profile));
+                    self.finish_vpn(result);
+                }
+                crate::command::Command::ImportVpnProfile { protocol, name, text } => {
+                    let result = crate::vpn::import(protocol, &name, &text).and_then(|profile| self.store.as_ref().ok_or_else(|| "Banco de perfis indisponível".to_owned()).and_then(|store| store.save_vpn(&profile)));
+                    self.finish_vpn(result);
+                }
+                crate::command::Command::ActivateVpnProfile(name) => {
+                    let result = self.store.as_ref().ok_or_else(|| "Banco de perfis indisponível".to_owned()).and_then(|store| store.set_active_vpn(name.as_deref()));
+                    self.finish_vpn(result);
+                }
+                crate::command::Command::RemoveVpnProfile(name) => {
+                    let result = self.store.as_ref().ok_or_else(|| "Banco de perfis indisponível".to_owned()).and_then(|store| store.remove_vpn(&name));
+                    self.finish_vpn(result);
+                }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
                 crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),
                 crate::command::Command::RemoveRoute(destination) => self.routes.request(crate::routes::Operation::Remove(destination)),

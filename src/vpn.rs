@@ -150,6 +150,32 @@ pub fn import_wireguard(name: &str, text: &str) -> Result<Profile, String> {
 const OVPN_REFUSED: [&str; 17] = ["up", "down", "route-up", "route-pre-down", "ipchange", "client-connect", "client-disconnect", "learn-address",
     "auth-user-pass-verify", "tls-verify", "plugin", "script-security", "setenv", "setenv-safe", "management", "cryptoapicert", "dhcp-option-exec"];
 
+/// One row for the UI: readable fields, and for each secret only *whether it is set*. The value never leaves the host.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Row {
+    pub name: String,
+    pub protocol: Protocol,
+    pub fields: BTreeMap<String, String>,
+    pub secrets_set: BTreeMap<String, bool>,
+    pub active: bool,
+}
+
+pub fn rows(profiles: &[Profile], active: Option<&str>) -> Vec<Row> {
+    profiles.iter().map(|p| Row {
+        name: p.name.clone(), protocol: p.protocol, fields: p.fields.clone(), active: active == Some(p.name.as_str()),
+        secrets_set: p.protocol.secret_fields().iter().map(|k| ((*k).to_owned(), p.secrets.get(*k).is_some_and(|v| !v.is_empty()))).collect(),
+    }).collect()
+}
+
+/// Builds the profile for an import command. Hysteria 2 has no file format, so it is not importable.
+pub fn import(protocol: Protocol, name: &str, text: &str) -> Result<Profile, String> {
+    match protocol {
+        Protocol::Wireguard => import_wireguard(name, text),
+        Protocol::Openvpn => import_openvpn(name, text),
+        Protocol::Hysteria2 => Err("Hysteria 2 não tem arquivo de perfil; preencha os campos".into()),
+    }
+}
+
 /// Imports a `.ovpn` file with inline `<ca>`, `<cert>` and `<key>` blocks. External file references (`ca ca.crt`) are
 /// refused: the profile must be self-contained, otherwise it would read arbitrary files from the importing machine.
 pub fn import_openvpn(name: &str, text: &str) -> Result<Profile, String> {
@@ -309,5 +335,26 @@ mod tests {
             assert!(protocol.fields().iter().all(|f| !protocol.secret_fields().contains(f)), "{protocol:?}: a field is either readable or secret");
         }
         assert_eq!(Protocol::parse("ipsec"), None);
+    }
+
+    #[test]
+    fn ui_rows_never_carry_a_secret_value_only_whether_it_is_set() {
+        let profile = import_wireguard("Casa", WG).unwrap();
+        let rows = rows(&[profile.clone(), Profile::new(Protocol::Hysteria2, "vazio")], Some("Casa"));
+        let json = serde_json::to_string(&rows).unwrap();
+        assert!(!json.contains(KEY_A), "the private key must not reach the page: {json}");
+        assert!(rows[0].active && !rows[1].active);
+        assert_eq!(rows[0].secrets_set["private_key"], true);
+        assert_eq!(rows[0].secrets_set["preshared_key"], false);
+        assert_eq!(rows[1].secrets_set["auth"], false);
+    }
+
+    #[test]
+    fn import_dispatches_by_protocol_and_hysteria2_has_no_file_format() {
+        assert_eq!(import(Protocol::Wireguard, "", WG).unwrap().protocol, Protocol::Wireguard);
+        assert_eq!(import(Protocol::Openvpn, "", &ovpn("")).unwrap().protocol, Protocol::Openvpn);
+        assert!(import(Protocol::Hysteria2, "", WG).is_err());
+        assert!(import(Protocol::Openvpn, "", WG).is_err(), "a WireGuard file is not an OpenVPN profile");
+        assert!(import(Protocol::Wireguard, "", &ovpn("")).is_err(), "an OpenVPN file is not a WireGuard profile");
     }
 }
