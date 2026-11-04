@@ -4,18 +4,27 @@
 
 use std::{fs, io, path::{Path, PathBuf}};
 
-/// AION 2 on RTX 5070 12 GB at 4K, aimed at input latency and FPS: `(key, value, label)`.
-/// Reflex low-latency keeps the render queue empty; `r.GTSyncType=1` and `r.OneFrameThreadLag=0` stop the
-/// game/render threads from running frames ahead (Epic "Low Latency Frame Syncing"); a 120 FPS cap below
-/// the GPU limit avoids GPU-bound queuing; motion blur/depth of field are full-screen 4K passes.
-/// Resolution, upscaler (DLSS/FSR), VSync and texture pool stay under the game's own menu.
-/// The last three are cosmetic full-screen passes that cost GPU time and add no gameplay information.
-pub const ENTRIES: [(&str, &str, &str); 10] = [
-    ("t.MaxFPS", "120", "Limitar FPS em 120 (evita fila na GPU e reduz latência)"),
+/// AION 2 Unreal Engine `[SystemSettings]` overrides: `(key, value, label)`.
+pub const ENTRIES: [(&str, &str, &str); 24] = [
+    ("t.MaxFPS", "0", "Desbloquear limite de FPS (t.MaxFPS=0)"),
     ("t.Streamline.Reflex.Enable", "1", "Ativar NVIDIA Reflex"),
     ("t.Streamline.Reflex.Mode", "1", "Reflex em modo baixa latência (fila de renderização vazia)"),
     ("r.GTSyncType", "1", "Sem fila de frames: game thread espera a apresentação (RHI)"),
     ("r.OneFrameThreadLag", "0", "Sem frame extra da render thread (menos latência; pode reduzir FPS)"),
+    ("r.VSync", "0", "Desativar VSync (r.VSync=0)"),
+    ("r.FinishCurrentFrame", "0", "Não forçar sincronização de cada frame na CPU (mais FPS; r.FinishCurrentFrame=0)"),
+    ("r.RHICmdBypass", "0", "Usar thread RHI dedicada em paralelo (r.RHICmdBypass=0)"),
+    ("r.ShaderPipelineCache.Enabled", "1", "Ativar cache de pipeline de shaders (reduz engasgos)"),
+    ("r.CreateShadersOnLoad", "1", "Compilar shaders no carregamento (evita stutter em combate)"),
+    ("r.Streaming.PoolSize", "6144", "Pool de streaming de texturas em 6144 MB (6 GB VRAM)"),
+    ("r.Streaming.LimitPoolSizeToVRAM", "1", "Limitar pool de texturas à VRAM física disponível"),
+    ("r.Streaming.MaxTempMemoryAllowed", "512", "Memória temporária de streaming em 512 MB"),
+    ("r.Streaming.NumStaticComponentsProcessedPerFrame", "64", "Processar 64 componentes estáticos por frame no streaming"),
+    ("sg.ShadowQuality", "2", "Qualidade de sombras: Médio (sg.ShadowQuality=2)"),
+    ("sg.EffectsQuality", "2", "Qualidade de efeitos: Médio (sg.EffectsQuality=2)"),
+    ("sg.ReflectionQuality", "1", "Qualidade de reflexos: Baixo (sg.ReflectionQuality=1)"),
+    ("sg.PostProcessQuality", "1", "Qualidade de pós-processamento: Baixo (sg.PostProcessQuality=1)"),
+    ("sg.FoliageQuality", "2", "Qualidade de vegetação: Médio (sg.FoliageQuality=2)"),
     ("r.MotionBlurQuality", "0", "Desligar motion blur (mais FPS; muda o visual)"),
     ("r.DepthOfFieldQuality", "0", "Desligar profundidade de campo (mais FPS; muda o visual)"),
     ("r.SceneColorFringeQuality", "0", "Desligar aberração cromática (imagem mais nítida; muda o visual)"),
@@ -295,18 +304,18 @@ mod tests {
         let mut ini = EngineIni::at(Some(path.clone()));
         assert!(!ini.state().active && ini.state().options.iter().all(|o| !o.enabled), "a new user starts Off with nothing checked");
         ini.set(0, true);
-        ini.set(5, true);
+        ini.set(19, true);
         assert_eq!(fs::read_to_string(&path).unwrap(), GAME, "checked options wait for the switch");
         ini.set_active(true);
         let applied = fs::read_to_string(&path).unwrap();
         assert!(applied.starts_with(GAME), "game lines must be untouched");
-        assert!(applied.ends_with("[SystemSettings]\r\nt.MaxFPS=120\r\nr.MotionBlurQuality=0\r\n; RAPO END\r\n"));
+        assert!(applied.ends_with("[SystemSettings]\r\nt.MaxFPS=0\r\nr.MotionBlurQuality=0\r\n; RAPO END\r\n"));
         ini.set(0, false);
         assert!(!fs::read_to_string(&path).unwrap().contains("t.MaxFPS"), "unchecking while On removes the line");
         ini.set_active(false);
         assert_eq!(fs::read_to_string(&path).unwrap(), GAME, "Off restores the file");
         let state = ini.state();
-        assert!(!state.applied && state.options[5].enabled, "Off keeps the saved selection");
+        assert!(!state.applied && state.options[19].enabled, "Off keeps the saved selection");
         fs::remove_file(path).unwrap();
     }
     #[test]
@@ -345,14 +354,14 @@ mod tests {
     #[test]
     fn copies_left_by_game_rewrites_are_removed_once_owned() {
         // The game rewrote the file after RAPO closed, three times: unmarked copies plus a fresh block.
-        let rewritten = "[SystemSettings]\nt.MaxFPS=120\nt.MaxFPS=120\nr.VSync=1\n; RAPO BEGIN - removido automaticamente ao fechar o RAPO\nt.MaxFPS=120\n; RAPO END\n[Other]\nt.MaxFPS=120\n";
-        assert_eq!(remove_text(rewritten, &[("t.MaxFPS", "120")]).as_deref(), Some("[SystemSettings]\nr.VSync=1\n[Other]\nt.MaxFPS=120\n"));
-        let path = temp("owned", "[SystemSettings]\nt.MaxFPS=120\nt.MaxFPS=120\n");
+        let rewritten = "[SystemSettings]\nt.MaxFPS=0\nt.MaxFPS=0\nr.VSync=1\n; RAPO BEGIN - removido automaticamente ao fechar o RAPO\nt.MaxFPS=0\n; RAPO END\n[Other]\nt.MaxFPS=0\n";
+        assert_eq!(remove_text(rewritten, &[("t.MaxFPS", "0")]).as_deref(), Some("[SystemSettings]\nr.VSync=1\n[Other]\nt.MaxFPS=0\n"));
+        let path = temp("owned", "[SystemSettings]\nt.MaxFPS=0\nt.MaxFPS=0\n");
         let mut ini = EngineIni::at(Some(path.clone()));
         ini.owned[0] = true;
         ini.set(0, true);
         ini.set_active(true);
-        assert_eq!(fs::read_to_string(&path).unwrap().matches("t.MaxFPS=120").count(), 1, "on writes exactly one copy");
+        assert_eq!(fs::read_to_string(&path).unwrap().matches("t.MaxFPS=0").count(), 1, "on writes exactly one copy");
         drop(ini);
         assert_eq!(fs::read_to_string(&path).unwrap(), "[SystemSettings]\n");
         fs::remove_file(path).unwrap();

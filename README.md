@@ -141,13 +141,30 @@ O painel **ENGINE.INI DO AION 2** grava variáveis em `%LOCALAPPDATA%\AION2\Save
 
 | Opção | Linha | Efeito |
 |---|---|---|
-| Limitar FPS em 120 | `t.MaxFPS=120` | Evita fila de frames quando a GPU está no limite |
+| Desbloquear limite de FPS | `t.MaxFPS=0` | Remove teto de FPS do motor |
 | Ativar NVIDIA Reflex | `t.Streamline.Reflex.Enable=1` | Ativa o plugin Reflex presente no jogo |
 | Reflex em baixa latência | `t.Streamline.Reflex.Mode=1` | Mantém a fila de renderização vazia |
-| Sem fila de frames | `r.GTSyncType=1` | A game thread espera a thread RHI (apresentação), sem preparar frames à frente da GPU |
+| Sem fila de frames | `r.GTSyncType=1` | A game thread espera a thread RHI (apresentação) |
 | Sem frame extra da render thread | `r.OneFrameThreadLag=0` | Remove um frame de atraso; pode reduzir FPS |
-| Desligar motion blur | `r.MotionBlurQuality=0` | Mais FPS em 4K; muda o visual |
-| Desligar profundidade de campo | `r.DepthOfFieldQuality=0` | Mais FPS em 4K; muda o visual |
+| Desativar VSync | `r.VSync=0` | Desativa sincronização vertical |
+| Não forçar sync de cada frame na CPU | `r.FinishCurrentFrame=0` | Permite paralelismo normal entre CPU e GPU |
+| Thread RHI dedicada em paralelo | `r.RHICmdBypass=0` | Mantém submissão RHI em thread própria |
+| Cache de pipeline de shaders | `r.ShaderPipelineCache.Enabled=1` | Reduz engasgos de compilação de shaders |
+| Compilar shaders no carregamento | `r.CreateShadersOnLoad=1` | Evita stutter durante o combate |
+| Pool de streaming de texturas (6 GB) | `r.Streaming.PoolSize=6144` | Reserva até 6144 MB para streaming de texturas |
+| Limitar pool à VRAM disponível | `r.Streaming.LimitPoolSizeToVRAM=1` | Impede que o pool exceda a memória física da GPU |
+| Memória temporária de streaming | `r.Streaming.MaxTempMemoryAllowed=512` | Limita buffer temporário de streaming em 512 MB |
+| Componentes estáticos por frame | `r.Streaming.NumStaticComponentsProcessedPerFrame=64` | Processa 64 componentes por frame no streaming |
+| Qualidade de sombras (Médio) | `sg.ShadowQuality=2` | Reduz custo de sombras dinâmicas |
+| Qualidade de efeitos (Médio) | `sg.EffectsQuality=2` | Equilibra partículas e efeitos |
+| Qualidade de reflexos (Baixo) | `sg.ReflectionQuality=1` | Reduz custo de SSR/reflexos |
+| Qualidade de pós-processamento (Baixo) | `sg.PostProcessQuality=1` | Reduz passes pesados de pós-processamento |
+| Qualidade de vegetação (Médio) | `sg.FoliageQuality=2` | Reduz densidade/custo de folhagem |
+| Desligar motion blur | `r.MotionBlurQuality=0` | Mais FPS; muda o visual |
+| Desligar profundidade de campo | `r.DepthOfFieldQuality=0` | Mais FPS; muda o visual |
+| Desligar aberração cromática | `r.SceneColorFringeQuality=0` | Imagem mais nítida; muda o visual |
+| Desligar granulação de filme | `r.FilmGrain=0` | Imagem mais limpa; muda o visual |
+| Desligar lens flare | `r.LensFlareQuality=0` | Menos brilho na tela; muda o visual |
 
 O jogo lê o arquivo ao iniciar: ligue o perfil antes de abrir o AION 2. Com ON, marcar ou desmarcar uma opção atualiza o arquivo na hora. OFF ou fechar o RAPO (janela ou bandeja) remove o bloco, sem apagar o perfil salvo, e o restante do arquivo volta byte a byte. A gravação usa arquivo temporário + renomeação. Se o jogo reescrever o arquivo sem os comentários, a remoção apaga apenas as linhas exatas que o RAPO gravou. Um bloco deixado por encerramento forçado é substituído pelo perfil salvo na próxima abertura, ou removido se o perfil estiver em OFF. Somente o AION 2 é afetado; o efeito real depende de o build do jogo respeitar essas variáveis.
 
