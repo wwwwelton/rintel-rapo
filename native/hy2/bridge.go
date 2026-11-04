@@ -278,6 +278,27 @@ func connectWireGuard(data []byte) (*owner, error) {
 	return &owner{client: t, done: make(chan struct{})}, nil
 }
 
+func connectOpenVPN(data []byte) (*owner, error) {
+	select {
+	case clientSlots <- struct{}{}:
+	default:
+		return nil, errCapacity
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), openTimeout)
+	defer cancel()
+	t, err := startOpenVPN(ctx, data)
+	if err != nil {
+		<-clientSlots
+		return nil, err
+	}
+	if ctx.Err() != nil {
+		_ = t.Close()
+		<-clientSlots
+		return nil, errTimeout
+	}
+	return &owner{client: t, done: make(chan struct{})}, nil
+}
+
 func openTCP(e *entry, address string) (*entry, error) {
 	if !e.isClient() || !validAddress(address) {
 		return nil, errInvalid
@@ -540,6 +561,25 @@ func rapo_hy2_connect_wg(cfg *C.uint8_t, cfgLength C.size_t, out *C.uint64_t) (c
 		return -1
 	}
 	o, err := connectWireGuard(append([]byte(nil), goBytes(cfg, cfgLength)...))
+	if err != nil {
+		return status(err)
+	}
+	id, err := register(newEntry(o))
+	if err != nil {
+		o.close()
+		return status(err)
+	}
+	*out = C.uint64_t(id)
+	return 0
+}
+
+//export rapo_hy2_connect_ovpn
+func rapo_hy2_connect_ovpn(cfg *C.uint8_t, cfgLength C.size_t, out *C.uint64_t) (code C.int32_t) {
+	defer guard(&code)
+	if cfg == nil || out == nil || cfgLength > 80000 {
+		return -1
+	}
+	o, err := connectOpenVPN(append([]byte(nil), goBytes(cfg, cfgLength)...))
 	if err != nil {
 		return status(err)
 	}

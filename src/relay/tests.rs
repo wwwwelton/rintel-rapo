@@ -496,7 +496,7 @@ fn thread_count() -> usize { 0 }
 fn wireguard_profile_relays_tcp_and_udp_through_the_tunnel_and_never_falls_back() {
     let fixture = hy2::fixture::start();
     let mut server = RelayServer::new(0);
-    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    server.set_tunnel(Some(VpnTunnel::Wireguard(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap()))).unwrap();
     // A tunnel forces the "everything through the exit" policy even if another mode was chosen.
     server.configure(Mode::Direct, Hy2Config::default()).unwrap();
     server.start().unwrap();
@@ -530,7 +530,7 @@ fn wireguard_profile_relays_tcp_and_udp_through_the_tunnel_and_never_falls_back(
 fn a_destination_outside_the_tunnel_fails_instead_of_leaving_through_the_system_route() {
     let fixture = hy2::fixture::start();
     let mut server = RelayServer::new(0);
-    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    server.set_tunnel(Some(VpnTunnel::Wireguard(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap()))).unwrap();
     server.start().unwrap();
     // The real loopback TCP echo of the fixture is reachable from this host, but it is NOT inside the tunnel's
     // allowed IPs (10.77.0.0/24). A VPN must refuse it rather than silently use the system route.
@@ -546,7 +546,7 @@ fn a_destination_outside_the_tunnel_fails_instead_of_leaving_through_the_system_
 fn a_tunnel_cannot_be_swapped_while_the_relay_runs_and_clearing_it_restores_the_previous_policy() {
     let fixture = hy2::fixture::start();
     let mut server = RelayServer::new(0);
-    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    server.set_tunnel(Some(VpnTunnel::Wireguard(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap()))).unwrap();
     server.start().unwrap();
     assert_eq!(server.set_tunnel(None).unwrap_err().kind(), io::ErrorKind::WouldBlock, "the exit cannot change under live flows");
     assert_eq!(server.state().tunnel, "WireGuard");

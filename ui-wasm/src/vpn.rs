@@ -39,13 +39,14 @@ fn label(name: &str) -> &str {
         "address" => "Endereço do túnel", "dns" => "DNS", "mtu" => "MTU", "public_key" => "Chave pública do servidor", "endpoint" => "Endpoint (host:porta)",
         "allowed_ips" => "IPs permitidos", "keepalive" => "Keepalive (s)", "private_key" => "Chave privada", "preshared_key" => "Chave pré-compartilhada",
         "remote" => "Servidor", "port" => "Porta", "proto" => "Protocolo (udp/tcp)", "cipher" => "Cifra", "ca" => "CA (PEM)", "cert" => "Certificado (PEM)",
-        "key" => "Chave privada (PEM)", "username" => "Usuário", "password" => "Senha", "tls_auth" => "tls-auth / tls-crypt",
+        "key" => "Chave privada (PEM)", "username" => "Usuário", "password" => "Senha", "tls_auth" => "tls-auth (PEM)",
+        "tls_crypt" => "tls-crypt (PEM)", "tls_crypt_v2" => "tls-crypt-v2 (PEM)", "key_direction" => "key-direction (0 ou 1)",
         other => other,
     }
 }
 
 /// Multi-line values (PEM blocks) get a textarea; everything else a single-line input.
-fn multiline(name: &str) -> bool { matches!(name, "ca_pem" | "ca" | "cert" | "key" | "tls_auth") }
+fn multiline(name: &str) -> bool { matches!(name, "ca_pem" | "ca" | "cert" | "key" | "tls_auth" | "tls_crypt" | "tls_crypt_v2") }
 
 fn input(html: &mut String, kind: &str, name: &str, secret: bool, value: &str, is_set: bool) {
     let id = format!("vpn-{kind}-{name}");

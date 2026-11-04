@@ -26,14 +26,14 @@ impl Protocol {
         match self {
             Self::Hysteria2 => &["server", "server_name", "ca_pem"],
             Self::Wireguard => &["address", "dns", "mtu", "public_key", "endpoint", "allowed_ips", "keepalive"],
-            Self::Openvpn => &["remote", "port", "proto", "cipher", "auth", "ca", "cert"],
+            Self::Openvpn => &["remote", "port", "proto", "cipher", "auth", "ca", "cert", "key_direction"],
         }
     }
     pub fn secret_fields(self) -> &'static [&'static str] {
         match self {
             Self::Hysteria2 => &["auth"],
             Self::Wireguard => &["private_key", "preshared_key"],
-            Self::Openvpn => &["key", "username", "password", "tls_auth"],
+            Self::Openvpn => &["key", "username", "password", "tls_auth", "tls_crypt", "tls_crypt_v2"],
         }
     }
     fn required(self) -> &'static [&'static str] {
@@ -98,6 +98,8 @@ impl Profile {
                 if let Some(port) = self.fields.get("port").filter(|p| !p.is_empty()) { if !port.parse::<u16>().is_ok_and(|p| p != 0) { return bad("Porta OpenVPN inválida"); } }
                 if let Some(proto) = self.fields.get("proto").filter(|p| !p.is_empty()) { if !matches!(proto.as_str(), "udp" | "tcp" | "udp4" | "tcp4" | "udp6" | "tcp6") { return bad("Protocolo OpenVPN deve ser udp ou tcp"); } }
                 if !value("ca").contains("-----BEGIN CERTIFICATE-----") { return bad("CA OpenVPN deve ser um certificado PEM"); }
+                let static_keys = ["tls_auth", "tls_crypt", "tls_crypt_v2"].iter().filter(|k| !value(k).is_empty()).count();
+                if static_keys > 1 { return bad("O perfil OpenVPN não pode ter mais de uma chave de controle (tls-auth, tls-crypt ou tls-crypt-v2)"); }
             }
         }
         Ok(())
@@ -159,7 +161,8 @@ pub enum Plan {
     Hysteria2,
     /// Run the embedded userspace WireGuard tunnel.
     Wireguard,
-    /// The active profile cannot be used; the relay must not start with a different exit instead.
+    /// Run the embedded userspace OpenVPN tunnel.
+    Openvpn,
     Refused(&'static str),
 }
 
@@ -168,10 +171,10 @@ pub fn plan(active: Option<&Profile>) -> Plan {
         None => Plan::Default,
         Some(Protocol::Hysteria2) => Plan::Hysteria2,
         Some(Protocol::Wireguard) => Plan::Wireguard,
-        // No OpenVPN engine is embedded: refusing is the only way to not silently use another exit.
-        Some(Protocol::Openvpn) => Plan::Refused("O perfil OpenVPN ativo ainda não tem motor; desative-o ou escolha WireGuard/Hysteria 2"),
+        Some(Protocol::Openvpn) => Plan::Openvpn,
     }
 }
+
 
 /// What the editor shows for one protocol: its id, label and the readable and secret field names, in display order.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -225,7 +228,7 @@ pub fn import_openvpn(name: &str, text: &str) -> Result<Profile, String> {
         if let Some((tag, body)) = &mut open {
             if line == format!("</{tag}>") {
                 let (tag, body) = open.take().expect("checked just above");
-                let (field, secret) = match tag.as_str() { "ca" => ("ca", false), "cert" => ("cert", false), "key" => ("key", true), "tls-auth" | "tls-crypt" => ("tls_auth", true), _ => continue };
+                let (field, secret) = match tag.as_str() { "ca" => ("ca", false), "cert" => ("cert", false), "key" => ("key", true), "tls-auth" => ("tls_auth", true), "tls-crypt" => ("tls_crypt", true), "tls-crypt-v2" => ("tls_crypt_v2", true), _ => continue };
                 let map = if secret { &mut profile.secrets } else { &mut profile.fields };
                 // Two top-level blocks for one field would make "which one is trusted" ambiguous: refuse.
                 if map.insert(field.to_owned(), body.join("\n")).is_some() { return Err(format!("Bloco <{tag}> repetido")); }
@@ -240,7 +243,8 @@ pub fn import_openvpn(name: &str, text: &str) -> Result<Profile, String> {
         let args: Vec<&str> = words.collect();
         if OVPN_REFUSED.contains(&directive.as_str()) { return Err(format!("Diretiva recusada (executa programas ou altera o host): {directive}")); }
         match directive.as_str() {
-            "client" | "dev" | "nobind" | "persist-key" | "persist-tun" | "resolv-retry" | "verb" | "mute" | "remote-cert-tls" | "key-direction" | "float" | "tun-mtu" | "mssfix" | "comp-lzo" | "compress" | "auth-nocache" | "pull" | "tls-client" | "tls-version-min" | "reneg-sec" | "keepalive" | "ping" | "ping-restart" | "explicit-exit-notify" | "redirect-gateway" | "block-outside-dns" | "route" | "route-nopull" | "dev-type" | "setenv-safe-ok" | "data-ciphers" | "data-ciphers-fallback" | "ncp-ciphers" | "tls-cipher" | "tls-ciphersuites" | "ignore-unknown-option" | "lport" | "rport" | "nice" | "connect-retry" | "connect-timeout" => {}
+            "client" | "dev" | "nobind" | "persist-key" | "persist-tun" | "resolv-retry" | "verb" | "mute" | "remote-cert-tls" | "float" | "tun-mtu" | "mssfix" | "comp-lzo" | "compress" | "auth-nocache" | "pull" | "tls-client" | "tls-version-min" | "reneg-sec" | "keepalive" | "ping" | "ping-restart" | "explicit-exit-notify" | "redirect-gateway" | "block-outside-dns" | "route" | "route-nopull" | "dev-type" | "setenv-safe-ok" | "data-ciphers" | "data-ciphers-fallback" | "ncp-ciphers" | "tls-cipher" | "tls-ciphersuites" | "ignore-unknown-option" | "lport" | "rport" | "nice" | "connect-retry" | "connect-timeout" => {}
+            "key-direction" => { if let Some(dir) = args.first() { profile.fields.insert("key_direction".into(), (*dir).to_owned()); } }
             "remote" => {
                 if profile.fields.contains_key("remote") { continue; } // the first server; failover entries are not used
                 let host = args.first().ok_or("remote sem servidor")?;
@@ -401,7 +405,6 @@ mod tests {
         assert_eq!(plan(None), Plan::Default);
         assert_eq!(plan(Some(&import_wireguard("x", WG).unwrap())), Plan::Wireguard);
         assert_eq!(plan(Some(&Profile::new(Protocol::Hysteria2, "h"))), Plan::Hysteria2);
-        assert!(matches!(plan(Some(&import_openvpn("x", &ovpn("")).unwrap())), Plan::Refused(reason) if reason.contains("OpenVPN")),
-            "without an OpenVPN engine the relay must refuse to start, never use another exit");
+        assert_eq!(plan(Some(&import_openvpn("x", &ovpn("")).unwrap())), Plan::Openvpn);
     }
 }

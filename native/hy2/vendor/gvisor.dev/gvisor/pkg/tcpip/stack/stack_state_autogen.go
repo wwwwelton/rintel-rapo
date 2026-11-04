@@ -668,6 +668,34 @@ func (mt *MasqueradeTarget) StateLoad(ctx context.Context, stateSourceObject sta
 	stateSourceObject.Load(0, &mt.NetworkProtocol)
 }
 
+func (c *CTTarget) StateTypeName() string {
+	return "pkg/tcpip/stack.CTTarget"
+}
+
+func (c *CTTarget) StateFields() []string {
+	return []string{
+		"NetworkProtocol",
+		"Zone",
+	}
+}
+
+func (c *CTTarget) beforeSave() {}
+
+// +checklocksignore
+func (c *CTTarget) StateSave(stateSinkObject state.Sink) {
+	c.beforeSave()
+	stateSinkObject.Save(0, &c.NetworkProtocol)
+	stateSinkObject.Save(1, &c.Zone)
+}
+
+func (c *CTTarget) afterLoad(context.Context) {}
+
+// +checklocksignore
+func (c *CTTarget) StateLoad(ctx context.Context, stateSourceObject state.Source) {
+	stateSourceObject.Load(0, &c.NetworkProtocol)
+	stateSourceObject.Load(1, &c.Zone)
+}
+
 func (it *IPTables) StateTypeName() string {
 	return "pkg/tcpip/stack.IPTables"
 }
@@ -675,7 +703,6 @@ func (it *IPTables) StateTypeName() string {
 func (it *IPTables) StateFields() []string {
 	return []string{
 		"connections",
-		"reaper",
 		"v4Tables",
 		"v6Tables",
 		"modified",
@@ -686,19 +713,17 @@ func (it *IPTables) StateFields() []string {
 func (it *IPTables) StateSave(stateSinkObject state.Sink) {
 	it.beforeSave()
 	stateSinkObject.Save(0, &it.connections)
-	stateSinkObject.Save(1, &it.reaper)
-	stateSinkObject.Save(2, &it.v4Tables)
-	stateSinkObject.Save(3, &it.v6Tables)
-	stateSinkObject.Save(4, &it.modified)
+	stateSinkObject.Save(1, &it.v4Tables)
+	stateSinkObject.Save(2, &it.v6Tables)
+	stateSinkObject.Save(3, &it.modified)
 }
 
 // +checklocksignore
 func (it *IPTables) StateLoad(ctx context.Context, stateSourceObject state.Source) {
 	stateSourceObject.Load(0, &it.connections)
-	stateSourceObject.Load(1, &it.reaper)
-	stateSourceObject.Load(2, &it.v4Tables)
-	stateSourceObject.Load(3, &it.v6Tables)
-	stateSourceObject.Load(4, &it.modified)
+	stateSourceObject.Load(1, &it.v4Tables)
+	stateSourceObject.Load(2, &it.v6Tables)
+	stateSourceObject.Load(3, &it.modified)
 	stateSourceObject.AfterLoad(func() { it.afterLoad(ctx) })
 }
 
@@ -2098,6 +2123,7 @@ func (s *Stack) StateFields() []string {
 		"PortManager",
 		"clock",
 		"handleLocal",
+		"nftablesConfigured",
 		"restoredEndpoints",
 		"resumableEndpoints",
 		"icmpRateLimiter",
@@ -2108,11 +2134,10 @@ func (s *Stack) StateFields() []string {
 		"receiveBufferSize",
 		"tcpInvalidRateLimit",
 		"tsOffsetSecret",
-		"saveRestoreEnabled",
+		"externalNetworkingDisabled",
+		"allowConnectedOnSave",
 	}
 }
-
-func (s *Stack) beforeSave() {}
 
 // +checklocksignore
 func (s *Stack) StateSave(stateSinkObject state.Sink) {
@@ -2128,17 +2153,19 @@ func (s *Stack) StateSave(stateSinkObject state.Sink) {
 	stateSinkObject.Save(8, &s.PortManager)
 	stateSinkObject.Save(9, &s.clock)
 	stateSinkObject.Save(10, &s.handleLocal)
-	stateSinkObject.Save(11, &s.restoredEndpoints)
-	stateSinkObject.Save(12, &s.resumableEndpoints)
-	stateSinkObject.Save(13, &s.icmpRateLimiter)
-	stateSinkObject.Save(14, &s.seed)
-	stateSinkObject.Save(15, &s.nudConfigs)
-	stateSinkObject.Save(16, &s.nudDisp)
-	stateSinkObject.Save(17, &s.sendBufferSize)
-	stateSinkObject.Save(18, &s.receiveBufferSize)
-	stateSinkObject.Save(19, &s.tcpInvalidRateLimit)
-	stateSinkObject.Save(20, &s.tsOffsetSecret)
-	stateSinkObject.Save(21, &s.saveRestoreEnabled)
+	stateSinkObject.Save(11, &s.nftablesConfigured)
+	stateSinkObject.Save(12, &s.restoredEndpoints)
+	stateSinkObject.Save(13, &s.resumableEndpoints)
+	stateSinkObject.Save(14, &s.icmpRateLimiter)
+	stateSinkObject.Save(15, &s.seed)
+	stateSinkObject.Save(16, &s.nudConfigs)
+	stateSinkObject.Save(17, &s.nudDisp)
+	stateSinkObject.Save(18, &s.sendBufferSize)
+	stateSinkObject.Save(19, &s.receiveBufferSize)
+	stateSinkObject.Save(20, &s.tcpInvalidRateLimit)
+	stateSinkObject.Save(21, &s.tsOffsetSecret)
+	stateSinkObject.Save(22, &s.externalNetworkingDisabled)
+	stateSinkObject.Save(23, &s.allowConnectedOnSave)
 }
 
 // +checklocksignore
@@ -2154,17 +2181,19 @@ func (s *Stack) StateLoad(ctx context.Context, stateSourceObject state.Source) {
 	stateSourceObject.Load(8, &s.PortManager)
 	stateSourceObject.Load(9, &s.clock)
 	stateSourceObject.Load(10, &s.handleLocal)
-	stateSourceObject.Load(11, &s.restoredEndpoints)
-	stateSourceObject.Load(12, &s.resumableEndpoints)
-	stateSourceObject.Load(13, &s.icmpRateLimiter)
-	stateSourceObject.Load(14, &s.seed)
-	stateSourceObject.Load(15, &s.nudConfigs)
-	stateSourceObject.Load(16, &s.nudDisp)
-	stateSourceObject.Load(17, &s.sendBufferSize)
-	stateSourceObject.Load(18, &s.receiveBufferSize)
-	stateSourceObject.Load(19, &s.tcpInvalidRateLimit)
-	stateSourceObject.Load(20, &s.tsOffsetSecret)
-	stateSourceObject.Load(21, &s.saveRestoreEnabled)
+	stateSourceObject.Load(11, &s.nftablesConfigured)
+	stateSourceObject.Load(12, &s.restoredEndpoints)
+	stateSourceObject.Load(13, &s.resumableEndpoints)
+	stateSourceObject.Load(14, &s.icmpRateLimiter)
+	stateSourceObject.Load(15, &s.seed)
+	stateSourceObject.Load(16, &s.nudConfigs)
+	stateSourceObject.Load(17, &s.nudDisp)
+	stateSourceObject.Load(18, &s.sendBufferSize)
+	stateSourceObject.Load(19, &s.receiveBufferSize)
+	stateSourceObject.Load(20, &s.tcpInvalidRateLimit)
+	stateSourceObject.Load(21, &s.tsOffsetSecret)
+	stateSourceObject.Load(22, &s.externalNetworkingDisabled)
+	stateSourceObject.Load(23, &s.allowConnectedOnSave)
 	stateSourceObject.AfterLoad(func() { s.afterLoad(ctx) })
 }
 
@@ -2439,6 +2468,7 @@ func init() {
 	state.Register((*RedirectTarget)(nil))
 	state.Register((*SNATTarget)(nil))
 	state.Register((*MasqueradeTarget)(nil))
+	state.Register((*CTTarget)(nil))
 	state.Register((*IPTables)(nil))
 	state.Register((*Table)(nil))
 	state.Register((*Rule)(nil))

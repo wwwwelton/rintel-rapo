@@ -18,9 +18,9 @@ import (
 	"context"
 	"time"
 
+	"gvisor.dev/gvisor/pkg/log"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
-	"gvisor.dev/gvisor/pkg/tcpip/transport"
 )
 
 // saveReceivedAt is invoked by stateify.
@@ -35,11 +35,7 @@ func (p *udpPacket) loadReceivedAt(_ context.Context, nsec int64) {
 
 // afterLoad is invoked by stateify.
 func (e *endpoint) afterLoad(ctx context.Context) {
-	if e.stack.IsSaveRestoreEnabled() {
-		e.stack.RegisterRestoredEndpoint(e)
-	} else {
-		stack.RestoreStackFromContext(ctx).RegisterRestoredEndpoint(e)
-	}
+	e.stack.RegisterRestoredEndpoint(e)
 }
 
 // beforeSave is invoked by stateify.
@@ -50,38 +46,18 @@ func (e *endpoint) beforeSave() {
 
 // Restore implements tcpip.RestoredEndpoint.Restore.
 func (e *endpoint) Restore(s *stack.Stack) {
-	e.thaw()
-
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.net.Resume(s)
-	if e.stack.IsSaveRestoreEnabled() {
-		e.ops.InitHandler(e, e.stack, tcpip.GetStackSendBufferLimits, tcpip.GetStackReceiveBufferLimits)
+	if err := e.net.Resume(s); err != nil {
+		log.Warningf("Closing the UDP endpoint as it cannot be restored, err: %v", err)
+		e.closeLocked()
 		return
 	}
-	e.stack = s
-	e.ops.InitHandler(e, e.stack, tcpip.GetStackSendBufferLimits, tcpip.GetStackReceiveBufferLimits)
 
-	switch state := e.net.State(); state {
-	case transport.DatagramEndpointStateInitial, transport.DatagramEndpointStateClosed:
-	case transport.DatagramEndpointStateBound, transport.DatagramEndpointStateConnected:
-		// Our saved state had a port, but we don't actually have a
-		// reservation. We need to remove the port from our state, but still
-		// pass it to the reservation machinery.
-		var err tcpip.Error
-		id := e.net.Info().ID
-		id.LocalPort = e.localPort
-		id.RemotePort = e.remotePort
-		id, e.boundBindToDevice, err = e.registerWithStack(e.effectiveNetProtos, id)
-		if err != nil {
-			panic("registering udp endpoint with the stack failed during restore")
-		}
-		e.localPort = id.LocalPort
-		e.remotePort = id.RemotePort
-	default:
-		panic("unhandled state")
-	}
+	// Unfreeze the endpoint to handle packets.
+	e.frozen = false
+	e.ops.InitHandler(e, e.stack, tcpip.GetStackSendBufferLimits, tcpip.GetStackReceiveBufferLimits)
 }
 
 // Resume implements tcpip.ResumableEndpoint.Resume.

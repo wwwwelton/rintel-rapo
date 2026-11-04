@@ -72,7 +72,7 @@ type nic struct {
 	// complete.
 	linkResQueue packetsPendingLinkResolution
 
-	// packetEPsMu protects annotated fields below.
+	// packetEPsMu protects packetEPs.
 	packetEPsMu packetEPsRWMutex `state:"nosave"`
 
 	// eps is protected by the mutex, but the values contained in it are not.
@@ -191,16 +191,12 @@ func newNIC(stack *Stack, id tcpip.NICID, ep LinkEndpoint, opts NICOptions) *nic
 		networkEndpoints:          make(map[tcpip.NetworkProtocolNumber]NetworkEndpoint),
 		linkAddrResolvers:         make(map[tcpip.NetworkProtocolNumber]*linkResolver),
 		duplicateAddressDetectors: make(map[tcpip.NetworkProtocolNumber]DuplicateAddressDetector),
+		packetEPs:                 make(map[tcpip.NetworkProtocolNumber]*packetEndpointList),
 		qDisc:                     qDisc,
 		deliverLinkPackets:        opts.DeliverLinkPackets,
 		experimentIPOptionEnabled: opts.EnableExperimentIPOption,
 	}
 	nic.linkResQueue.init(nic)
-
-	nic.packetEPsMu.Lock()
-	defer nic.packetEPsMu.Unlock()
-
-	nic.packetEPs = make(map[tcpip.NetworkProtocolNumber]*packetEndpointList)
 
 	resolutionRequired := ep.Capabilities()&CapabilityResolutionRequired != 0
 
@@ -318,7 +314,7 @@ func (n *nic) enable() tcpip.Error {
 // resources. This guarantees no packets between this NIC and the network
 // stack.
 //
-// It returns an action that has to be excuted after releasing the Stack lock
+// It returns an action that has to be executed after releasing the Stack lock
 // and any error encountered.
 func (n *nic) remove(closeLinkEndpoint bool) (func(), tcpip.Error) {
 	n.enableDisableMu.Lock()
@@ -845,23 +841,34 @@ func (n *nic) DeliverLinkPacket(protocol tcpip.NetworkProtocolNumber, pkt *Packe
 // DeliverTransportPacket delivers the packets to the appropriate transport
 // protocol endpoint.
 func (n *nic) DeliverTransportPacket(protocol tcpip.TransportProtocolNumber, pkt *PacketBuffer) TransportPacketDisposition {
+	res, _ := n.deliverTransportPacket(protocol, pkt)
+	return res
+}
+
+// DeliverTransportPacketWithDefaultHandlerResult implements
+// TransportDispatcherWithDefaultHandlerResult.DeliverTransportPacketWithDefaultHandlerResult.
+func (n *nic) DeliverTransportPacketWithDefaultHandlerResult(protocol tcpip.TransportProtocolNumber, pkt *PacketBuffer) (TransportPacketDisposition, bool) {
+	return n.deliverTransportPacket(protocol, pkt)
+}
+
+func (n *nic) deliverTransportPacket(protocol tcpip.TransportProtocolNumber, pkt *PacketBuffer) (TransportPacketDisposition, bool) {
 	state, ok := n.stack.transportProtocols[protocol]
 	if !ok {
 		n.stats.unknownL4ProtocolRcvdPacketCounts.Increment(uint64(protocol))
-		return TransportPacketProtocolUnreachable
+		return TransportPacketProtocolUnreachable, false
 	}
 
 	transProto := state.proto
 
 	if len(pkt.TransportHeader().Slice()) == 0 {
 		n.stats.malformedL4RcvdPackets.Increment()
-		return TransportPacketHandled
+		return TransportPacketHandled, false
 	}
 
 	srcPort, dstPort, err := transProto.ParsePorts(pkt.TransportHeader().Slice())
 	if err != nil {
 		n.stats.malformedL4RcvdPackets.Increment()
-		return TransportPacketHandled
+		return TransportPacketHandled, false
 	}
 
 	netProto, ok := n.stack.networkProtocols[pkt.NetworkProtocolNumber]
@@ -877,13 +884,13 @@ func (n *nic) DeliverTransportPacket(protocol tcpip.TransportProtocolNumber, pkt
 		RemoteAddress: src,
 	}
 	if n.stack.demux.deliverPacket(protocol, pkt, id) {
-		return TransportPacketHandled
+		return TransportPacketHandled, false
 	}
 
 	// Try to deliver to per-stack default handler.
 	if state.defaultHandler != nil {
 		if state.defaultHandler(id, pkt) {
-			return TransportPacketHandled
+			return TransportPacketHandled, true
 		}
 	}
 
@@ -893,11 +900,11 @@ func (n *nic) DeliverTransportPacket(protocol tcpip.TransportProtocolNumber, pkt
 	switch res := transProto.HandleUnknownDestinationPacket(id, pkt); res {
 	case UnknownDestinationPacketMalformed:
 		n.stats.malformedL4RcvdPackets.Increment()
-		return TransportPacketHandled
+		return TransportPacketHandled, false
 	case UnknownDestinationPacketUnhandled:
-		return TransportPacketDestinationPortUnreachable
+		return TransportPacketDestinationPortUnreachable, false
 	case UnknownDestinationPacketHandled:
-		return TransportPacketHandled
+		return TransportPacketHandled, false
 	default:
 		panic(fmt.Sprintf("unrecognized result from HandleUnknownDestinationPacket = %d", res))
 	}

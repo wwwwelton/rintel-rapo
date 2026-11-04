@@ -74,6 +74,7 @@ macro_rules! api {
 api! {
     connect: unsafe extern "C" fn(*const u8, usize, *mut u64) -> i32,
     connect_wg: unsafe extern "C" fn(*const u8, usize, *mut u64) -> i32,
+    connect_ovpn: unsafe extern "C" fn(*const u8, usize, *mut u64) -> i32,
     tcp: unsafe extern "C" fn(u64, *const u8, usize, *mut u64) -> i32,
     udp: Open,
     read: Io,
@@ -228,6 +229,13 @@ impl Client {
         let api = api()?;
         let mut id = 0;
         check(unsafe { (api.connect_wg)(profile_json.as_ptr(), profile_json.len(), &mut id) })?;
+        Ok(Self(Arc::new(Handle(id))))
+    }
+    /// Starts the embedded userspace OpenVPN tunnel from its JSON profile (see `native/hy2/openvpn.go`).
+    pub fn connect_openvpn(profile_json: &[u8]) -> io::Result<Self> {
+        let api = api()?;
+        let mut id = 0;
+        check(unsafe { (api.connect_ovpn)(profile_json.as_ptr(), profile_json.len(), &mut id) })?;
         Ok(Self(Arc::new(Handle(id))))
     }
     /// Opens a stream; success means the server already connected to `target` (`host:port`).

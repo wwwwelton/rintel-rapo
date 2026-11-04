@@ -637,7 +637,9 @@ mod app {
             let setup = match crate::vpn::plan(active.as_ref()) {
                 crate::vpn::Plan::Default => self.relay.set_tunnel(None),
                 crate::vpn::Plan::Wireguard => active.as_ref().ok_or_else(|| "perfil ausente".to_owned()).and_then(crate::relay::wireguard_tunnel)
-                    .map_err(std::io::Error::other).and_then(|tunnel| self.relay.set_tunnel(Some(tunnel))),
+                    .map_err(std::io::Error::other).and_then(|tunnel| self.relay.set_tunnel(Some(crate::relay::VpnTunnel::Wireguard(tunnel)))),
+                crate::vpn::Plan::Openvpn => active.as_ref().ok_or_else(|| "perfil ausente".to_owned()).and_then(crate::relay::openvpn_tunnel)
+                    .map_err(std::io::Error::other).and_then(|tunnel| self.relay.set_tunnel(Some(crate::relay::VpnTunnel::Openvpn(tunnel)))),
                 crate::vpn::Plan::Hysteria2 => active.as_ref().ok_or_else(|| "perfil ausente".to_owned()).and_then(crate::relay::hy2_config)
                     .map_err(std::io::Error::other).and_then(|config| self.relay.set_tunnel(None).and_then(|()| self.relay.configure(crate::relay::Mode::Hy2, config))),
                 crate::vpn::Plan::Refused(reason) => Err(std::io::Error::other(reason)),

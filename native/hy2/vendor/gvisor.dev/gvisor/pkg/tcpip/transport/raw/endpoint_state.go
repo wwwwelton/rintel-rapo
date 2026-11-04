@@ -18,6 +18,7 @@ import (
 	"context"
 	"time"
 
+	"gvisor.dev/gvisor/pkg/log"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 )
@@ -34,11 +35,7 @@ func (p *rawPacket) loadReceivedAt(_ context.Context, nsec int64) {
 
 // afterLoad is invoked by stateify.
 func (e *endpoint) afterLoad(ctx context.Context) {
-	if e.stack.IsSaveRestoreEnabled() {
-		e.stack.RegisterRestoredEndpoint(e)
-	} else {
-		stack.RestoreStackFromContext(ctx).RegisterRestoredEndpoint(e)
-	}
+	e.stack.RegisterRestoredEndpoint(e)
 }
 
 // beforeSave is invoked by stateify.
@@ -49,22 +46,13 @@ func (e *endpoint) beforeSave() {
 
 // Restore implements tcpip.RestoredEndpoint.Restore.
 func (e *endpoint) Restore(s *stack.Stack) {
-	e.setReceiveDisabled(false)
-	e.net.Resume(s)
-	if e.stack.IsSaveRestoreEnabled() {
-		e.ops.InitHandler(e, e.stack, tcpip.GetStackSendBufferLimits, tcpip.GetStackReceiveBufferLimits)
+	if err := e.net.Resume(s); err != nil {
+		log.Warningf("Closing the raw endpoint as it cannot be restored, err: %v", err)
+		e.Close()
 		return
 	}
-
-	e.stack = s
+	e.setReceiveDisabled(false)
 	e.ops.InitHandler(e, e.stack, tcpip.GetStackSendBufferLimits, tcpip.GetStackReceiveBufferLimits)
-
-	if e.associated {
-		netProto := e.net.NetProto()
-		if err := e.stack.RegisterRawTransportEndpoint(netProto, e.transProto, e); err != nil {
-			panic("RegisterRawTransportEndpoint failed during restore")
-		}
-	}
 }
 
 // Resume implements tcpip.ResumableEndpoint.Resume.
