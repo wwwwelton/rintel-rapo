@@ -1,7 +1,7 @@
 //! VPN profiles panel (Hysteria 2, WireGuard, OpenVPN). Pure HTML from the host snapshot.
 //! The host never sends a secret value, only whether each one is set, so a secret input starts empty and an empty
-//! input on save means "keep the stored one". Secret inputs carry no `data-network-draft`, so a typed secret is
-//! never restored from the page state after a re-render.
+//! input on save means "keep the stored one". The page keeps what the user is typing across updates, and clears the
+//! secret inputs as soon as the profile is sent.
 
 use crate::escape;
 use serde::Deserialize;
@@ -51,13 +51,11 @@ fn multiline(name: &str) -> bool { matches!(name, "ca_pem" | "ca" | "cert" | "ke
 fn input(html: &mut String, kind: &str, name: &str, secret: bool, value: &str, is_set: bool) {
     let id = format!("vpn-{kind}-{name}");
     let placeholder = if secret && is_set { "definido; deixe vazio para manter" } else { "" };
-    // Readable fields keep a typed draft across the 1 s re-render; secrets never do.
-    let draft = if secret { String::new() } else { format!(" data-network-draft=\"{id}\"") };
     write!(html, "<label for=\"{id}\">{}</label>", escape(label(name))).unwrap();
     if multiline(name) {
-        write!(html, "<textarea id=\"{id}\"{draft} maxlength=\"65536\" rows=\"3\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"{}\">{}</textarea>", escape(placeholder), escape(value)).unwrap();
+        write!(html, "<textarea id=\"{id}\" maxlength=\"65536\" rows=\"3\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"{}\">{}</textarea>", escape(placeholder), escape(value)).unwrap();
     } else {
-        write!(html, "<input id=\"{id}\"{draft} maxlength=\"4096\" autocomplete=\"off\" spellcheck=\"false\" type=\"{}\" placeholder=\"{}\" value=\"{}\">",
+        write!(html, "<input id=\"{id}\" maxlength=\"4096\" autocomplete=\"off\" spellcheck=\"false\" type=\"{}\" placeholder=\"{}\" value=\"{}\">",
             if secret { "password" } else { "text" }, escape(placeholder), escape(value)).unwrap();
     }
 }
@@ -79,9 +77,9 @@ pub fn render(html: &mut String, vpn: &Vpn) {
         write!(html, "<button type=\"button\" data-action=\"vpn-remove\" data-name=\"{name}\">Remover</button></li>").unwrap();
     }
     html.push_str("</ul><details class=\"how-it-works\"><summary>Adicionar ou editar perfil</summary>");
-    html.push_str("<fieldset id=\"vpn-editor\"><legend>Novo perfil</legend><label for=\"vpn-protocol\">Protocolo</label><select id=\"vpn-protocol\" data-network-draft=\"vpn-protocol\">");
+    html.push_str("<fieldset id=\"vpn-editor\"><legend>Novo perfil</legend><label for=\"vpn-protocol\">Protocolo</label><select id=\"vpn-protocol\">");
     for schema in &vpn.schemas { write!(html, "<option value=\"{id}\">{}</option>", escape(&schema.label), id = escape(&schema.id)).unwrap(); }
-    html.push_str("</select><label for=\"vpn-name\">Nome do perfil</label><input id=\"vpn-name\" data-network-draft=\"vpn-name\" maxlength=\"80\" autocomplete=\"off\" type=\"text\">");
+    html.push_str("</select><label for=\"vpn-name\">Nome do perfil</label><input id=\"vpn-name\" maxlength=\"80\" autocomplete=\"off\" type=\"text\">");
     // One block per protocol; the page shows the one the select names. Editing an existing profile fills its fields.
     for schema in &vpn.schemas {
         let current = vpn.rows.iter().find(|r| r.protocol == schema.id && r.active);
@@ -132,14 +130,12 @@ mod tests {
     }
 
     #[test]
-    fn secret_inputs_start_empty_say_when_set_and_never_keep_a_page_draft() {
+    fn secret_inputs_start_empty_and_say_when_a_secret_is_already_set() {
         let html = page(&Vpn { rows: vec![row("A", "hysteria2", true)], error: String::new(), schemas: schemas() });
         let secret = &html[html.find("id=\"vpn-hysteria2-s-auth\"").unwrap()..];
         let secret = &secret[..secret.find('>').unwrap()];
         assert!(secret.contains("type=\"password\"") && secret.contains("value=\"\"") && secret.contains("deixe vazio para manter"), "{secret}");
-        assert!(!secret.contains("data-network-draft"), "a typed secret must not be restored after a re-render");
-        let readable = &html[html.find("id=\"vpn-hysteria2-f-server\"").unwrap()..];
-        assert!(readable[..readable.find('>').unwrap()].contains("data-network-draft"), "a readable field keeps its draft");
+        assert!(!html.contains("S3CRET") && !html.contains("data-network-draft"));
     }
 
     #[test]

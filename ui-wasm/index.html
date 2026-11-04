@@ -327,6 +327,7 @@
     await init();
     const search = document.getElementById('search');
     const send = (el) => {
+      error.textContent = '';
       const action = el.dataset.action;
       const payload = { action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null };
       const field = (id) => document.getElementById(id);
@@ -433,34 +434,99 @@
       else if (e.key === 'Home') { e.preventDefault(); selectTab(TABS[0], true); }
       else if (e.key === 'End') { e.preventDefault(); selectTab(TABS[TABS.length - 1], true); }
     });
+    // In-place update. The host pushes a new snapshot about once a second (telemetry changes every time), and
+    // replacing innerHTML recreated every control: an open <select> closed, typed text, focus and scroll were lost.
+    // Instead the new markup is parsed off-screen and merged into the live DOM, touching only what differs.
+    // A control the user has edited, or that has focus, keeps its live value; the host never overwrites typing.
+    const dirty = new WeakSet();
+    const markDirty = (e) => { if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) dirty.add(e.target); };
+    document.addEventListener('input', markDirty, true);
+    document.addEventListener('change', markDirty, true);
+    // Keyed by id, or by summary text (before any " · " state suffix) for <details>, so sections that appear or
+    // disappear do not shift their neighbours. Repeated keys get an occurrence suffix.
+    const keyOf = (n) => n.nodeType !== 1 ? null
+      : n.id || (n.tagName === 'DETAILS' ? `details:${(n.querySelector(':scope > summary')?.textContent ?? '').split(' · ')[0].trim()}` : null);
+    const keyList = (nodes) => { const seen = new Map(); return nodes.map((n) => { const k = keyOf(n); if (!k) return null; const c = seen.get(k) ?? 0; seen.set(k, c + 1); return c ? `${k}#${c}` : k; }); };
+    const same = (a, b) => a.nodeType === b.nodeType && (a.nodeType !== 1 || (a.nodeName === b.nodeName && (a.nodeName !== 'INPUT' || a.type === b.type)));
+    // Live state or state owned by this script: never copied from the markup.
+    const skipAttr = (el, name) => (el.tagName === 'INPUT' && (name === 'value' || name === 'checked'))
+      || (el.tagName === 'OPTION' && name === 'selected') || (el.tagName === 'DETAILS' && name === 'open')
+      || (name === 'hidden' && ('tab' in el.dataset || 'vpnForm' in el.dataset));
+    const syncAttrs = (a, b) => {
+      for (const { name, value } of [...b.attributes]) if (!skipAttr(a, name) && a.getAttribute(name) !== value) a.setAttribute(name, value);
+      for (const { name } of [...a.attributes]) if (!skipAttr(a, name) && !b.hasAttribute(name)) a.removeAttribute(name);
+    };
+    // Text-like controls take the host value only while untouched and unfocused.
+    const setLive = (a, next) => {
+      if (a.value !== next && a !== document.activeElement && !dirty.has(a)) a.value = next;
+      if (a.value === next) dirty.delete(a);
+    };
+    const morphNode = (a, b) => {
+      if (a.nodeType !== 1) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+      syncAttrs(a, b);
+      if (a.tagName === 'TEXTAREA') { setLive(a, b.value); return; }
+      if (a.tagName === 'INPUT') {
+        if (a.type === 'checkbox' || a.type === 'radio') {
+          const want = b.hasAttribute('checked');
+          // A toggle with a data-action reflects the host; a form-only checkbox (consent, candidates) keeps the user's choice.
+          if (a.checked !== want && (a.hasAttribute('data-action') || !dirty.has(a))) a.checked = want;
+          if (a.checked === want) dirty.delete(a);
+        } else if (a.type !== 'file') setLive(a, b.getAttribute('value') ?? '');
+        return;
+      }
+      if (a.tagName === 'SELECT') {
+        const chosen = a.value;
+        morphChildren(a, b);
+        if (dirty.has(a) && [...a.options].some((o) => o.value === chosen)) a.value = chosen;
+        else if (a !== document.activeElement && a.selectedIndex !== b.selectedIndex) { a.selectedIndex = b.selectedIndex; dirty.delete(a); }
+        return;
+      }
+      morphChildren(a, b);
+    };
+    const morphChildren = (from, to) => {
+      const olds = [...from.childNodes], news = [...to.childNodes];
+      const oldKeys = keyList(olds), newKeys = keyList(news);
+      const byKey = new Map();
+      oldKeys.forEach((k, i) => { if (k) byKey.set(k, olds[i]); });
+      const used = new Set();
+      let cursor = 0;
+      const matches = news.map((next, i) => {
+        let match = null;
+        if (newKeys[i]) match = byKey.get(newKeys[i]) ?? null;
+        else {
+          while (cursor < olds.length && oldKeys[cursor]) cursor++; // unkeyed nodes only pair with unkeyed nodes
+          if (cursor < olds.length && same(olds[cursor], next)) match = olds[cursor++];
+        }
+        if (match && !same(match, next)) match = null;
+        if (match) used.add(match);
+        return match;
+      });
+      olds.forEach((o) => { if (!used.has(o)) o.remove(); });
+      let prev = null;
+      news.forEach((next, i) => {
+        const node = matches[i] ?? next;
+        if (matches[i]) morphNode(matches[i], next);
+        const want = prev ? prev.nextSibling : from.firstChild;
+        if (node !== want) from.insertBefore(node, want);
+        prev = node;
+      });
+    };
     const update = (id, view, render) => {
       const json = JSON.stringify(view);
-      if (previous.get(id) !== json) {
-        const root = document.getElementById(id);
-        const focused = root.contains(document.activeElement) ? { id: document.activeElement.id, data: { ...document.activeElement.dataset } } : null;
-        // Keyed by summary text (before any " · " state suffix), not index: sections appear and disappear with the state.
-        const detailsKey = (el) => (el.querySelector(':scope > summary')?.textContent ?? '').split(' · ')[0].trim();
-        const openDetails = new Set([...root.querySelectorAll('details')].filter(el => el.open).map(detailsKey));
-        const networkDrafts = [...root.querySelectorAll('[data-network-draft]')].map(el => ({ key: el.dataset.networkDraft, value: el.value, checked: el.checked, start: el.selectionStart, end: el.selectionEnd }));
-        root.innerHTML = render(json);
-        root.querySelectorAll('details').forEach(el => { el.open = openDetails.has(detailsKey(el)); });
-        root.querySelectorAll('[data-network-draft]').forEach(el => {
-          const draft = networkDrafts.find(d => d.key === el.dataset.networkDraft);
-          if (!draft) return;
-          if (el.type === 'checkbox') el.checked = draft.checked;
-          else { el.value = draft.value; if (draft.start !== null && typeof el.setSelectionRange === 'function' && el.tagName === 'INPUT') el.setSelectionRange(draft.start, draft.end); }
-        });
-        if (focused) {
-          const replacement = focused.id ? document.getElementById(focused.id) : [...root.querySelectorAll('[data-action]')].find(el => el.dataset.action === focused.data.action && el.dataset.dir === focused.data.dir && el.dataset.pid === focused.data.pid);
-          replacement?.focus({ preventScroll: true });
-        }
-        previous.set(id, json);
-        applyTab();
-        showVpnForm();
-      }
+      if (previous.get(id) === json) return;
+      const root = document.getElementById(id);
+      const template = document.createElement('template');
+      template.innerHTML = render(json);
+      const focusedId = root.contains(document.activeElement) ? document.activeElement.id : '';
+      morphChildren(root, template.content);
+      if (focusedId && document.activeElement?.id !== focusedId) document.getElementById(focusedId)?.focus({ preventScroll: true });
+      previous.set(id, json);
+      applyTab();
+      showVpnForm();
     };
     // The host sends UI strings only in INITIAL_STATE; reuse them on every later update.
     const strings = { header: null, games: null };
+    let renderFailed = false;
     window.rapoUpdate = (state) => {
       try {
         for (const key of ['header', 'games']) {
@@ -474,8 +540,8 @@
         update('summary', state.dashboard, render_summary_json);
         applyTab();
         if (document.activeElement !== search) search.value = state.dashboard.search;
-        error.textContent = '';
-      } catch (e) { error.textContent = `Falha ao renderizar a interface: ${e}`; }
+        if (renderFailed) { error.textContent = ''; renderFailed = false; }
+      } catch (e) { renderFailed = true; error.textContent = `Falha ao renderizar a interface: ${e}`; }
     };
     window.rapoUpdate(window.INITIAL_STATE);
   } catch (e) { error.textContent = `Falha ao carregar a interface wasm: ${e}`; }
