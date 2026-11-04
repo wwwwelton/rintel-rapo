@@ -276,7 +276,12 @@ impl RelayServer {
         // HY2 modes open the QUIC session now: the GUI shows it working, and the first game connection skips the handshake.
         if self.tunnel.is_some() || matches!(self.mode, Mode::Hy2 | Mode::NeuralAuto) {
             let hy2 = Arc::clone(&shared);
-            let _ = thread::Builder::new().name("rapo-hy2-connect".into()).spawn(move || { let _ = hy2.hy2_client(); });
+            let _ = thread::Builder::new().name("rapo-hy2-connect".into()).spawn(move || {
+                if hy2.hy2_client().is_err() && hy2.running.load(Ordering::Acquire) {
+                    thread::sleep(Duration::from_millis(50));
+                    let _ = hy2.hy2_client();
+                }
+            });
             #[cfg(windows)]
             {
                 let shared = Arc::clone(&shared);

@@ -818,6 +818,7 @@ func rapo_hy2_start_local_server(buffer *C.uint8_t, capacity C.size_t, actual *C
 		}
 		go func() { _ = s.Serve() }()
 		localServer = s
+		time.Sleep(15 * time.Millisecond)
 
 		cfg, _ := json.Marshal(map[string]string{
 			"server":      conn.LocalAddr().String(),
