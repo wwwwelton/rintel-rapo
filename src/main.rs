@@ -621,7 +621,7 @@ mod app {
                     "windowed": self.windowed_mode, "minimize_tray": self.tray.is_minimize_to_tray(),
                     "search": self.search, "library_count": self.games.len(), "aion2_status": self.aion2_status,
                     "subtitle": self.tr("txt_app_subtitle", "APO e RAPO para jogos Steam"),
-                    "vpn": { "rows": self.vpn_rows, "error": self.vpn_error },
+                    "vpn": { "rows": self.vpn_rows, "error": self.vpn_error, "schemas": crate::vpn::schemas() },
                     "pin_status": pin_status.map(|(pid, tid, ms)| format!("AFINIDADE ATIVA · PID {pid} · TID {tid} · {ms}ms · {} threads", self.pinner.as_ref().map_or(0, |p| p.pinned_count(pid))))
                 }
             })

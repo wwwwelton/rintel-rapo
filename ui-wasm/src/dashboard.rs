@@ -36,6 +36,8 @@ pub struct Dashboard {
     pub wfp: Wfp,
     #[serde(default)]
     pub engine_ini: EngineIni,
+    #[serde(default)]
+    pub vpn: crate::vpn::Vpn,
 }
 
 #[derive(Default, Deserialize)]
@@ -412,6 +414,7 @@ pub fn render(view: &Dashboard) -> String {
         html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo.</span></div>");
     }
     render_relay(&mut html, &view.relay, &view.wfp);
+    crate::vpn::render(&mut html, &view.vpn);
     let route_learning = view.routes.auto_active;
     if route_learning || !view.routes.history.is_empty() {
     let (model_class, model_val) = if route_learning { ("net-card-warn", "Aprendizado ICMP ativo") }
@@ -557,6 +560,7 @@ mod tests {
                 EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true, superseded: true },
                 EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false, superseded: false }],
                 override_fps: Some("t.OverrideFPS=<30>".into()), error: String::new() },
+            vpn: Default::default(),
         };
         view.routes = Routes {
             candidates: vec![RouteCandidate { id: "x\"<&>".into(), interface: "<img src=x>".into(), index: 2, gateway: "fe80::1%2".into(), ipv6: true }],

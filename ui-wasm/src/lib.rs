@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 mod dashboard;
 pub use dashboard::{render_dashboard_json, render_summary_json};
 mod profile;
+mod vpn;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

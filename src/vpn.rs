@@ -150,6 +150,21 @@ pub fn import_wireguard(name: &str, text: &str) -> Result<Profile, String> {
 const OVPN_REFUSED: [&str; 17] = ["up", "down", "route-up", "route-pre-down", "ipchange", "client-connect", "client-disconnect", "learn-address",
     "auth-user-pass-verify", "tls-verify", "plugin", "script-security", "setenv", "setenv-safe", "management", "cryptoapicert", "dhcp-option-exec"];
 
+/// What the editor shows for one protocol: its id, label and the readable and secret field names, in display order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Schema {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub fields: &'static [&'static str],
+    pub secrets: &'static [&'static str],
+    /// Whether a file can be imported (`.conf` / `.ovpn`).
+    pub importable: bool,
+}
+
+pub fn schemas() -> Vec<Schema> {
+    Protocol::ALL.into_iter().map(|p| Schema { id: p.id(), label: p.label(), fields: p.fields(), secrets: p.secret_fields(), importable: p != Protocol::Hysteria2 }).collect()
+}
+
 /// One row for the UI: readable fields, and for each secret only *whether it is set*. The value never leaves the host.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Row {

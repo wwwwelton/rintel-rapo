@@ -159,12 +159,19 @@
   .hy2-on { color: var(--accent); border-color: #3c5c47; background: #1b2c21; }
   .hy2-pending { color: var(--warning); border-color: #5b4c30; }
   .hy2-error { color: var(--danger); border-color: #6b3434; }
-  .telemetry-box-wide, .net-card-wide, .net-card:has(details), .relay-card { grid-column: 1 / -1; }
+  .telemetry-box-wide, .net-card-wide, .net-card:has(details), .relay-card, .vpn-profiles { grid-column: 1 / -1; }
   .net-history { margin: 4px 0 0; }
   .net-history li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--muted); font: 11px/1.6 var(--mono); }
   .net-history li:last-child { border-bottom: 0; }
   .net-history li span:last-child { color: var(--accent); }
   .net-history li span.icmp-fail { color: var(--warning); }
+  .vpn-profiles { padding: 20px 22px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .vpn-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+  .vpn-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .vpn-name { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+  .vpn-form { display: grid; gap: 6px; margin-top: 10px; }
+  .vpn-form[hidden] { display: none; }
+  .vpn-form input, .vpn-form textarea, #vpn-editor select, #vpn-editor > input { width: 100%; }
   .net-policy-table { margin: 8px 0; }
   .net-disclaimer { display: block; color: var(--muted); font-size: 11px; line-height: 1.7; margin-top: 8px; }
   .relay-predictions { min-width: 0; max-width: 100%; overflow-x: auto; }
@@ -324,6 +331,19 @@
       const payload = { action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null };
       const field = (id) => document.getElementById(id);
       if (el.dataset.key) payload.key = el.dataset.key;
+      if (action === 'vpn-activate' || action === 'vpn-remove') payload.name = el.dataset.name;
+      if (action === 'vpn-save') {
+        const protocol = field('vpn-protocol').value;
+        const form = document.querySelector(`[data-vpn-form="${protocol}"]`);
+        const read = (kind, name) => field(`vpn-${protocol}-${kind}-${name}`).value;
+        payload.protocol = protocol;
+        payload.name = field('vpn-name').value.trim();
+        payload.fields = Object.fromEntries(form.dataset.fields.split(',').filter(Boolean).map(name => [name, read('f', name).trim()]).filter(([, value]) => value));
+        payload.secrets = Object.fromEntries(form.dataset.secrets.split(',').filter(Boolean).map(name => [name, read('s', name)]));
+        if (!payload.name) { error.textContent = 'Informe um nome para o perfil.'; return; }
+        // Secrets are sent once and cleared; the host never sends them back.
+        form.querySelectorAll('input[type=password]').forEach(input => { input.value = ''; });
+      }
       if (action === 'relay-interfaces') payload.candidates = [...document.querySelectorAll('[data-relay-candidate]:checked')].map(input => input.dataset.relayCandidate);
       if (action === 'relay-configure') {
         payload.mode = field('relay-mode').value;
@@ -353,9 +373,27 @@
       }
       window.ipc.postMessage(JSON.stringify(payload));
     };
-    document.addEventListener('change', (e) => { if (e.target.matches('input[data-action]')) send(e.target); });
     document.addEventListener('click', (e) => { const b = e.target.closest('button[data-action]'); if (b && !b.disabled) send(b); });
-    search.addEventListener('input', () => window.ipc.postMessage(JSON.stringify({ action: 'search', text: search.value })));
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[data-action]')) send(e.target);
+      if (e.target.id === 'vpn-protocol') showVpnForm();
+      if (e.target.matches('input[data-vpn-file]')) importVpnFile(e.target);
+    });
+    // Shows only the form of the selected protocol; re-applied after every render because innerHTML drops `hidden`.
+    const showVpnForm = () => {
+      const select = document.getElementById('vpn-protocol');
+      if (!select) return;
+      document.querySelectorAll('[data-vpn-form]').forEach(form => { form.hidden = form.dataset.vpnForm !== select.value; });
+    };
+    // The page reads the chosen file and sends its text; the host never receives or opens a path.
+    const importVpnFile = async (input) => {
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      if (file.size > 65536) { error.textContent = 'Arquivo grande demais para um perfil de VPN (máximo 64 KiB).'; return; }
+      const name = document.getElementById('vpn-name').value.trim() || file.name.replace(/\.[^.]+$/, '');
+      window.ipc.postMessage(JSON.stringify({ action: 'vpn-import', protocol: input.dataset.vpnFile, name, text: await file.text() }));
+    };
     const previous = new Map();
     // Tab routing: #dashboard is re-rendered with innerHTML, which drops `hidden`, so the active tab is re-applied after every render.
     const TABS = ['overview', 'network', 'profile', 'system', 'games'];
@@ -402,6 +440,7 @@
         }
         previous.set(id, json);
         applyTab();
+        showVpnForm();
       }
     };
     // The host sends UI strings only in INITIAL_STATE; reuse them on every later update.
