@@ -50,6 +50,8 @@ pub enum Command {
     SetEngineIniOption { index: usize, on: bool },
     /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
     SetEngineIniActive(bool),
+    /// Sets the number of an editable Engine.ini option (the texture pool, in MB); the host validates the range.
+    SetEngineIniValue { index: usize, value: u32 },
     /// Creates or updates a VPN profile. A secret left empty keeps the stored value, so the page never needs it back.
     SaveVpnProfile { protocol: crate::vpn::Protocol, name: String, fields: std::collections::BTreeMap<String, String>, secrets: std::collections::BTreeMap<String, String> },
     /// Imports the text of a wg-quick `.conf` or `.ovpn` file chosen in the page; the host never reads a path from the page.
@@ -121,6 +123,13 @@ pub fn from_json(body: &str) -> Option<Command> {
             let key = event.get("key")?.as_str()?;
             let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
             return Some(Command::SetEngineIniOption { index, on: checked? });
+        }
+        "engine-ini-value" => {
+            let key = event.get("key")?.as_str()?;
+            let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
+            // The page sends the box's text; only plain digits are a number (no sign, space, exponent or decimals).
+            let digits = event.get("value")?.as_str().filter(|s| !s.is_empty() && s.len() <= 10 && s.bytes().all(|b| b.is_ascii_digit()))?;
+            return Some(Command::SetEngineIniValue { index, value: digits.parse().ok()? });
         }
         "vpn-save" => {
             let protocol = crate::vpn::Protocol::parse(event.get("protocol")?.as_str()?)?;
@@ -358,5 +367,22 @@ mod tests {
         );
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#), None, "x=0 rejected");
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":31}"#), None, "y=31 rejected");
+    }
+
+    #[test]
+    fn engine_ini_value_ipc_accepts_only_plain_digits_for_a_known_key() {
+        let pool = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == "r.Streaming.PoolSize").unwrap();
+        assert_eq!(from_json(r#"{"action":"engine-ini-value","dir":null,"checked":false,"pid":null,"key":"r.Streaming.PoolSize","value":"8192"}"#),
+            Some(Command::SetEngineIniValue { index: pool, value: 8192 }), "the exact payload the page sends: the box text, never a number type");
+        for body in [
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":8192}"#,
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":""}"#,
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"-1"}"#,
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"1e3"}"#,
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":" 8192"}"#,
+            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"99999999999"}"#,
+            r#"{"action":"engine-ini-value","key":"t.OverrideFPS","value":"30"}"#,
+            r#"{"action":"engine-ini-value","value":"8192"}"#,
+        ] { assert_eq!(from_json(body), None, "{body}"); }
     }
 }

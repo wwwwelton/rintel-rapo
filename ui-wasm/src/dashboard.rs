@@ -58,6 +58,13 @@ pub struct EngineIniOption {
     pub enabled: bool,
     #[serde(default)]
     pub superseded: bool,
+    /// The user may type another number between `min` and `max`.
+    #[serde(default)]
+    pub editable: bool,
+    #[serde(default)]
+    pub min: u32,
+    #[serde(default)]
+    pub max: u32,
 }
 
 #[derive(Default, Deserialize)]
@@ -210,8 +217,12 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
         if ini.applied { "Ajustes do RAPO ativos no arquivo agora" } else { "Arquivo sem linhas do RAPO" }, escape(&ini.path)).unwrap();
     for option in &ini.options {
         let key = escape(&option.key);
-        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · <code>{key}={}</code>{}</span></label>",
-            if option.enabled { " checked" } else { "" }, escape(&option.label), escape(&option.value),
+        // An editable option shows its value in a box pre-filled with the saved value; the rest print `key=value`.
+        let line = if option.editable {
+            format!("<code>{key}=</code><input type=\"number\" inputmode=\"numeric\" class=\"engine-ini-value\" data-action=\"engine-ini-value\" data-key=\"{key}\" data-network-draft=\"engine-ini-value-{key}\" min=\"{}\" max=\"{}\" step=\"1\" value=\"{}\" aria-label=\"{key}\"> MB (entre {} e {})", option.min, option.max, escape(&option.value), option.min, option.max)
+        } else { format!("<code>{key}={}</code>", escape(&option.value)) };
+        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · {line}{}</span></label>",
+            if option.enabled { " checked" } else { "" }, escape(&option.label),
             if option.superseded { " · <strong>não gravado: o Reflex já controla a fila de frames</strong>" } else { "" }).unwrap();
     }
     html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p></details>");
@@ -575,8 +586,8 @@ mod tests {
                 mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
             wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, options: vec![
-                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true, superseded: true },
-                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false, superseded: false }],
+                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true, superseded: true, editable: false, min: 0, max: 0 },
+                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false, superseded: false, editable: false, min: 0, max: 0 }],
                 override_fps: Some("t.OverrideFPS=<30>".into()), error: String::new() },
             vpn: Default::default(),
         };
@@ -733,5 +744,19 @@ mod tests {
         assert!(html.contains("id=\"udp-red-enabled\" type=\"checkbox\" data-network-draft=\"udp-red-enabled\" data-action=\"udp-redundancy-toggle\" checked"));
         assert!(html.contains("id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"10\""));
         assert!(html.contains("id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"5\""));
+    }
+    #[test]
+    fn texture_pool_renders_a_prefilled_number_box_and_other_options_stay_plain() {
+        let option = |key: &str, value: &str, editable: bool| serde_json::json!({"key": key, "value": value, "label": "L", "enabled": true, "editable": editable, "min": 256, "max": 32768});
+        let view = dashboard(serde_json::json!({"engine_ini": {"path": "p", "active": true, "applied": true, "error": "", "options": [
+            option("r.Streaming.PoolSize", "8192", true), option("t.MaxFPS", "0", false)]}}));
+        let html = render(&view);
+        assert!(html.contains("<code>r.Streaming.PoolSize=</code><input type=\"number\""), "{html}");
+        assert!(html.contains("data-action=\"engine-ini-value\" data-key=\"r.Streaming.PoolSize\"") && html.contains("min=\"256\" max=\"32768\" step=\"1\" value=\"8192\""), "the box is pre-filled with the saved value");
+        assert!(html.contains("data-network-draft=\"engine-ini-value-r.Streaming.PoolSize\""), "a typed number survives the 1 s re-render");
+        assert!(html.contains("<code>t.MaxFPS=0</code>") && html.matches("data-action=\"engine-ini-value\"").count() == 1, "only editable options get a box");
+        let hostile = dashboard(serde_json::json!({"engine_ini": {"path": "p", "active": false, "applied": false, "error": "", "options": [
+            option("r.Streaming.PoolSize", "\"><script>x</script>", true)]}}));
+        assert!(!render(&hostile).contains("<script>x"), "the value is escaped");
     }
 }

@@ -151,7 +151,7 @@ O painel **ENGINE.INI DO AION 2** grava variáveis em `%LOCALAPPDATA%\AION2\Save
 | Thread RHI dedicada em paralelo | `r.RHICmdBypass=0` | Mantém submissão RHI em thread própria |
 | Cache de pipeline de shaders | `r.ShaderPipelineCache.Enabled=1` | Reduz engasgos de compilação de shaders |
 | Compilar shaders no carregamento | `r.CreateShadersOnLoad=1` | Evita stutter durante o combate |
-| Pool de streaming de texturas (6 GB) | `r.Streaming.PoolSize=6144` | Reserva até 6144 MB para streaming de texturas |
+| Pool de streaming de texturas (MB, editável) | `r.Streaming.PoolSize=6144` | Caixa pré-preenchida com `6144`; o usuário pode trocar o número (256 a 32768 MB). O valor fica salvo em `HKEY_CURRENT_USER\Software\RintelRAPO\EngineIni\Values` e, com o perfil ON, a linha é regravada na hora. A linha antiga é removida do arquivo, inclusive cópias soltas deixadas pelo jogo |
 | Limitar pool à VRAM disponível | `r.Streaming.LimitPoolSizeToVRAM=1` | Impede que o pool exceda a memória física da GPU |
 | Memória temporária de streaming | `r.Streaming.MaxTempMemoryAllowed=512` | Limita buffer temporário de streaming em 512 MB |
 | Componentes estáticos por frame | `r.Streaming.NumStaticComponentsProcessedPerFrame=64` | Processa 64 componentes por frame no streaming |

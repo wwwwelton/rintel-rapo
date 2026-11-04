@@ -861,6 +861,7 @@ mod app {
                 }
                 crate::command::Command::SetEngineIniOption { index, on } => self.engine_ini.set(index, on),
                 crate::command::Command::SetEngineIniActive(on) => self.engine_ini.set_active(on),
+                crate::command::Command::SetEngineIniValue { index, value } => self.engine_ini.set_value(index, value),
                 crate::command::Command::SetWindowed(on) => self.windowed_mode = on,
                 crate::command::Command::ToggleProcess { pid } => {
                     let Some(process) = self.running.iter().find(|p| p.pid == pid).cloned() else {
