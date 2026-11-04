@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS vpn_profiles (
     name TEXT PRIMARY KEY, protocol TEXT NOT NULL, updated_at INTEGER NOT NULL,
     fields TEXT NOT NULL, secrets BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS vpn_active (
-    id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL REFERENCES vpn_profiles(name) ON DELETE CASCADE);";
+    id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL REFERENCES vpn_profiles(name) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS udp_redundancy (
+    id INTEGER PRIMARY KEY CHECK (id = 1), enabled INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL);";
 
 const SETTINGS: &str = "priority, pin, qos, threads, min_percent, cores, smt, p_only, park_cores";
 
@@ -180,6 +182,23 @@ impl Store {
             Err(error) => Err(text(error)),
         }
     }
+
+    pub fn save_redundancy(&self, config: crate::relay::RedundancyConfig) -> Result<(), String> {
+        config.validate().map_err(|e| e.to_string())?;
+        self.db.execute("INSERT INTO udp_redundancy (id, enabled, x, y) VALUES (1, ?1, ?2, ?3)
+            ON CONFLICT(id) DO UPDATE SET enabled = ?1, x = ?2, y = ?3",
+            params![if config.enabled { 1 } else { 0 }, config.x, config.y]).map(drop).map_err(text)
+    }
+
+    pub fn redundancy(&self) -> Result<crate::relay::RedundancyConfig, String> {
+        match self.db.query_row("SELECT enabled, x, y FROM udp_redundancy WHERE id = 1", [], |row| {
+            Ok((row.get::<_, i64>(0)? != 0, row.get::<_, u32>(1)?, row.get::<_, u32>(2)?))
+        }) {
+            Ok((enabled, x, y)) => crate::relay::RedundancyConfig::new(enabled, x, y).map_err(|e| e.to_string()),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(crate::relay::RedundancyConfig::default()),
+            Err(error) => Err(text(error)),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -307,5 +326,17 @@ mod tests {
         let mut fresh = vpn_profile("Novo");
         fresh.secrets.insert("auth".into(), String::new());
         assert!(store.save_vpn_edit(fresh).is_err(), "a new profile cannot be created without its required secret");
+    }
+
+    #[test]
+    fn udp_redundancy_persists_and_defaults_cleanly() {
+        let store = memory();
+        assert_eq!(store.redundancy().unwrap(), crate::relay::RedundancyConfig { enabled: false, x: 20, y: 10 });
+        let cfg = crate::relay::RedundancyConfig { enabled: true, x: 5, y: 3 };
+        store.save_redundancy(cfg).unwrap();
+        assert_eq!(store.redundancy().unwrap(), cfg);
+        let updated = crate::relay::RedundancyConfig { enabled: false, x: 1, y: 2 };
+        store.save_redundancy(updated).unwrap();
+        assert_eq!(store.redundancy().unwrap(), updated);
     }
 }

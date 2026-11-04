@@ -356,6 +356,15 @@
         }
         field('relay-auth').value = '';
       }
+      if (action === 'udp-redundancy-toggle' || action === 'udp-redundancy-save') {
+        payload.action = 'udp-redundancy';
+        payload.enabled = field('udp-red-enabled')?.checked === true;
+        payload.x = parseInt(field('udp-red-x')?.value || '20', 10);
+        payload.y = parseInt(field('udp-red-y')?.value || '10', 10);
+        if (isNaN(payload.x) || payload.x < 1 || payload.x > 30 || isNaN(payload.y) || payload.y < 1 || payload.y > 30) {
+          error.textContent = 'Valores X e Y devem estar entre 1 e 30.'; return;
+        }
+      }
       if (action.startsWith('route-') || action.startsWith('rate-')) {
         payload.destination = el.dataset.destination ?? field('route-destination')?.value.trim();
         payload.candidate = field('route-candidate')?.value;

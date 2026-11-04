@@ -52,6 +52,7 @@ O RAPO inclui gerenciador de perfis VPN na aba **Rede** com regra de **exatament
 - **OpenVPN embutido:** cliente `github.com/n0madic/go-openvpn` com pilha TCP/IP em espaço de usuário (`gVisor netstack`), sob licença **GNU AGPL-3.0**. Importa arquivos `.ovpn` autossuficientes com blocos embutidos `<ca>`, `<cert>`, `<key>`, `<tls-auth>` e `<tls-crypt>`; diretivas que executam scripts (`up`, `down`, `script-security`, `plugin`) e referências a arquivos externos são recusadas.
 - **Hysteria 2:** perfis manuais para servidores remotos com suporte a CA customizada.
 - Ao iniciar o relay com um perfil de VPN ativo, todo o tráfego SOCKS5 sai obrigatoriamente pelo túnel configurado, **sem fallback direto**.
+- **UDPspeeder (Redundância de pacotes UDP `X:Y`):** opção client-side para ligar/desligar a replicação de datagramas UDP no relay local, nos túneis VPN (Hysteria 2, WireGuard e OpenVPN) e no tunelamento transparente WFP. Envia `Y` pacotes redundantes para cada `X` pacotes originais (limites de 1 a 30; padrão `20:10`, +50% de tráfego), mitigando perda de pacotes sem exigir instalação de software ou servidor UDPspeeder no destino remoto. A configuração persiste no SQLite (`udp_redundancy`).
 
 **Modos de saída** (em **Transporte**, alteráveis somente com o relay desabilitado; valem para a execução inteira):
 

@@ -79,14 +79,20 @@ pub(super) fn associate(mut control: TcpStream, shared: &Shared, id: u64, source
             pinned = Some(sender);
             if !shared.running.load(Ordering::Acquire) || !control_alive(&mut control)? { return Ok(()); }
             let destination = &destinations.entries[index];
-            let sent = if let Some(tunnel) = &tunnel {
-                tunnel.send_to(payload, &destination.address.to_string())
-            } else { destination.socket.as_ref().unwrap().send(payload) };
-            match sent {
-                Ok(count) if count == payload.len() => { shared.bytes_tx.fetch_add(count as u64, Ordering::Relaxed); }
-                Ok(_) => return Err(io::ErrorKind::WriteZero.into()),
-                Err(e) if transient(&e) || icmp_unreachable(&e) => (),
-                Err(e) => return Err(e),
+            let red_cfg = *shared.redundancy.read().unwrap();
+            let times = shared.redundancy_engine.duplicates_for_next(&red_cfg);
+            for copy_idx in 0..times {
+                let sent = if let Some(tunnel) = &tunnel {
+                    tunnel.send_to(payload, &destination.address.to_string())
+                } else { destination.socket.as_ref().unwrap().send(payload) };
+                match sent {
+                    Ok(count) if count == payload.len() => {
+                        if copy_idx == 0 { shared.bytes_tx.fetch_add(count as u64, Ordering::Relaxed); }
+                    }
+                    Ok(_) => return Err(io::ErrorKind::WriteZero.into()),
+                    Err(e) if transient(&e) || icmp_unreachable(&e) => (),
+                    Err(e) => return Err(e),
+                }
             }
         }
         if let Some(tunnel) = &tunnel {

@@ -555,3 +555,46 @@ fn a_tunnel_cannot_be_swapped_while_the_relay_runs_and_clearing_it_restores_the_
     server.set_tunnel(None).unwrap();
     assert_eq!((server.state().tunnel.as_str(), server.state().mode), ("", Mode::Local), "no tunnel: the default policy is back");
 }
+
+#[test]
+fn udp_redundancy_replicates_packets_at_configured_ratio() {
+    let recv_sock = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    recv_sock.set_read_timeout(Some(Duration::from_millis(200))).unwrap();
+    let target_addr = recv_sock.local_addr().unwrap();
+
+    let mut server = RelayServer::new(0);
+    server.set_redundancy(RedundancyConfig { enabled: true, x: 2, y: 3 }).unwrap();
+    server.start().unwrap();
+
+    let udp = udp_client();
+    let (_control, status, bound) = associate(&server, "0.0.0.0:0".parse().unwrap());
+    assert_eq!(status, 0);
+
+    // Send 2 original packets (X=2, Y=3 -> total 5 packets expected at target_addr).
+    udp.send_to(&datagram(target_addr, b"pkt1"), bound).unwrap();
+    udp.send_to(&datagram(target_addr, b"pkt2"), bound).unwrap();
+
+    let mut received = 0;
+    let mut buf = [0u8; 64];
+    while let Ok((n, _)) = recv_sock.recv_from(&mut buf) {
+        assert!(matches!(&buf[..n], b"pkt1" | b"pkt2"));
+        received += 1;
+        if received == 5 { break; }
+    }
+    assert_eq!(received, 5, "2 original packets with 2:3 redundancy must arrive as 5 datagrams");
+
+    // Now disable redundancy on the live relay and send 2 more -> only 2 should arrive.
+    server.set_redundancy(RedundancyConfig { enabled: false, x: 2, y: 3 }).unwrap();
+    udp.send_to(&datagram(target_addr, b"pkt3"), bound).unwrap();
+    udp.send_to(&datagram(target_addr, b"pkt4"), bound).unwrap();
+
+    let mut received_after = 0;
+    while let Ok((n, _)) = recv_sock.recv_from(&mut buf) {
+        assert!(matches!(&buf[..n], b"pkt3" | b"pkt4"));
+        received_after += 1;
+    }
+    assert_eq!(received_after, 2, "disabled redundancy sends 1 datagram per packet");
+
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+}

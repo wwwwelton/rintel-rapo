@@ -205,6 +205,9 @@ mod app {
                         Ok(paths) => app.relay.set_priors(paths),
                         Err(error) => app.training_message = error,
                     }
+                    if let Ok(red) = store.redundancy() {
+                        let _ = app.relay.set_redundancy(red);
+                    }
                     app.store = Some(store);
                     app.reload_vpn();
                 }
@@ -785,6 +788,13 @@ mod app {
                 crate::command::Command::RemoveVpnProfile(name) => {
                     let result = self.store.as_ref().ok_or_else(|| "Banco de perfis indisponível".to_owned()).and_then(|store| store.remove_vpn(&name));
                     self.finish_vpn(result);
+                }
+                crate::command::Command::SetUdpRedundancy(config) => {
+                    if let Ok(()) = self.relay.set_redundancy(config) {
+                        if let Some(store) = &self.store {
+                            let _ = store.save_redundancy(config);
+                        }
+                    }
                 }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
                 crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),

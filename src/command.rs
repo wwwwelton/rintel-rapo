@@ -57,6 +57,7 @@ pub enum Command {
     /// Makes one profile the only active one; `None` deactivates.
     ActivateVpnProfile(Option<String>),
     RemoveVpnProfile(String),
+    SetUdpRedundancy(crate::relay::RedundancyConfig),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -139,6 +140,13 @@ pub fn from_json(body: &str) -> Option<Command> {
         "vpn-activate" => return Some(Command::ActivateVpnProfile(Some(text("name")?))),
         "vpn-deactivate" => return Some(Command::ActivateVpnProfile(None)),
         "vpn-remove" => return Some(Command::RemoveVpnProfile(text("name")?)),
+        "udp-redundancy" => {
+            let enabled = event.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+            let x = event.get("x").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok()).unwrap_or(20);
+            let y = event.get("y").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok()).unwrap_or(10);
+            let config = crate::relay::RedundancyConfig::new(enabled, x, y).ok()?;
+            return Some(Command::SetUdpRedundancy(config));
+        }
         "route-refresh" => return Some(Command::RefreshRoutes),
         "route-apply" => return Some(Command::ApplyRoute { destination: text("destination")?, candidate: text("candidate")? }),
         "route-remove" => return Some(Command::RemoveRoute(text("destination")?)),
@@ -340,5 +348,15 @@ mod tests {
         ] { assert_eq!(page(action, extra.clone()), None, "{action} {extra}"); }
         let many: serde_json::Map<String, serde_json::Value> = (0..17).map(|i| (format!("k{i}"), "v".into())).collect();
         assert_eq!(page("vpn-save", serde_json::json!({ "protocol": "hysteria2", "name": "x", "fields": many, "secrets": {} })), None, "field count is bounded");
+    }
+
+    #[test]
+    fn udp_redundancy_ipc_parses_and_validates_bounds() {
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":5}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 10, y: 5 }))
+        );
+        assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#), None, "x=0 rejected");
+        assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":31}"#), None, "y=31 rejected");
     }
 }

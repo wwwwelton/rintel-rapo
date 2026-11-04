@@ -4,6 +4,8 @@ pub mod wireguard;
 pub mod openvpn;
 mod learning;
 mod prewarm;
+pub mod redundancy;
+pub use redundancy::{RedundancyConfig, RedundancyEngine};
 mod udp;
 #[cfg(windows)]
 mod native;
@@ -68,6 +70,7 @@ pub struct State {
     pub predictions: Vec<learning::Prediction>,
     pub interfaces: Vec<crate::routes::Candidate>,
     pub allowed_interfaces: Vec<String>,
+    pub redundancy: RedundancyConfig,
 }
 
 struct Connection { id: u64, client: TcpStream, outbound: Option<Outbound>, udp_bound: Option<SocketAddr> }
@@ -92,6 +95,8 @@ struct Shared {
     /// Last HY2 connect failure, shown in the GUI; cleared by a successful connect.
     hy2_error: Mutex<String>,
     hy2_ping_ms: AtomicU32,
+    redundancy: RwLock<RedundancyConfig>,
+    redundancy_engine: RedundancyEngine,
 }
 impl Shared {
     fn close_connections(&self) {
@@ -192,9 +197,9 @@ pub fn hy2_config(profile: &crate::vpn::Profile) -> Result<Hy2Config, String> {
     Ok(config)
 }
 
-pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, tunnel: Option<Arc<VpnTunnel>>, priors: Vec<crate::store::PathStat> }
+pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, tunnel: Option<Arc<VpnTunnel>>, redundancy: RedundancyConfig, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
-    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), tunnel: None, priors: Vec::new() } }
+    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), tunnel: None, redundancy: RedundancyConfig::default(), priors: Vec::new() } }
     /// Selects (or clears) the VPN tunnel used from the next `start()` on. While a tunnel is set the relay always
     /// runs in `Hy2` mode: everything goes through the tunnel and there is no direct fallback.
     pub fn set_tunnel(&mut self, tunnel: Option<VpnTunnel>) -> io::Result<()> {
@@ -209,6 +214,15 @@ impl RelayServer {
         Ok(())
     }
     fn tunnel_label(&self) -> String { self.tunnel.as_ref().map_or(String::new(), |t| t.label().into()) }
+    pub fn set_redundancy(&mut self, config: RedundancyConfig) -> Result<(), &'static str> {
+        config.validate()?;
+        if let Some(run) = &self.run {
+            *run.shared.redundancy.write().unwrap() = config;
+        }
+        self.redundancy = config;
+        Ok(())
+    }
+    pub fn redundancy(&self) -> RedundancyConfig { self.redundancy }
     /// Exit statistics saved by earlier sessions; used from the next `start()` on.
     pub fn set_priors(&mut self, priors: Vec<crate::store::PathStat>) { self.priors = priors; }
     /// Destination/exit statistics measured by the running relay, for saving.
@@ -255,6 +269,7 @@ impl RelayServer {
             learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
             prewarm: Mutex::new(prewarm::Prewarm::default()),
             interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()), hy2_ping_ms: AtomicU32::new(0),
+            redundancy: RwLock::new(self.redundancy), redundancy_engine: RedundancyEngine::new(),
         });
         let state = Arc::clone(&shared);
         let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
@@ -304,7 +319,7 @@ impl RelayServer {
         let Some(run) = &self.run else {
             return State { mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(), tunnel: self.tunnel_label(),
                 hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
-                udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), ..State::default() };
+                udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), redundancy: self.redundancy, ..State::default() };
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
         // One guard: a second lock inside the State literal would self-deadlock.
@@ -332,6 +347,7 @@ impl RelayServer {
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),
+            redundancy: *run.shared.redundancy.read().unwrap(),
         }
     }
     /// UDP has no per-flow RTT signal here, so an association keeps one fixed route.
@@ -487,8 +503,12 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
         flow.raw.store(raw_reply, Ordering::Relaxed);
         *flow.sent_at.lock().unwrap() = now;
         flow.last_seen = now;
-        if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
-            shared.bytes_tx.fetch_add(sent as u64, Ordering::Relaxed);
+        let red_cfg = *shared.redundancy.read().unwrap();
+        let times = shared.redundancy_engine.duplicates_for_next(&red_cfg);
+        for copy_idx in 0..times {
+            if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
+                if copy_idx == 0 { shared.bytes_tx.fetch_add(sent as u64, Ordering::Relaxed); }
+            }
         }
     }
 }

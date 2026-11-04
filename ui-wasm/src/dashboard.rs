@@ -101,6 +101,15 @@ pub struct Relay {
     pub udp_associations: usize,
     pub udp_destinations: u64,
     pub udp_route: String,
+    #[serde(default)]
+    pub redundancy: Redundancy,
+}
+
+#[derive(Default, Clone, Copy, Deserialize)]
+pub struct Redundancy {
+    pub enabled: bool,
+    pub x: u32,
+    pub y: u32,
 }
 #[derive(Deserialize)]
 pub struct RelayPrediction {
@@ -251,6 +260,15 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
         else { ("net-card-off", "Desativado".into()) };
     write!(html, "<hr><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
     if !wfp.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&wfp.error)).unwrap(); }
+    {
+        let r = relay.redundancy;
+        let x = if r.x > 0 { r.x } else { 20 };
+        let y = if r.y > 0 { r.y } else { 10 };
+        let overhead = if r.enabled && x > 0 { (y as u64 * 100) / x as u64 } else { 0 };
+        write!(html, "<hr><details><summary>UDPspeeder · Redundância de pacotes UDP ({} · +{overhead}% tráfego)</summary><p class=\"net-card-sub\">Replica pacotes UDP no cliente (razão X:Y) para tolerar perda sem depender de software no servidor.</p><fieldset id=\"udp-redundancy-fs\"><label><input id=\"udp-red-enabled\" type=\"checkbox\" data-network-draft=\"udp-red-enabled\" data-action=\"udp-redundancy-toggle\"{}> Ativar redundância UDP (UDPspeeder)</label><label for=\"udp-red-x\">Pacotes originais (X)</label><input id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"{x}\" data-network-draft=\"udp-red-x\"><label for=\"udp-red-y\">Pacotes redundantes (Y)</label><input id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"{y}\" data-network-draft=\"udp-red-y\"><button type=\"button\" data-action=\"udp-redundancy-save\">Aplicar razão X:Y</button></fieldset></details>",
+            if r.enabled { "Ativo" } else { "Desativado" },
+            if r.enabled { " checked" } else { "" }).unwrap();
+    }
     // Without a remote server the relay uses the embedded loopback HY2 server, so HY2 is always configured.
     {
         let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
@@ -705,5 +723,15 @@ mod tests {
             ["ICMP · IPs TCP DO PROCESSO","4 IP(s) TCP observado(s); até 4 sondas, 250 ms cada · Não identifica servidor"]]})));
         assert_eq!(html.matches("<strong class=\"box-value\">").count(), 2, "short figures keep the big style");
         assert_eq!(html.matches("<strong class=\"box-value box-value-text\">4 IP(s) TCP").count(), 1, "a sentence does not use the big-number style");
+    }
+    #[test]
+    fn udp_redundancy_renders_controls_and_overhead_percentage() {
+        let mut view = dashboard(serde_json::json!({}));
+        view.relay.redundancy = Redundancy { enabled: true, x: 10, y: 5 };
+        let html = render(&view);
+        assert!(html.contains("UDPspeeder · Redundância de pacotes UDP (Ativo · +50% tráfego)"));
+        assert!(html.contains("id=\"udp-red-enabled\" type=\"checkbox\" data-network-draft=\"udp-red-enabled\" data-action=\"udp-redundancy-toggle\" checked"));
+        assert!(html.contains("id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"10\""));
+        assert!(html.contains("id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"5\""));
     }
 }
