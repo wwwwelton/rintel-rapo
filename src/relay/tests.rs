@@ -491,3 +491,67 @@ fn wfp_udp_replies_reach_the_sender_and_stop_releases_the_flow_threads() {
 fn thread_count() -> usize { std::fs::read_dir("/proc/self/task").unwrap().count() }
 #[cfg(not(target_os = "linux"))]
 fn thread_count() -> usize { 0 }
+
+#[test]
+fn wireguard_profile_relays_tcp_and_udp_through_the_tunnel_and_never_falls_back() {
+    let fixture = hy2::fixture::start();
+    let mut server = RelayServer::new(0);
+    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    // A tunnel forces the "everything through the exit" policy even if another mode was chosen.
+    server.configure(Mode::Direct, Hy2Config::default()).unwrap();
+    server.start().unwrap();
+    assert_eq!(server.state().mode, Mode::Hy2, "a VPN profile always runs the no-fallback policy");
+    assert_eq!(server.state().tunnel, "WireGuard");
+
+    // The echo lives only on the peer's tunnel address (10.77.0.1): a reply proves the bytes crossed the encrypted tunnel.
+    let target: SocketAddr = fixture.endpoints.wg_tcp_echo.parse().unwrap();
+    for _ in 0..2 { // the second flow reuses the same tunnel
+        let mut socket = client(&server); greet(&mut socket); request(&mut socket, target, false);
+        assert_eq!(response(&mut socket).0, 0, "the tunnel must connect to its peer's private address");
+        let payload: Vec<u8> = (0..20_000u32).map(|i| (i * 7) as u8).collect();
+        socket.write_all(&payload).unwrap();
+        let mut echoed = vec![0; payload.len()]; socket.read_exact(&mut echoed).unwrap();
+        assert_eq!(echoed, payload);
+    }
+    let udp_target: SocketAddr = fixture.endpoints.wg_udp_echo.parse().unwrap();
+    let udp = udp_client();
+    let (_control, status, bound) = associate(&server, "0.0.0.0:0".parse().unwrap());
+    assert_eq!(status, 0);
+    udp.send_to(&datagram(udp_target, b"through wireguard"), bound).unwrap();
+    assert_eq!(udp_reply(&udp, Duration::from_secs(10)), Some((udp_target, b"through wireguard".to_vec())));
+    let state = serde_json::to_string(&server.state()).unwrap();
+    assert!(!state.contains(&fixture.endpoints.wg_private_key) && !state.contains("private_key"), "the key must never reach the GUI state: {state}");
+    assert!(state.contains("\"gateway\":\"hy2\"") && !state.contains("\"gateway\":\"system\""), "no direct fallback: {state}");
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+}
+
+#[test]
+fn a_destination_outside_the_tunnel_fails_instead_of_leaving_through_the_system_route() {
+    let fixture = hy2::fixture::start();
+    let mut server = RelayServer::new(0);
+    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    server.start().unwrap();
+    // The real loopback TCP echo of the fixture is reachable from this host, but it is NOT inside the tunnel's
+    // allowed IPs (10.77.0.0/24). A VPN must refuse it rather than silently use the system route.
+    let outside: SocketAddr = fixture.endpoints.tcp_echo.parse().unwrap();
+    let mut socket = client(&server); greet(&mut socket); request(&mut socket, outside, false);
+    let status = response(&mut socket).0;
+    assert_ne!(status, 0, "a destination outside the tunnel must not connect through the system route");
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+}
+
+#[test]
+fn a_tunnel_cannot_be_swapped_while_the_relay_runs_and_clearing_it_restores_the_previous_policy() {
+    let fixture = hy2::fixture::start();
+    let mut server = RelayServer::new(0);
+    server.set_tunnel(Some(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap())).unwrap();
+    server.start().unwrap();
+    assert_eq!(server.set_tunnel(None).unwrap_err().kind(), io::ErrorKind::WouldBlock, "the exit cannot change under live flows");
+    assert_eq!(server.state().tunnel, "WireGuard");
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+    server.set_tunnel(None).unwrap();
+    assert_eq!((server.state().tunnel.as_str(), server.state().mode), ("", Mode::Local), "no tunnel: the default policy is back");
+}

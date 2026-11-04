@@ -627,6 +627,27 @@ mod app {
             })
         }
 
+        /// Starts the relay with the exit of the active VPN profile. A profile that cannot be honored stops the start
+        /// with an error instead of letting traffic use a different exit than the one the user chose.
+        fn start_relay(&mut self) {
+            let active = self.store.as_ref().and_then(|store| {
+                let name = store.active_vpn().ok()??;
+                store.vpn_profiles().ok()?.into_iter().find(|p| p.name == name)
+            });
+            let setup = match crate::vpn::plan(active.as_ref()) {
+                crate::vpn::Plan::Default => self.relay.set_tunnel(None),
+                crate::vpn::Plan::Wireguard => active.as_ref().ok_or_else(|| "perfil ausente".to_owned()).and_then(crate::relay::wireguard_tunnel)
+                    .map_err(std::io::Error::other).and_then(|tunnel| self.relay.set_tunnel(Some(tunnel))),
+                crate::vpn::Plan::Hysteria2 => active.as_ref().ok_or_else(|| "perfil ausente".to_owned()).and_then(crate::relay::hy2_config)
+                    .map_err(std::io::Error::other).and_then(|config| self.relay.set_tunnel(None).and_then(|()| self.relay.configure(crate::relay::Mode::Hy2, config))),
+                crate::vpn::Plan::Refused(reason) => Err(std::io::Error::other(reason)),
+            };
+            match setup.and_then(|()| self.relay.start()) {
+                Ok(()) => self.vpn_error.clear(),
+                Err(error) => self.vpn_error = error.to_string(),
+            }
+        }
+
         /// Records the outcome of a profile command and rebuilds the secret-free rows shown by the page.
         fn finish_vpn(&mut self, result: Result<(), String>) {
             self.vpn_error = result.err().unwrap_or_default();
@@ -731,7 +752,7 @@ mod app {
                 crate::command::Command::Refresh => self.refresh(),
                 crate::command::Command::SetNetworkPriority(on) => { self.network_priority = on; self.refresh(); }
                 crate::command::Command::SetRelay(on) => {
-                    if on { let _ = self.relay.start(); } else { self.relay.stop(); }
+                    if on { self.start_relay(); } else { self.relay.stop(); }
                 }
                 crate::command::Command::SetWfp(on) => {
                     let target = if self.telemetry.metrics.has_target {

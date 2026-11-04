@@ -73,6 +73,7 @@ macro_rules! api {
 }
 api! {
     connect: unsafe extern "C" fn(*const u8, usize, *mut u64) -> i32,
+    connect_wg: unsafe extern "C" fn(*const u8, usize, *mut u64) -> i32,
     tcp: unsafe extern "C" fn(u64, *const u8, usize, *mut u64) -> i32,
     udp: Open,
     read: Io,
@@ -221,6 +222,14 @@ impl Client {
         check(unsafe { (api.connect)(json.as_ptr(), json.len(), &mut id) })?;
         Ok(Self(Arc::new(Handle(id))))
     }
+    /// Starts the embedded userspace WireGuard tunnel from its JSON profile (see `native/hy2/wireguard.go`). The
+    /// profile carries the private key: it is written to the library once and never stored, logged or displayed here.
+    pub fn connect_wireguard(profile_json: &[u8]) -> io::Result<Self> {
+        let api = api()?;
+        let mut id = 0;
+        check(unsafe { (api.connect_wg)(profile_json.as_ptr(), profile_json.len(), &mut id) })?;
+        Ok(Self(Arc::new(Handle(id))))
+    }
     /// Opens a stream; success means the server already connected to `target` (`host:port`).
     pub fn tcp(&self, target: &str) -> io::Result<TcpStream> {
         let api = api()?;
@@ -318,13 +327,27 @@ pub(super) mod fixture {
     use std::process::{Child, Command, Stdio};
 
     #[derive(serde::Deserialize)]
-    pub struct Endpoints { pub server: String, pub ca_pem: String, pub auth: String, pub tcp_echo: String, pub udp_echo: String, pub udp_echo6: String }
+    pub struct Endpoints {
+        pub server: String, pub ca_pem: String, pub auth: String, pub tcp_echo: String, pub udp_echo: String, pub udp_echo6: String,
+        pub wg_private_key: String, pub wg_public_key: String, pub wg_address: String, pub wg_endpoint: String, pub wg_allowed_ips: String,
+        pub wg_keepalive: String, pub wg_tcp_echo: String, pub wg_udp_echo: String,
+    }
     /// Real upstream HY2 server (native/hy2/fixture). Exits when its stdin closes.
     pub struct Fixture { child: Child, pub endpoints: Endpoints }
     impl Drop for Fixture { fn drop(&mut self) { let _ = self.child.kill(); let _ = self.child.wait(); } }
     impl Fixture {
         pub fn config(&self) -> super::Config {
             super::Config { server: self.endpoints.server.clone(), auth: self.endpoints.auth.clone(), server_name: String::new(), ca_pem: self.endpoints.ca_pem.clone() }
+        }
+        /// The WireGuard peer of this fixture as the profile the app would store.
+        pub fn wireguard_profile(&self) -> crate::vpn::Profile {
+            let e = &self.endpoints;
+            let mut profile = crate::vpn::Profile::new(crate::vpn::Protocol::Wireguard, "fixture");
+            for (key, value) in [("address", &e.wg_address), ("public_key", &e.wg_public_key), ("endpoint", &e.wg_endpoint), ("allowed_ips", &e.wg_allowed_ips), ("keepalive", &e.wg_keepalive)] {
+                profile.fields.insert(key.into(), value.clone());
+            }
+            profile.secrets.insert("private_key".into(), e.wg_private_key.clone());
+            profile
         }
     }
     pub fn start() -> Fixture {

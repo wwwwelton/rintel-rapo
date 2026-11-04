@@ -1,5 +1,6 @@
 //! Explicit local SOCKS5 TCP/UDP relay plus the transparent WFP framing used by the game redirector.
 mod hy2;
+pub mod wireguard;
 mod learning;
 mod prewarm;
 mod udp;
@@ -39,6 +40,8 @@ struct Egress {
 pub struct State {
     pub mode: Mode,
     pub hy2_server: String,
+    /// Protocol of the VPN profile carried by this run ("WireGuard"); empty for plain HY2, direct and local.
+    pub tunnel: String,
     pub hy2_server_name: String,
     /// A QUIC session to the HY2 server (embedded loopback or remote) is open.
     pub hy2_connected: bool,
@@ -70,6 +73,8 @@ struct Connection { id: u64, client: TcpStream, outbound: Option<Outbound>, udp_
 struct Shared {
     mode: Mode,
     config: Hy2Config,
+    /// The active VPN profile's tunnel. When set it is the only exit: no built-in or loopback fallback is ever tried.
+    tunnel: Option<Arc<wireguard::Tunnel>>,
     udp_destinations: AtomicU64,
     running: AtomicBool,
     connections: Mutex<Vec<Connection>>,
@@ -100,9 +105,12 @@ impl Shared {
         let mut cached = self.hy2.lock().unwrap();
         if let Some(client) = &*cached { return Ok(client.clone()); }
         if !self.running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
-        // Typed server first, then the server sealed into the exe; the loopback HY2 is only a fallback (a remote server is the only real ping gain).
-        let connected = if !self.config.server.is_empty() { Ok(self.config.clone()) } else { hy2::builtin().map_or_else(hy2::local_server_config, Ok) }
-            .and_then(|config| hy2::Client::connect(&config));
+        // A VPN profile owns the exit: a failing tunnel reports its error, it never falls back to another route.
+        let connected = if let Some(tunnel) = &self.tunnel { hy2::Client::connect_wireguard(tunnel.json()) } else {
+            // Typed server first, then the server sealed into the exe; the loopback HY2 is only a fallback (a remote server is the only real ping gain).
+            if !self.config.server.is_empty() { Ok(self.config.clone()) } else { hy2::builtin().map_or_else(hy2::local_server_config, Ok) }
+                .and_then(|config| hy2::Client::connect(&config))
+        };
         *self.hy2_error.lock().unwrap() = connected.as_ref().err().map(ToString::to_string).unwrap_or_default();
         let client = connected?;
         *cached = Some(client.clone());
@@ -131,7 +139,7 @@ struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, address: Socke
 /// Measures the ICMP round trip to the HY2 server until the relay stops; resolves off the UI thread.
 #[cfg(windows)]
 fn ping_server(shared: Arc<Shared>) {
-    let server = if shared.config.server.is_empty() { hy2::builtin().map(|config| config.server) } else { Some(shared.config.server.clone()) };
+    let server = if let Some(tunnel) = &shared.tunnel { Some(tunnel.endpoint.clone()) } else if shared.config.server.is_empty() { hy2::builtin().map(|config| config.server) } else { Some(shared.config.server.clone()) };
     let ip = server.and_then(|server| server.to_socket_addrs().ok()?.find_map(|a| match a.ip() { IpAddr::V4(ip) if !ip.is_loopback() => Some(ip), _ => None }));
     let Some(ip) = ip else { return; };
     while shared.running.load(Ordering::Acquire) {
@@ -146,9 +154,36 @@ fn ping_server(shared: Arc<Shared>) {
 /// With an integrated server the relay opens in HY2: the transport block is locked while the relay runs, so a Local default left HY2 unreachable.
 fn default_mode(integrated_server: bool) -> Mode { if integrated_server { Mode::Hy2 } else { Mode::Local } }
 
-pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, priors: Vec<crate::store::PathStat> }
+/// The tunnel for an active WireGuard profile.
+pub fn wireguard_tunnel(profile: &crate::vpn::Profile) -> Result<wireguard::Tunnel, String> { wireguard::Tunnel::from_profile(profile) }
+
+/// The HY2 settings for an active Hysteria 2 profile; the stored password becomes the session-only `auth`.
+pub fn hy2_config(profile: &crate::vpn::Profile) -> Result<Hy2Config, String> {
+    if profile.protocol != crate::vpn::Protocol::Hysteria2 { return Err("O perfil ativo não é Hysteria 2".into()); }
+    profile.validate()?;
+    let field = |name: &str| profile.fields.get(name).cloned().unwrap_or_default();
+    let config = Hy2Config { server: field("server"), server_name: field("server_name"), ca_pem: field("ca_pem"), auth: profile.secrets.get("auth").cloned().unwrap_or_default() };
+    config.validate().map_err(|e| e.to_string())?;
+    Ok(config)
+}
+
+pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, tunnel: Option<Arc<wireguard::Tunnel>>, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
-    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), priors: Vec::new() } }
+    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), tunnel: None, priors: Vec::new() } }
+    /// Selects (or clears) the VPN tunnel used from the next `start()` on. While a tunnel is set the relay always
+    /// runs in `Hy2` mode: everything goes through the tunnel and there is no direct fallback.
+    pub fn set_tunnel(&mut self, tunnel: Option<wireguard::Tunnel>) -> io::Result<()> {
+        self.poll();
+        if self.run.as_ref().is_some_and(|r| r.worker.is_some()) {
+            let error = io::Error::new(io::ErrorKind::WouldBlock, "Pare o relay e aguarde todas as conexões encerrarem");
+            self.error = error.to_string();
+            return Err(error);
+        }
+        self.tunnel = tunnel.map(Arc::new);
+        self.error.clear();
+        Ok(())
+    }
+    fn tunnel_label(&self) -> String { if self.tunnel.is_some() { "WireGuard".into() } else { String::new() } }
     /// Exit statistics saved by earlier sessions; used from the next `start()` on.
     pub fn set_priors(&mut self, priors: Vec<crate::store::PathStat>) { self.priors = priors; }
     /// Destination/exit statistics measured by the running relay, for saving.
@@ -189,7 +224,7 @@ impl RelayServer {
         // Bound before start() returns, so a datagram sent right after it is never dropped.
         let udp = UdpSocket::bind((Ipv4Addr::LOCALHOST, address.port())).ok();
         let shared = Arc::new(Shared {
-            mode: self.mode, config: self.config.clone(), udp_destinations: AtomicU64::new(0),
+            mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, config: self.config.clone(), tunnel: self.tunnel.clone(), udp_destinations: AtomicU64::new(0),
             running: AtomicBool::new(true), connections: Mutex::new(Vec::new()), total: AtomicU64::new(0),
             bytes_tx: AtomicU64::new(0), bytes_rx: AtomicU64::new(0), error: Mutex::new(String::new()),
             learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
@@ -199,7 +234,7 @@ impl RelayServer {
         let state = Arc::clone(&shared);
         let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
         // HY2 modes open the QUIC session now: the GUI shows it working, and the first game connection skips the handshake.
-        if matches!(self.mode, Mode::Hy2 | Mode::NeuralAuto) {
+        if self.tunnel.is_some() || matches!(self.mode, Mode::Hy2 | Mode::NeuralAuto) {
             let hy2 = Arc::clone(&shared);
             let _ = thread::Builder::new().name("rapo-hy2-connect".into()).spawn(move || { let _ = hy2.hy2_client(); });
             #[cfg(windows)]
@@ -242,8 +277,8 @@ impl RelayServer {
     }
     pub fn state(&self) -> State {
         let Some(run) = &self.run else {
-            return State { mode: self.mode, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(),
-                hy2_builtin: self.config.server.is_empty() && hy2::builtin().is_some(),
+            return State { mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(), tunnel: self.tunnel_label(),
+                hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
                 udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), ..State::default() };
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
@@ -254,7 +289,7 @@ impl RelayServer {
             (connections.len(), connections.iter().filter(|c| c.udp_bound.is_some()).count())
         };
         State {
-            mode: self.mode, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(),
+            mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(), tunnel: self.tunnel_label(),
             udp_associations, active_connections,
             udp_destinations: run.shared.udp_destinations.load(Ordering::Relaxed),
             udp_route: self.udp_route().into(),
@@ -267,7 +302,7 @@ impl RelayServer {
             // try_lock: a connect in progress holds the lock and must not stall the UI thread.
             hy2_connected: running && run.shared.hy2.try_lock().is_ok_and(|client| client.is_some()),
             hy2_error: run.shared.hy2_error.lock().unwrap().clone(),
-            hy2_builtin: self.config.server.is_empty() && hy2::builtin().is_some(),
+            hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
             hy2_ping_ms: if running { run.shared.hy2_ping_ms.load(Ordering::Relaxed) } else { 0 },
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),

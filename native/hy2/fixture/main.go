@@ -95,10 +95,16 @@ func main() {
 		Authenticator: auth{},
 	}))
 	go func() { _ = hy2.Serve() }()
-	_ = json.NewEncoder(os.Stdout).Encode(map[string]string{
+	wg, stopWG := startWireGuardPeer()
+	endpoints := map[string]string{
 		"server": conn.LocalAddr().String(), "ca_pem": caPEM, "auth": secret,
 		"tcp_echo": tcpEcho(), "udp_echo": udpEcho("udp4", "127.0.0.1:0"), "udp_echo6": udpEcho("udp6", "[::1]:0"),
-	})
+	}
+	for key, value := range wg {
+		endpoints[key] = value
+	}
+	_ = json.NewEncoder(os.Stdout).Encode(endpoints)
 	_, _ = io.Copy(io.Discard, os.Stdin)
+	stopWG()
 	_ = hy2.Close()
 }

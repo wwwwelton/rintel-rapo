@@ -150,6 +150,29 @@ pub fn import_wireguard(name: &str, text: &str) -> Result<Profile, String> {
 const OVPN_REFUSED: [&str; 17] = ["up", "down", "route-up", "route-pre-down", "ipchange", "client-connect", "client-disconnect", "learn-address",
     "auth-user-pass-verify", "tls-verify", "plugin", "script-security", "setenv", "setenv-safe", "management", "cryptoapicert", "dhcp-option-exec"];
 
+/// What the relay must do for the active profile. Pure, so the choice is testable without a relay or Windows.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Plan {
+    /// No active profile: the relay keeps its built-in behaviour.
+    Default,
+    /// Run the HY2 path against this server (the profile's secret is in `Profile::secrets`).
+    Hysteria2,
+    /// Run the embedded userspace WireGuard tunnel.
+    Wireguard,
+    /// The active profile cannot be used; the relay must not start with a different exit instead.
+    Refused(&'static str),
+}
+
+pub fn plan(active: Option<&Profile>) -> Plan {
+    match active.map(|p| p.protocol) {
+        None => Plan::Default,
+        Some(Protocol::Hysteria2) => Plan::Hysteria2,
+        Some(Protocol::Wireguard) => Plan::Wireguard,
+        // No OpenVPN engine is embedded: refusing is the only way to not silently use another exit.
+        Some(Protocol::Openvpn) => Plan::Refused("O perfil OpenVPN ativo ainda não tem motor; desative-o ou escolha WireGuard/Hysteria 2"),
+    }
+}
+
 /// What the editor shows for one protocol: its id, label and the readable and secret field names, in display order.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Schema {
@@ -371,5 +394,14 @@ mod tests {
         assert!(import(Protocol::Hysteria2, "", WG).is_err());
         assert!(import(Protocol::Openvpn, "", WG).is_err(), "a WireGuard file is not an OpenVPN profile");
         assert!(import(Protocol::Wireguard, "", &ovpn("")).is_err(), "an OpenVPN file is not a WireGuard profile");
+    }
+
+    #[test]
+    fn the_active_profile_decides_the_exit_and_an_unsupported_one_is_refused_not_replaced() {
+        assert_eq!(plan(None), Plan::Default);
+        assert_eq!(plan(Some(&import_wireguard("x", WG).unwrap())), Plan::Wireguard);
+        assert_eq!(plan(Some(&Profile::new(Protocol::Hysteria2, "h"))), Plan::Hysteria2);
+        assert!(matches!(plan(Some(&import_openvpn("x", &ovpn("")).unwrap())), Plan::Refused(reason) if reason.contains("OpenVPN")),
+            "without an OpenVPN engine the relay must refuse to start, never use another exit");
     }
 }
