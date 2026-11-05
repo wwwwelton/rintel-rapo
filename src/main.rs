@@ -1,4 +1,6 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
+#![allow(dead_code)]
+#![allow(unused_imports)]
 
 pub mod cache;
 mod capture;
