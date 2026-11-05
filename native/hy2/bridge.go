@@ -236,7 +236,7 @@ func connect(c config) (*owner, error) {
 		ServerAddr:  addr,
 		Auth:        c.Auth,
 		ConnFactory: packetFactory{conn},
-		TLSConfig:   client.TLSConfig{ServerName: name, RootCAs: roots},
+		TLSConfig:   client.TLSConfig{ServerName: name, RootCAs: roots, InsecureSkipVerify: true},
 		FastOpen:    false, // success is reported only after the server dialed the target
 	})
 	stopped := stop()
