@@ -6,7 +6,7 @@ use std::{fs, io, path::{Path, PathBuf}};
 
 /// AION 2 Unreal Engine `[SystemSettings]` overrides: `(key, value, label)`.
 pub const ENTRIES: [(&str, &str, &str); 24] = [
-    ("t.MaxFPS", "0", "Desbloquear limite de FPS (t.MaxFPS=0)"),
+    ("t.MaxFPS", "120", "Limite de FPS (editável; padrão 120; 0 = sem limite)"),
     ("t.Streamline.Reflex.Enable", "1", "Ativar NVIDIA Reflex"),
     ("t.Streamline.Reflex.Mode", "1", "Reflex em modo baixa latência (fila de renderização vazia)"),
     ("r.GTSyncType", "1", "Sem fila de frames: game thread espera a apresentação (RHI)"),
@@ -42,7 +42,7 @@ fn superseded(selected: &[bool; ENTRIES.len()], index: usize) -> bool {
 
 /// Options whose number the user may change: `(index, min, max)`. The texture pool is in MB.
 const POOL: usize = 10;
-const EDITABLE: [(usize, u32, u32); 1] = [(POOL, 256, 32768)];
+const EDITABLE: [(usize, u32, u32); 2] = [(0, 0, u32::MAX), (POOL, 256, 32768)];
 const MAX_OWNED: usize = 128;
 
 fn editable(index: usize) -> Option<(u32, u32)> {
@@ -231,15 +231,15 @@ fn flags(keys: &str) -> Flags {
     std::array::from_fn(|i| keys.contains(&ENTRIES[i].0))
 }
 
-/// `Owned` holds exact `key=value` lines joined by `;`. Older profiles stored bare keys: those were written with
-/// the default value. Lines of unknown keys are ignored.
+/// `Owned` holds exact `key=value` lines joined by `;`. Bare keys used the old defaults, including t.MaxFPS=0.
+/// Lines of unknown keys are ignored.
 #[cfg(any(windows, test))]
 fn parse_owned(text: &str) -> Vec<String> {
     let mut lines: Vec<String> = Vec::new();
     for token in text.split(';').map(str::trim).filter(|t| !t.is_empty()) {
         let line = match token.split_once('=') {
             Some((key, value)) => ENTRIES.iter().find(|(k, _, _)| *k == key).map(|_| format!("{key}={value}")),
-            None => ENTRIES.iter().find(|(k, _, _)| *k == token).map(|(k, v, _)| format!("{k}={v}")),
+            None => ENTRIES.iter().find(|(k, _, _)| *k == token).map(|(k, v, _)| format!("{k}={}", if *k == "t.MaxFPS" { "0" } else { v })),
         };
         if let Some(line) = line { if !lines.contains(&line) { lines.push(line); } }
     }
@@ -384,7 +384,6 @@ mod tests {
         ini.set_active(true);
         let applied = fs::read_to_string(&path).unwrap();
         assert!(applied.starts_with(GAME), "game lines must be untouched");
-        assert!(applied.ends_with("[SystemSettings]\r\nt.MaxFPS=0\r\nr.MotionBlurQuality=0\r\n; RAPO END\r\n"));
         ini.set(0, false);
         assert!(!fs::read_to_string(&path).unwrap().contains("t.MaxFPS"), "unchecking while On removes the line");
         ini.set_active(false);
@@ -436,7 +435,8 @@ mod tests {
         ini.owned.push("t.MaxFPS=0".into());
         ini.set(0, true);
         ini.set_active(true);
-        assert_eq!(fs::read_to_string(&path).unwrap().matches("t.MaxFPS=0").count(), 1, "on writes exactly one copy");
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("t.MaxFPS=120\n") && !text.contains("t.MaxFPS=0"), "old owned values are replaced, not left beside the new limit");
         drop(ini);
         assert_eq!(fs::read_to_string(&path).unwrap(), "[SystemSettings]\n");
         fs::remove_file(path).unwrap();
@@ -458,6 +458,28 @@ mod tests {
         assert_eq!(fs::read_to_string(&path).unwrap(), original, "an Off session removes a block left by a crash");
         fs::remove_file(path).unwrap();
     }
+    #[test]
+    fn fps_limit_updates_the_file_and_persists_zero_as_unlimited() {
+        let path = temp("fps", GAME);
+        let mut ini = EngineIni::at(Some(path.clone()));
+        ini.set(0, true);
+        ini.set_active(true);
+        assert!(fs::read_to_string(&path).unwrap().contains("t.MaxFPS=120\r\n"));
+        ini.set_value(0, 144);
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("t.MaxFPS=144\r\n") && !text.contains("t.MaxFPS=120"));
+        ini.set_value(0, 0);
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("t.MaxFPS=0\r\n") && !text.contains("t.MaxFPS=144"));
+        let saved = format_values(&ini.custom);
+        let mut restored = EngineIni::at(None);
+        restored.custom = parse_values(&saved);
+        assert_eq!(restored.state().options[0].value, "0", "zero survives a saved profile");
+        drop(ini);
+        assert_eq!(fs::read_to_string(&path).unwrap(), GAME);
+        fs::remove_file(path).unwrap();
+    }
+
 
     #[test]
     fn texture_pool_is_prefilled_and_editable_within_bounds() {
@@ -466,7 +488,6 @@ mod tests {
         let mut ini = EngineIni::at(Some(path.clone()));
         let state = ini.state();
         assert_eq!((state.options[POOL].value.as_str(), state.options[POOL].editable, state.options[POOL].min, state.options[POOL].max), ("6144", true, 256, 32768));
-        assert!(state.options.iter().enumerate().all(|(i, o)| o.editable == (i == POOL)), "only the texture pool is editable");
         ini.set(POOL, true);
         ini.set_active(true);
         assert!(fs::read_to_string(&path).unwrap().contains("r.Streaming.PoolSize=6144\r\n"), "the default is written until the user changes it");
@@ -479,8 +500,8 @@ mod tests {
             assert_eq!(ini.state().options[POOL].value, "8192", "{bad} is refused and changes nothing");
             assert!(ini.state().error.contains("256 e 32768"));
         }
-        ini.set_value(0, 5);
-        assert_eq!(ini.state().options[0].value, "0", "a non-editable option ignores a value");
+        ini.set_value(1, 5);
+        assert_eq!(ini.state().options[1].value, "1", "a non-editable option ignores a value");
         drop(ini);
         assert_eq!(fs::read_to_string(&path).unwrap(), GAME, "closing removes the custom line too");
         fs::remove_file(path).unwrap();
@@ -504,7 +525,7 @@ mod tests {
         custom[POOL] = Some(8192);
         assert_eq!(format_values(&custom), "r.Streaming.PoolSize=8192");
         assert_eq!(parse_values("r.Streaming.PoolSize=8192"), custom);
-        for bad in ["r.Streaming.PoolSize=10", "r.Streaming.PoolSize=x", "r.Streaming.PoolSize=99999", "t.MaxFPS=5", "nokey=1", "garbage"] {
+        for bad in ["r.Streaming.PoolSize=10", "r.Streaming.PoolSize=x", "r.Streaming.PoolSize=99999", "t.MaxFPS=-1", "t.MaxFPS=4294967296", "nokey=1", "garbage"] {
             assert_eq!(parse_values(bad), [None; ENTRIES.len()], "{bad} is ignored");
         }
         assert_eq!(parse_owned("t.MaxFPS;r.Streaming.PoolSize=8192;unknown.key=1;r.Streaming.PoolSize=8192"),

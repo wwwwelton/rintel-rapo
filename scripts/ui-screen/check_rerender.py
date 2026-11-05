@@ -77,11 +77,6 @@ try:
     # A host update: same state with different telemetry (what happens every second), plus optional overrides.
     ev("""window.pushState = (mutate) => {
         const s = JSON.parse(JSON.stringify(window.INITIAL_STATE));
-        // The shared fixture predates the editable texture pool; add it so its box is exercised too.
-        s.dashboard.engine_ini = s.dashboard.engine_ini || { path: 'C:/x/Engine.ini', active: true, applied: true, error: '', override_fps: null, options: [] };
-        if (!s.dashboard.engine_ini.options.some((o) => o.editable)) {
-            s.dashboard.engine_ini.options.push({ key: 'r.Streaming.PoolSize', value: '6144', label: 'Pool de texturas', enabled: true, superseded: false, editable: true, min: 256, max: 32768 });
-        }
         window.__tick = (window.__tick || 0) + 1;
         s.dashboard.metrics = s.dashboard.metrics.map(([k, v]) => [k, v.replace(/[0-9]+(\\.[0-9]+)?/, (n) => (Number(n) + 1.5 * window.__tick).toFixed(1))]);
         s.dashboard.cores = s.dashboard.cores.map(([i, l, p]) => [i, Math.min(1, l + 0.01), p]);
@@ -91,7 +86,7 @@ try:
     }""")
 
     # 1. Identity: every control survives an update, and none of them is mutated.
-    ev("window.pushState()")  # warm-up: creates the injected texture-pool box before the controls are marked
+    ev("window.pushState()")
     ev("""(() => {
         window.__nodes = new Map();
         for (const el of document.querySelectorAll('#dashboard input, #dashboard select, #dashboard textarea, #dashboard button, #dashboard details, #dashboard summary')) window.__nodes.set(el, true);
@@ -150,13 +145,13 @@ try:
     check('a host-driven switch follows the host', on is True and off is False, (on, off))
 
     # 6. An untouched, unfocused box takes the host's new value; a touched one keeps what the user typed.
-    pool = "document.querySelector('input[data-action=engine-ini-value]')"
+    pool = "document.querySelector('input[data-action=engine-ini-value][data-key=\"r.Streaming.PoolSize\"]')"
     if ev(f"!!{pool}"):
         ev(f"{pool}.blur()")
-        ev("window.pushState((s) => { const o = s.dashboard.engine_ini.options.find((x) => x.editable); o.value = '8192'; })")
+        ev("window.pushState((s) => { s.dashboard.engine_ini.options.find((x) => x.key === 'r.Streaming.PoolSize').value = '8192'; })")
         check('an untouched box shows the new host value', ev(f"{pool}.value") == '8192', ev(f"{pool}.value"))
         ev(f"{pool}.value = '7000'; {pool}.dispatchEvent(new Event('input', {{ bubbles: true }}))")
-        ev("window.pushState((s) => { const o = s.dashboard.engine_ini.options.find((x) => x.editable); o.value = '9000'; })")
+        ev("window.pushState((s) => { s.dashboard.engine_ini.options.find((x) => x.key === 'r.Streaming.PoolSize').value = '9000'; })")
         check('a box being edited keeps the typed value', ev(f"{pool}.value") == '7000', ev(f"{pool}.value"))
     else:
         print('SKIP texture-pool box checks: the fixture has no editable Engine.ini option')

@@ -141,7 +141,7 @@ O painel **ENGINE.INI DO AION 2** grava variáveis em `%LOCALAPPDATA%\AION2\Save
 
 | Opção | Linha | Efeito |
 |---|---|---|
-| Desbloquear limite de FPS | `t.MaxFPS=0` | Remove teto de FPS do motor |
+| Limite de FPS (editável) | `t.MaxFPS=120` | Caixa pré-preenchida com `120`; altere o valor para limitar os FPS ou use `0` para remover o teto. O valor fica salvo junto ao perfil; com a opção marcada e ON, substitui a linha anterior no arquivo |
 | Ativar NVIDIA Reflex | `t.Streamline.Reflex.Enable=1` | Ativa o plugin Reflex presente no jogo |
 | Reflex em baixa latência | `t.Streamline.Reflex.Mode=1` | Mantém a fila de renderização vazia |
 | Sem fila de frames | `r.GTSyncType=1` | A game thread espera a thread RHI (apresentação) |

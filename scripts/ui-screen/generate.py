@@ -107,7 +107,7 @@ def main():
     nodes, width, height = stack(scenes)
     doc = {
         "format": "rapo-editable-screen", "version": 2, "language": "pt-BR", "canvas": {"width": width, "height": height, "units": "px"},
-        "basis": {"kind": "rendered-ui-snapshot", "sources": ["ui-wasm/index.html", "ui-wasm/src/lib.rs", "ui-wasm/src/dashboard.rs"], "liveCapture": False,
+        "basis": {"kind": "rendered-ui-snapshot", "sources": ["ui-wasm/index.html", "ui-wasm/src/lib.rs", "ui-wasm/src/dashboard.rs", "ui-wasm/src/vpn.rs", "scripts/ui-screen/state.js"], "liveCapture": False,
                   "state": "Interface com o AION 2 em execução (4 processos, 2 executáveis) e telemetria ilustrativa de scripts/ui-screen/state.js; valores são transitórios, não resultados de benchmark.",
                   "geometry": "Coordenadas medidas em Chromium headless com 1180 px de largura (o WebView2 do app pode diferir em fontes e quebras de linha); cada aba é uma tela, empilhadas na ordem: "
                               + ", ".join(label for _, label in TABS) + ".",

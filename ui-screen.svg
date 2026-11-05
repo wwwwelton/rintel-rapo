@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="9652" viewBox="0 0 1180 9652" role="img" aria-labelledby="screen-title screen-description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="10928" viewBox="0 0 1180 10928" role="img" aria-labelledby="screen-title screen-description">
 <title id="screen-title">Rintel RAPO — painel em abas</title>
 <desc id="screen-description">Snapshot editável da interface; uma tela por aba empilhadas verticalmente. Telemetria transitória, gradientes aproximados.</desc>
-<rect id="screen-1" x="0" y="0" width="1180" height="9652" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-1" x="0" y="0" width="1180" height="10928" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
 <rect id="screen-2" x="0" y="0" width="1165" height="3076.84" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
 <rect id="screen-3" x="40" y="28" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
 <rect id="screen-4" x="65" y="46.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
@@ -268,7 +268,7 @@
 <text id="screen-265" x="71" y="2914.78" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível.</text>
 <rect id="screen-266" x="71" y="2936.66" width="1023" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
 <text id="screen-267" x="98.7" y="2963.02" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Licença do coletor integrado</text>
-<rect id="screen-268" x="0" y="3125" width="1165" height="3098.98" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-268" x="0" y="3125" width="1165" height="3461.14" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
 <rect id="screen-269" x="40" y="3153" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
 <rect id="screen-270" x="65" y="3171.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
 <text id="screen-271" x="76.27" y="3198.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
@@ -311,7 +311,7 @@
 <text id="screen-308" x="567.48" y="3410.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
 <text id="screen-309" x="775.67" y="3410.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
 <text id="screen-310" x="997.22" y="3410.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
-<rect id="screen-311" x="40" y="3450.5" width="1085" height="1427.44" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-311" x="40" y="3450.5" width="1085" height="1789.59" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
 <text id="screen-312" x="67" y="3491.86" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">OTIMIZAÇÃO DE REDE</text>
 <text id="screen-313" x="115" y="3535.45" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Priorizar rede do jogo (DSCP 46)</text>
 <rect id="screen-314" x="67" y="3521.69" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
@@ -347,7 +347,7 @@
 <text id="screen-344" x="86" y="3911.44" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">216.107.254.84</text>
 <text id="screen-345" x="795.19" y="3911.44" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">Timeout (250 ms; ICMP pode estar bloqueado)</text>
 <text id="screen-346" x="86" y="3953.03" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="400" opacity="1">Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo.</text>
-<rect id="screen-347" x="67" y="3990.14" width="1031" height="488.55" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-347" x="67" y="3990.14" width="1031" height="598.73" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
 <text id="screen-348" x="86" y="4020.94" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY LOCAL · SOCKS5 TCP/UDP</text>
 <text id="screen-349" x="86" y="4052.74" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Escutando</text>
 <text id="screen-350" x="86" y="4080.5" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">127.0.0.1:1080</text>
@@ -365,337 +365,444 @@
 <text id="screen-362" x="134" y="4380.27" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Tunelar processo via WFP (Desativado)</text>
 <rect id="screen-363" x="86" y="4366.5" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
 <circle id="screen-364" cx="96" cy="4376.5" r="7" fill="#b1beb5" opacity="1"></circle>
-<rect id="screen-365" x="86" y="4414.5" width="993" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-366" x="113.7" y="4440.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Transporte · Neural Auto · direto/HY2 nas novas conexões TCP</text>
-<rect id="screen-367" x="67" y="4490.69" width="1031" height="360.25" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-368" x="86" y="4521.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MODELO NEURAL · RELAY</text>
-<text id="screen-369" x="86" y="4553.29" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Flow 9→16→1 · Aprendendo com conexões reais</text>
-<text id="screen-370" x="86" y="4581.05" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote.</text>
-<text id="screen-371" x="96" y="4626.28" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">DESTINO / SAÍDA</text>
-<text id="screen-372" x="344.25" y="4626.28" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEDIDO</text>
-<text id="screen-373" x="592.5" y="4626.28" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PREVISÃO (TCP/UDP)</text>
-<text id="screen-374" x="840.75" y="4626.28" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AMOSTRAS / FALHAS</text>
-<text id="screen-375" x="96" y="4668.84" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">203.0.113.7:443</text>
-<text id="screen-376" x="96" y="4688.03" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">if 3 · 192.0.2.10 via túnel HY2 · última</text>
-<text id="screen-377" x="96" y="4707.83" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">saída escolhida</text>
-<text id="screen-378" x="344.25" y="4668.84" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">21.4 ms</text>
-<text id="screen-379" x="592.5" y="4668.84" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">22.0 ms</text>
-<text id="screen-380" x="592.5" y="4688.03" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desvio/resíduo: 3.1 ms</text>
-<text id="screen-381" x="840.75" y="4668.84" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">14 / 0</text>
-<text id="screen-382" x="96" y="4752.63" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">203.0.113.7:443</text>
-<text id="screen-383" x="96" y="4771.81" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">if 2 · 192.0.2.2 via rota do sistema</text>
-<text id="screen-384" x="344.25" y="4752.63" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">48.0 ms</text>
-<text id="screen-385" x="592.5" y="4752.63" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">46.2 ms</text>
-<text id="screen-386" x="592.5" y="4771.81" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desvio/resíduo: 6.0 ms</text>
-<text id="screen-387" x="840.75" y="4752.63" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">9 / 1</text>
-<text id="screen-388" x="86" y="4825.83" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="400" opacity="1">Previsão de abertura TCP após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</text>
-<rect id="screen-389" x="40" y="4897.94" width="1085" height="1258.05" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-390" x="67" y="4939.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ROTAS POR IP · INTERFACE / GATEWAY</text>
-<rect id="screen-391" x="67" y="4962.13" width="1031" height="71.59" rx="0" fill="rgb(41, 37, 27)" stroke="none" stroke-width="0" opacity="1"></rect>
-<text id="screen-392" x="83" y="4990.05" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de</text>
-<text id="screen-393" x="83" y="5013.84" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">payload ou garantia de ping/anti-cheat.</text>
-<rect id="screen-394" x="67" y="5047.72" width="1031" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-395" x="94.7" y="5074.08" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Limpeza e registro de erros</text>
-<rect id="screen-396" x="67" y="5110.91" width="1031" height="720.72" rx="10" fill="none" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-397" x="94" y="5123.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">Configuração explícita de rede</text>
-<rect id="screen-398" x="86" y="5147.69" width="196.08" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-399" x="100" y="5172.05" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar gateways/interfaces</text>
-<text id="screen-400" x="294.08" y="5171.45" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">IP numérico de destino</text>
-<rect id="screen-401" x="428.61" y="5146.5" width="650.39" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-402" x="441.61" y="5172.7" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">192.0.2.42 ou 2001:db8::42</text>
-<text id="screen-403" x="86" y="5216.81" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">As sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto.</text>
-<text id="screen-404" x="86" y="5264.45" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Gateway/interface existentes</text>
-<rect id="screen-405" x="252.08" y="5240.69" width="674.89" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-406" x="265.08" y="5265.69" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Selecione uma saída</text>
-<rect id="screen-407" x="938.97" y="5240.69" width="140.03" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-408" x="952.97" y="5265.05" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aplicar rota manual</text>
-<text id="screen-409" x="86" y="5331.05" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA</text>
-<text id="screen-410" x="86" y="5373.8" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Sem saída alternativa disponível da mesma família: atualize a lista. Automático não altera rotas com apenas um gateway.</text>
-<text id="screen-411" x="136" y="5419.03" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo. Nada será alterado apenas por detectar um jogo.</text>
-<rect id="screen-412" x="86" y="5407.67" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-413" cx="96" cy="5417.67" r="7" fill="#b1beb5" opacity="1"></circle>
-<rect id="screen-414" x="86" y="5447.67" width="243.41" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-415" x="100" y="5472.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Aprender e aplicar · rotas autorizadas</text>
-<text id="screen-416" x="86" y="5538.03" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">QOS DE SAÍDA DO SISTEMA · MB/S DECIMAIS</text>
-<text id="screen-417" x="86" y="5580.78" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download</text>
-<text id="screen-418" x="86" y="5604.58" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido.</text>
-<text id="screen-419" x="86" y="5628.37" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.</text>
-<text id="screen-420" x="86" y="5668.17" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Jogo alvo isento: AION 2 · 4 processos · 2 executáveis. Todos os executáveis do jogo ficam fora do limite, identificados pelo caminho (os PIDs mudam a cada</text>
-<text id="screen-421" x="86" y="5691.97" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">abertura) e revalidados pelo host.</text>
-<text id="screen-422" x="86" y="5740.8" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Limite do sistema em MB/s</text>
-<rect id="screen-423" x="242.05" y="5715.84" width="655.56" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-424" x="255.05" y="5742.04" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">5</text>
-<rect id="screen-425" x="909.61" y="5717.03" width="169.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-426" x="923.61" y="5741.39" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aplicar limite do sistema</text>
-<text id="screen-427" x="86" y="5795.19" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)</text>
-<rect id="screen-428" x="534.88" y="5770.23" width="287.38" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-429" x="547.88" y="5796.43" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">2, 5</text>
-<rect id="screen-430" x="834.25" y="5771.42" width="244.75" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-431" x="848.25" y="5795.78" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aprender e aplicar · taxas autorizadas</text>
-<rect id="screen-432" x="67" y="5849.63" width="258.78" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-433" x="81" y="5873.99" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Parar aprendizado e restaurar referência</text>
-<rect id="screen-434" x="325.78" y="5849.63" width="302.13" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-435" x="339.78" y="5873.99" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Remover todos os ajustes de rede desta sessão</text>
-<rect id="screen-436" x="627.91" y="5849.63" width="180.06" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-437" x="641.91" y="5873.99" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Remover limite do sistema</text>
-<text id="screen-438" x="67" y="5927.99" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ROTAS REGISTRADAS NESTA SESSÃO</text>
-<text id="screen-439" x="67" y="5958.73" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Nenhuma rota host própria registrada.</text>
-<text id="screen-440" x="67" y="6004.97" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">APRENDIZADO ONLINE · ICMP, NÃO LATÊNCIA DE ENVIO</text>
-<text id="screen-441" x="67" y="6035.72" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Flow 9→16→1 em memória por rota/taxa realmente medida. Previsões ordenam candidatos; nunca confirmam ganho. Sem previsão para gateways/taxas nunca</text>
-<text id="screen-442" x="67" y="6059.51" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">medidos. Mesmos PIDs/IP, rota e origem confirmadas ao redor da sonda; timeout não é 0 ms. Três respostas por janela, referência antes/depois, melhora acima de</text>
-<text id="screen-443" x="67" y="6083.31" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">10% e 3 ms sem sobreposição e dois pares favoráveis antes de promover. Revalida continuamente; regressão/erro pede restauração. Incerteza é descritiva, não</text>
-<text id="screen-444" x="67" y="6107.11" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">intervalo estatístico. Variações de cena/rede não provam causalidade. Rotas e taxas não são treinadas juntas.</text>
-<rect id="screen-445" x="0" y="6272" width="1165" height="1446.06" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-446" x="40" y="6300" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-447" x="65" y="6318.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
-<text id="screen-448" x="76.27" y="6345.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
-<text id="screen-449" x="123" y="6328.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
-<text id="screen-450" x="123" y="6357.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
-<rect id="screen-451" x="848.78" y="6327.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-452" x="858.78" y="6344.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
-<rect id="screen-453" x="997.44" y="6327.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-454" x="1007.44" y="6344.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
-<rect id="screen-455" x="65" y="6383" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
-<text id="screen-456" x="75" y="6399.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
-<rect id="screen-457" x="228.36" y="6375.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-458" x="242.36" y="6399.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
-<rect id="screen-459" x="317.05" y="6375.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-460" x="331.05" y="6399.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
-<rect id="screen-461" x="462.44" y="6375.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-462" x="476.44" y="6399.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
-<rect id="screen-463" x="621.13" y="6375.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
-<text id="screen-464" x="635.13" y="6399.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
-<rect id="screen-465" x="40" y="6452.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-466" x="40" y="6460.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-467" x="61" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
-<text id="screen-468" x="61" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
-<text id="screen-469" x="130.05" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
-<text id="screen-470" x="130.05" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
-<text id="screen-471" x="199.09" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
-<text id="screen-472" x="199.09" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
-<text id="screen-473" x="274.7" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
-<text id="screen-474" x="274.7" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
-<text id="screen-475" x="383.63" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
-<text id="screen-476" x="383.63" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
-<text id="screen-477" x="493.23" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
-<text id="screen-478" x="493.23" y="6503.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
-<text id="screen-479" x="1076.8" y="6482.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
-<text id="screen-480" x="853" y="6503.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
-<rect id="screen-481" x="40" y="6529.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-482" x="118.17" y="6557.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
-<text id="screen-483" x="351.61" y="6557.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
-<rect id="screen-484" x="477.39" y="6534.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
-<text id="screen-485" x="567.48" y="6557.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
-<text id="screen-486" x="775.67" y="6557.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
-<text id="screen-487" x="997.22" y="6557.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
-<rect id="screen-488" x="40" y="6597.5" width="1085" height="671.03" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
-<text id="screen-489" x="67" y="6638.86" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PERFIL EM USO · AION 2 · PID 4812</text>
-<text id="screen-490" x="67" y="6686.07" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="600" opacity="1">Perfil aprendido</text>
-<text id="screen-491" x="67" y="6725.3" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="650" opacity="1">AJUSTES ATIVOS NESTE PROCESSO</text>
-<rect id="screen-492" x="67" y="6749.77" width="116.72" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-493" x="80" y="6772.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade:</text>
-<text id="screen-494" x="141.38" y="6772.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">Ativa</text>
-<rect id="screen-495" x="191.72" y="6749.77" width="180.77" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-496" x="204.72" y="6772.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Afinidade:</text>
-<text id="screen-497" x="261.44" y="6772.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">4 threads fixadas</text>
-<rect id="screen-498" x="380.48" y="6749.77" width="208.08" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-499" x="393.48" y="6772.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Memória / EcoQoS:</text>
-<text id="screen-500" x="501.53" y="6772.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">Não aplicada</text>
-<text id="screen-501" x="67" y="6825.31" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">CONFIGURAÇÃO SELECIONADA</text>
-<text id="screen-502" x="67" y="6856.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Os campos abaixo são a configuração solicitada. O estado acima mostra os ajustes aplicados pelo RAPO; pausa, falta de foco ou acesso negado podem impedir a</text>
-<text id="screen-503" x="67" y="6879.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">aplicação.</text>
-<rect id="screen-504" x="67" y="6905.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-505" x="88" y="6936.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PRIORIDADE DO PROCESSO</text>
-<text id="screen-506" x="88" y="6968.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
-<rect id="screen-507" x="328.25" y="6905.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-508" x="349.25" y="6936.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AFINIDADE DE CPU</text>
-<text id="screen-509" x="349.25" y="6968.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
-<rect id="screen-510" x="589.5" y="6905.73" width="247.25" height="115.8" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-511" x="610.5" y="6936.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA / ECOQOS</text>
-<text id="screen-512" x="610.5" y="6968.33" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Desativado</text>
-<text id="screen-513" x="610.5" y="6996.09" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Sem efeito neste perfil</text>
-<rect id="screen-514" x="850.75" y="6905.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-515" x="871.75" y="6936.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">THREADS CRÍTICAS (LIMITE)</text>
-<text id="screen-516" x="871.75" y="6968.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">4</text>
-<rect id="screen-517" x="67" y="7035.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-518" x="88" y="7066.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS FÍSICOS (LIMITE)</text>
-<text id="screen-519" x="88" y="7098.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">8</text>
-<rect id="screen-520" x="328.25" y="7035.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-521" x="349.25" y="7066.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">LIMIAR DE CPU (%)</text>
-<text id="screen-522" x="349.25" y="7098.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">5</text>
-<rect id="screen-523" x="589.5" y="7035.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-524" x="610.5" y="7066.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS ELEGÍVEIS</text>
-<text id="screen-525" x="610.5" y="7098.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Somente P-cores</text>
-<rect id="screen-526" x="850.75" y="7035.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-527" x="871.75" y="7066.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PERMITIR IRMÃOS SMT / HT</text>
-<text id="screen-528" x="871.75" y="7098.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
-<rect id="screen-529" x="67" y="7137.53" width="247.25" height="104" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
-<text id="screen-530" x="88" y="7168.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RESTRINGIR PROCESSO AOS</text>
-<text id="screen-531" x="88" y="7184.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS ALOCADOS</text>
-<text id="screen-532" x="88" y="7216.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Desativado</text>
-<rect id="screen-533" x="40" y="7288.53" width="1085" height="361.53" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-534" x="67" y="7329.89" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">OPÇÕES E DIRETRIZES DE AGENDAMENTO</text>
-<rect id="screen-535" x="67" y="7352.72" width="335.66" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-536" x="86" y="7373.72" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-537" cx="111" cy="7383.72" r="7" fill="#65e5d1" opacity="1"></circle>
-<text id="screen-538" x="138" y="7385.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Auto-Yield (afinidade)</text>
-<text id="screen-539" x="138" y="7410.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Cede afinidade se outro programa mudar a</text>
-<text id="screen-540" x="138" y="7430.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">máscara de uma thread já fixada</text>
-<rect id="screen-541" x="414.66" y="7352.72" width="335.67" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-542" x="433.66" y="7373.72" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-543" cx="443.66" cy="7383.72" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-544" x="485.66" y="7385.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Manter ajustes em segundo plano</text>
-<text id="screen-545" x="485.66" y="7410.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Mantém prioridade e afinidade mesmo com o</text>
-<text id="screen-546" x="485.66" y="7430.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">jogo fora de foco</text>
-<rect id="screen-547" x="762.33" y="7352.72" width="335.66" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-548" x="781.33" y="7373.72" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-549" cx="806.33" cy="7383.72" r="7" fill="#65e5d1" opacity="1"></circle>
-<text id="screen-550" x="833.33" y="7385.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Minimizar para a Barra de Ícones (Tray)</text>
-<text id="screen-551" x="833.33" y="7410.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Oculta da barra de tarefas; menu Start/Stop</text>
-<text id="screen-552" x="833.33" y="7430.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">na bandeja</text>
-<rect id="screen-553" x="67" y="7466.89" width="335.66" height="156.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-554" x="86" y="7500.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Privilégios de Administrador</text>
-<text id="screen-555" x="86" y="7525.05" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Solicita UAC; reinicia para otimizar processos comuns</text>
-<text id="screen-556" x="86" y="7544.23" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">protegidos</text>
-<rect id="screen-557" x="86" y="7564.06" width="188.72" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-558" x="100" y="7588.42" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reabrir como administrador</text>
-<rect id="screen-559" x="0" y="7766" width="1165" height="938.31" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-560" x="40" y="7794" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-561" x="65" y="7812.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
-<text id="screen-562" x="76.27" y="7839.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
-<text id="screen-563" x="123" y="7822.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
-<text id="screen-564" x="123" y="7851.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
-<rect id="screen-565" x="848.78" y="7821.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-566" x="858.78" y="7838.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
-<rect id="screen-567" x="997.44" y="7821.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-568" x="1007.44" y="7838.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
-<rect id="screen-569" x="65" y="7877" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
-<text id="screen-570" x="75" y="7893.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
-<rect id="screen-571" x="228.36" y="7869.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-572" x="242.36" y="7893.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
-<rect id="screen-573" x="317.05" y="7869.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-574" x="331.05" y="7893.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
-<rect id="screen-575" x="462.44" y="7869.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-576" x="476.44" y="7893.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
-<rect id="screen-577" x="621.13" y="7869.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
-<text id="screen-578" x="635.13" y="7893.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
-<rect id="screen-579" x="40" y="7946.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-580" x="40" y="7954.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-581" x="61" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
-<text id="screen-582" x="61" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
-<text id="screen-583" x="130.05" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
-<text id="screen-584" x="130.05" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
-<text id="screen-585" x="199.09" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
-<text id="screen-586" x="199.09" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
-<text id="screen-587" x="274.7" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
-<text id="screen-588" x="274.7" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
-<text id="screen-589" x="383.63" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
-<text id="screen-590" x="383.63" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
-<text id="screen-591" x="493.23" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
-<text id="screen-592" x="493.23" y="7997.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
-<text id="screen-593" x="1076.8" y="7976.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
-<text id="screen-594" x="853" y="7997.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
-<rect id="screen-595" x="40" y="8023.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-596" x="118.17" y="8051.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
-<text id="screen-597" x="351.61" y="8051.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
-<text id="screen-598" x="567.48" y="8051.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
-<rect id="screen-599" x="693.59" y="8028.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
-<text id="screen-600" x="775.67" y="8051.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
-<text id="screen-601" x="997.22" y="8051.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
-<rect id="screen-602" x="40" y="8091.5" width="1085" height="200.47" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-603" x="68" y="8132.86" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PLANO DE ENERGIA ATIVO NO WINDOWS</text>
-<text id="screen-604" x="68" y="8180.07" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="600" opacity="1">Desempenho Máximo</text>
-<text id="screen-605" x="68" y="8219.3" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">GUID:</text>
-<text id="screen-606" x="110.78" y="8219.74" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">e9a42b02-d5df-448d-aa00-03f14749eb61</text>
-<text id="screen-607" x="68" y="8257.09" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.</text>
-<rect id="screen-608" x="40" y="8311.97" width="1085" height="324.34" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-609" x="68" y="8353.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ENGINE.INI DO AION 2</text>
-<rect id="screen-610" x="68" y="8378.16" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-611" cx="78" cy="8388.16" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-612" x="120" y="8390.3" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">OFF · nenhuma linha do RAPO no Engine.ini</text>
-<text id="screen-613" x="120" y="8415.31" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Arquivo sem linhas do RAPO</text>
-<text id="screen-614" x="68" y="8437.5" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">C:\Users\Jogador\AppData\Local\AION2\Saved_Steam\Config\Windows\Engine.ini</text>
-<text id="screen-615" x="68" y="8483.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PERFIL SALVO</text>
-<rect id="screen-616" x="68" y="8508.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-617" cx="78" cy="8518.13" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-618" x="118" y="8520.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Motion blur desligado ·</text>
-<text id="screen-619" x="242.73" y="8520.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.MotionBlurQuality=0</text>
-<rect id="screen-620" x="68" y="8550.13" width="1030" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-621" x="95.7" y="8576.49" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Como funciona</text>
-<rect id="screen-622" x="0" y="8752" width="1165" height="669.89" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-623" x="40" y="8780" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<rect id="screen-624" x="65" y="8798.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
-<text id="screen-625" x="76.27" y="8825.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
-<text id="screen-626" x="123" y="8808.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
-<text id="screen-627" x="123" y="8837.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
-<rect id="screen-628" x="848.78" y="8807.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-629" x="858.78" y="8824.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
-<rect id="screen-630" x="997.44" y="8807.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
-<text id="screen-631" x="1007.44" y="8824.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
-<rect id="screen-632" x="65" y="8863" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
-<text id="screen-633" x="75" y="8879.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
-<rect id="screen-634" x="228.36" y="8855.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-635" x="242.36" y="8879.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
-<rect id="screen-636" x="317.05" y="8855.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-637" x="331.05" y="8879.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
-<rect id="screen-638" x="462.44" y="8855.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-639" x="476.44" y="8879.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
-<rect id="screen-640" x="621.13" y="8855.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
-<text id="screen-641" x="635.13" y="8879.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
-<rect id="screen-642" x="40" y="8932.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
-<rect id="screen-643" x="40" y="8940.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-644" x="61" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
-<text id="screen-645" x="61" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
-<text id="screen-646" x="130.05" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
-<text id="screen-647" x="130.05" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
-<text id="screen-648" x="199.09" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
-<text id="screen-649" x="199.09" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
-<text id="screen-650" x="274.7" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
-<text id="screen-651" x="274.7" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
-<text id="screen-652" x="383.63" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
-<text id="screen-653" x="383.63" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
-<text id="screen-654" x="493.23" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
-<text id="screen-655" x="493.23" y="8983.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
-<text id="screen-656" x="1076.8" y="8962.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
-<text id="screen-657" x="853" y="8983.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
-<rect id="screen-658" x="40" y="9009.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-659" x="118.17" y="9037.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
-<text id="screen-660" x="351.61" y="9037.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
-<text id="screen-661" x="567.48" y="9037.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
-<text id="screen-662" x="775.67" y="9037.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
-<rect id="screen-663" x="909.8" y="9014.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
-<text id="screen-664" x="997.22" y="9037.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
-<text id="screen-665" x="40" y="9110.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">BUSCAR JOGO</text>
-<rect id="screen-666" x="131.86" y="9085.5" width="480" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-667" x="144.86" y="9111.7" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Buscar jogo na biblioteca Steam...</text>
-<rect id="screen-668" x="40" y="9143.89" width="1085" height="130" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-669" x="65" y="9186.59" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2</text>
-<text id="screen-670" x="399.06" y="9185.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade de memória / EcoQoS</text>
-<rect id="screen-671" x="351.06" y="9171.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="0.48"></rect>
-<circle id="screen-672" cx="361.06" cy="9181.89" r="7" fill="#b1beb5" opacity="0.48"></circle>
-<text id="screen-673" x="643.16" y="9185.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Somente P-cores</text>
-<rect id="screen-674" x="595.16" y="9171.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="0.48"></rect>
-<circle id="screen-675" cx="620.16" cy="9181.89" r="7" fill="#65e5d1" opacity="0.48"></circle>
-<text id="screen-676" x="803.88" y="9185.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade automática</text>
-<rect id="screen-677" x="755.88" y="9171.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="0.48"></rect>
-<circle id="screen-678" cx="780.88" cy="9181.89" r="7" fill="#65e5d1" opacity="0.48"></circle>
-<text id="screen-679" x="988.61" y="9185.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">RAPO (aprendizado)</text>
-<rect id="screen-680" x="940.61" y="9171.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-681" cx="965.61" cy="9181.89" r="7" fill="#65e5d1" opacity="1"></circle>
-<rect id="screen-682" x="65" y="9212.89" width="130.25" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-683" x="79" y="9237.25" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Aplicar perfil APO</text>
-<rect id="screen-684" x="40" y="9283.89" width="1085" height="76" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
-<text id="screen-685" x="65" y="9326.59" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">Counter-Strike 2</text>
-<text id="screen-686" x="399.06" y="9325.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade de memória / EcoQoS</text>
-<rect id="screen-687" x="351.06" y="9311.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-688" cx="361.06" cy="9321.89" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-689" x="643.16" y="9325.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Somente P-cores</text>
-<rect id="screen-690" x="595.16" y="9311.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-691" cx="605.16" cy="9321.89" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-692" x="803.88" y="9325.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade automática</text>
-<rect id="screen-693" x="755.88" y="9311.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-694" cx="765.88" cy="9321.89" r="7" fill="#b1beb5" opacity="1"></circle>
-<text id="screen-695" x="988.61" y="9325.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">RAPO (aprendizado)</text>
-<rect id="screen-696" x="940.61" y="9311.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
-<circle id="screen-697" cx="950.61" cy="9321.89" r="7" fill="#b1beb5" opacity="1"></circle>
+<rect id="screen-365" x="86" y="4418.5" width="993" height="1" rx="0" fill="none" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-366" x="86" y="4458.5" width="993" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-367" x="113.7" y="4484.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">UDPspeeder · Redundância de pacotes UDP (Desativado · +0% tráfego)</text>
+<rect id="screen-368" x="86" y="4524.69" width="993" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-369" x="113.7" y="4551.05" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Transporte · Neural Auto · direto/HY2 nas novas conexões TCP</text>
+<rect id="screen-370" x="67" y="4600.88" width="1031" height="360.25" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-371" x="86" y="4631.68" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MODELO NEURAL · RELAY</text>
+<text id="screen-372" x="86" y="4663.48" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Flow 9→16→1 · Aprendendo com conexões reais</text>
+<text id="screen-373" x="86" y="4691.24" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote.</text>
+<text id="screen-374" x="96" y="4736.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">DESTINO / SAÍDA</text>
+<text id="screen-375" x="344.25" y="4736.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEDIDO</text>
+<text id="screen-376" x="592.5" y="4736.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PREVISÃO (TCP/UDP)</text>
+<text id="screen-377" x="840.75" y="4736.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AMOSTRAS / FALHAS</text>
+<text id="screen-378" x="96" y="4779.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">203.0.113.7:443</text>
+<text id="screen-379" x="96" y="4798.22" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">if 3 · 192.0.2.10 via túnel HY2 · última</text>
+<text id="screen-380" x="96" y="4818.02" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">saída escolhida</text>
+<text id="screen-381" x="344.25" y="4779.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">21.4 ms</text>
+<text id="screen-382" x="592.5" y="4779.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">22.0 ms</text>
+<text id="screen-383" x="592.5" y="4798.22" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desvio/resíduo: 3.1 ms</text>
+<text id="screen-384" x="840.75" y="4779.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">14 / 0</text>
+<text id="screen-385" x="96" y="4862.81" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">203.0.113.7:443</text>
+<text id="screen-386" x="96" y="4882" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">if 2 · 192.0.2.2 via rota do sistema</text>
+<text id="screen-387" x="344.25" y="4862.81" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">48.0 ms</text>
+<text id="screen-388" x="592.5" y="4862.81" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">46.2 ms</text>
+<text id="screen-389" x="592.5" y="4882" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desvio/resíduo: 6.0 ms</text>
+<text id="screen-390" x="840.75" y="4862.81" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">9 / 1</text>
+<text id="screen-391" x="86" y="4936.02" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="400" opacity="1">Previsão de abertura TCP após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.</text>
+<rect id="screen-392" x="67" y="4973.13" width="1031" height="219.97" rx="14" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-393" x="90" y="5008.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PERFIS DE VPN</text>
+<text id="screen-394" x="90" y="5044.67" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Um perfil ativo por vez. Segredos são cifrados com o Windows (DPAPI) e nunca voltam para esta tela.</text>
+<text id="screen-395" x="90" y="5078.47" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Nenhum perfil salvo.</text>
+<rect id="screen-396" x="90" y="5112.91" width="985" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-397" x="117.7" y="5139.27" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Adicionar ou editar perfil</text>
+<rect id="screen-398" x="40" y="5260.09" width="1085" height="1258.05" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-399" x="67" y="5301.45" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ROTAS POR IP · INTERFACE / GATEWAY</text>
+<rect id="screen-400" x="67" y="5324.28" width="1031" height="71.59" rx="0" fill="rgb(41, 37, 27)" stroke="none" stroke-width="0" opacity="1"></rect>
+<text id="screen-401" x="83" y="5352.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de</text>
+<text id="screen-402" x="83" y="5376" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">payload ou garantia de ping/anti-cheat.</text>
+<rect id="screen-403" x="67" y="5409.88" width="1031" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-404" x="94.7" y="5436.24" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Limpeza e registro de erros</text>
+<rect id="screen-405" x="67" y="5473.06" width="1031" height="720.72" rx="10" fill="none" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-406" x="94" y="5485.64" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">Configuração explícita de rede</text>
+<rect id="screen-407" x="86" y="5509.84" width="196.08" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-408" x="100" y="5534.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar gateways/interfaces</text>
+<text id="screen-409" x="294.08" y="5533.61" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">IP numérico de destino</text>
+<rect id="screen-410" x="428.61" y="5508.66" width="650.39" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-411" x="441.61" y="5534.85" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">192.0.2.42 ou 2001:db8::42</text>
+<text id="screen-412" x="86" y="5578.97" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">As sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto.</text>
+<text id="screen-413" x="86" y="5626.61" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Gateway/interface existentes</text>
+<rect id="screen-414" x="252.08" y="5602.84" width="674.89" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-415" x="265.08" y="5627.84" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Selecione uma saída</text>
+<rect id="screen-416" x="938.97" y="5602.84" width="140.03" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-417" x="952.97" y="5627.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aplicar rota manual</text>
+<text id="screen-418" x="86" y="5693.2" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA</text>
+<text id="screen-419" x="86" y="5735.95" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Sem saída alternativa disponível da mesma família: atualize a lista. Automático não altera rotas com apenas um gateway.</text>
+<text id="screen-420" x="136" y="5781.19" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo. Nada será alterado apenas por detectar um jogo.</text>
+<rect id="screen-421" x="86" y="5769.83" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-422" cx="96" cy="5779.83" r="7" fill="#b1beb5" opacity="1"></circle>
+<rect id="screen-423" x="86" y="5809.83" width="243.41" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-424" x="100" y="5834.19" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Aprender e aplicar · rotas autorizadas</text>
+<text id="screen-425" x="86" y="5900.19" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">QOS DE SAÍDA DO SISTEMA · MB/S DECIMAIS</text>
+<text id="screen-426" x="86" y="5942.94" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download</text>
+<text id="screen-427" x="86" y="5966.73" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido.</text>
+<text id="screen-428" x="86" y="5990.53" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.</text>
+<text id="screen-429" x="86" y="6030.33" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Jogo alvo isento: AION 2 · 4 processos · 2 executáveis. Todos os executáveis do jogo ficam fora do limite, identificados pelo caminho (os PIDs mudam a cada</text>
+<text id="screen-430" x="86" y="6054.12" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">abertura) e revalidados pelo host.</text>
+<text id="screen-431" x="86" y="6102.95" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Limite do sistema em MB/s</text>
+<rect id="screen-432" x="242.05" y="6078" width="655.56" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-433" x="255.05" y="6104.2" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">5</text>
+<rect id="screen-434" x="909.61" y="6079.19" width="169.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-435" x="923.61" y="6103.55" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aplicar limite do sistema</text>
+<text id="screen-436" x="86" y="6157.34" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)</text>
+<rect id="screen-437" x="534.88" y="6132.39" width="287.38" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-438" x="547.88" y="6158.59" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">2, 5</text>
+<rect id="screen-439" x="834.25" y="6133.58" width="244.75" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-440" x="848.25" y="6157.94" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Aprender e aplicar · taxas autorizadas</text>
+<rect id="screen-441" x="67" y="6211.78" width="258.78" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-442" x="81" y="6236.14" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Parar aprendizado e restaurar referência</text>
+<rect id="screen-443" x="325.78" y="6211.78" width="302.13" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-444" x="339.78" y="6236.14" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Remover todos os ajustes de rede desta sessão</text>
+<rect id="screen-445" x="627.91" y="6211.78" width="180.06" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-446" x="641.91" y="6236.14" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Remover limite do sistema</text>
+<text id="screen-447" x="67" y="6290.14" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ROTAS REGISTRADAS NESTA SESSÃO</text>
+<text id="screen-448" x="67" y="6320.89" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Nenhuma rota host própria registrada.</text>
+<text id="screen-449" x="67" y="6367.13" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">APRENDIZADO ONLINE · ICMP, NÃO LATÊNCIA DE ENVIO</text>
+<text id="screen-450" x="67" y="6397.87" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Flow 9→16→1 em memória por rota/taxa realmente medida. Previsões ordenam candidatos; nunca confirmam ganho. Sem previsão para gateways/taxas nunca</text>
+<text id="screen-451" x="67" y="6421.67" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">medidos. Mesmos PIDs/IP, rota e origem confirmadas ao redor da sonda; timeout não é 0 ms. Três respostas por janela, referência antes/depois, melhora acima de</text>
+<text id="screen-452" x="67" y="6445.47" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">10% e 3 ms sem sobreposição e dois pares favoráveis antes de promover. Revalida continuamente; regressão/erro pede restauração. Incerteza é descritiva, não</text>
+<text id="screen-453" x="67" y="6469.26" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">intervalo estatístico. Variações de cena/rede não provam causalidade. Rotas e taxas não são treinadas juntas.</text>
+<rect id="screen-454" x="0" y="6634" width="1165" height="1446.06" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-455" x="40" y="6662" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-456" x="65" y="6680.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
+<text id="screen-457" x="76.27" y="6707.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
+<text id="screen-458" x="123" y="6690.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
+<text id="screen-459" x="123" y="6719.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
+<rect id="screen-460" x="848.78" y="6689.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-461" x="858.78" y="6706.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
+<rect id="screen-462" x="997.44" y="6689.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-463" x="1007.44" y="6706.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
+<rect id="screen-464" x="65" y="6745" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
+<text id="screen-465" x="75" y="6761.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
+<rect id="screen-466" x="228.36" y="6737.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-467" x="242.36" y="6761.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
+<rect id="screen-468" x="317.05" y="6737.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-469" x="331.05" y="6761.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
+<rect id="screen-470" x="462.44" y="6737.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-471" x="476.44" y="6761.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
+<rect id="screen-472" x="621.13" y="6737.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
+<text id="screen-473" x="635.13" y="6761.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
+<rect id="screen-474" x="40" y="6814.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-475" x="40" y="6822.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-476" x="61" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
+<text id="screen-477" x="61" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
+<text id="screen-478" x="130.05" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
+<text id="screen-479" x="130.05" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
+<text id="screen-480" x="199.09" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
+<text id="screen-481" x="199.09" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
+<text id="screen-482" x="274.7" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
+<text id="screen-483" x="274.7" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
+<text id="screen-484" x="383.63" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
+<text id="screen-485" x="383.63" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
+<text id="screen-486" x="493.23" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
+<text id="screen-487" x="493.23" y="6865.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
+<text id="screen-488" x="1076.8" y="6844.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
+<text id="screen-489" x="853" y="6865.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
+<rect id="screen-490" x="40" y="6891.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-491" x="118.17" y="6919.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
+<text id="screen-492" x="351.61" y="6919.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
+<rect id="screen-493" x="477.39" y="6896.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
+<text id="screen-494" x="567.48" y="6919.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
+<text id="screen-495" x="775.67" y="6919.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
+<text id="screen-496" x="997.22" y="6919.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
+<rect id="screen-497" x="40" y="6959.5" width="1085" height="671.03" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
+<text id="screen-498" x="67" y="7000.86" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PERFIL EM USO · AION 2 · PID 4812</text>
+<text id="screen-499" x="67" y="7048.07" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="600" opacity="1">Perfil aprendido</text>
+<text id="screen-500" x="67" y="7087.3" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="650" opacity="1">AJUSTES ATIVOS NESTE PROCESSO</text>
+<rect id="screen-501" x="67" y="7111.77" width="116.72" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-502" x="80" y="7134.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade:</text>
+<text id="screen-503" x="141.38" y="7134.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">Ativa</text>
+<rect id="screen-504" x="191.72" y="7111.77" width="180.77" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-505" x="204.72" y="7134.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Afinidade:</text>
+<text id="screen-506" x="261.44" y="7134.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">4 threads fixadas</text>
+<rect id="screen-507" x="380.48" y="7111.77" width="208.08" height="37.19" rx="6" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-508" x="393.48" y="7134.13" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Memória / EcoQoS:</text>
+<text id="screen-509" x="501.53" y="7134.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="650" opacity="1">Não aplicada</text>
+<text id="screen-510" x="67" y="7187.31" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">CONFIGURAÇÃO SELECIONADA</text>
+<text id="screen-511" x="67" y="7218.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Os campos abaixo são a configuração solicitada. O estado acima mostra os ajustes aplicados pelo RAPO; pausa, falta de foco ou acesso negado podem impedir a</text>
+<text id="screen-512" x="67" y="7241.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">aplicação.</text>
+<rect id="screen-513" x="67" y="7267.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-514" x="88" y="7298.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PRIORIDADE DO PROCESSO</text>
+<text id="screen-515" x="88" y="7330.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
+<rect id="screen-516" x="328.25" y="7267.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-517" x="349.25" y="7298.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AFINIDADE DE CPU</text>
+<text id="screen-518" x="349.25" y="7330.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
+<rect id="screen-519" x="589.5" y="7267.73" width="247.25" height="115.8" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-520" x="610.5" y="7298.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA / ECOQOS</text>
+<text id="screen-521" x="610.5" y="7330.33" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Desativado</text>
+<text id="screen-522" x="610.5" y="7358.09" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Sem efeito neste perfil</text>
+<rect id="screen-523" x="850.75" y="7267.73" width="247.25" height="115.8" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-524" x="871.75" y="7298.53" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">THREADS CRÍTICAS (LIMITE)</text>
+<text id="screen-525" x="871.75" y="7330.33" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">4</text>
+<rect id="screen-526" x="67" y="7397.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-527" x="88" y="7428.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS FÍSICOS (LIMITE)</text>
+<text id="screen-528" x="88" y="7460.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">8</text>
+<rect id="screen-529" x="328.25" y="7397.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-530" x="349.25" y="7428.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">LIMIAR DE CPU (%)</text>
+<text id="screen-531" x="349.25" y="7460.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">5</text>
+<rect id="screen-532" x="589.5" y="7397.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-533" x="610.5" y="7428.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS ELEGÍVEIS</text>
+<text id="screen-534" x="610.5" y="7460.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Somente P-cores</text>
+<rect id="screen-535" x="850.75" y="7397.53" width="247.25" height="88" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-536" x="871.75" y="7428.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PERMITIR IRMÃOS SMT / HT</text>
+<text id="screen-537" x="871.75" y="7460.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Ativado</text>
+<rect id="screen-538" x="67" y="7499.53" width="247.25" height="104" rx="10" fill="none" stroke="rgb(60, 92, 71)" stroke-width="1" opacity="1"></rect>
+<text id="screen-539" x="88" y="7530.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RESTRINGIR PROCESSO AOS</text>
+<text id="screen-540" x="88" y="7546.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">NÚCLEOS ALOCADOS</text>
+<text id="screen-541" x="88" y="7578.13" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" opacity="1">Desativado</text>
+<rect id="screen-542" x="40" y="7650.53" width="1085" height="361.53" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-543" x="67" y="7691.89" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">OPÇÕES E DIRETRIZES DE AGENDAMENTO</text>
+<rect id="screen-544" x="67" y="7714.72" width="335.66" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-545" x="86" y="7735.72" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-546" cx="111" cy="7745.72" r="7" fill="#65e5d1" opacity="1"></circle>
+<text id="screen-547" x="138" y="7747.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Auto-Yield (afinidade)</text>
+<text id="screen-548" x="138" y="7772.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Cede afinidade se outro programa mudar a</text>
+<text id="screen-549" x="138" y="7792.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">máscara de uma thread já fixada</text>
+<rect id="screen-550" x="414.66" y="7714.72" width="335.67" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-551" x="433.66" y="7735.72" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-552" cx="443.66" cy="7745.72" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-553" x="485.66" y="7747.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Manter ajustes em segundo plano</text>
+<text id="screen-554" x="485.66" y="7772.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Mantém prioridade e afinidade mesmo com o</text>
+<text id="screen-555" x="485.66" y="7792.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">jogo fora de foco</text>
+<rect id="screen-556" x="762.33" y="7714.72" width="335.66" height="102.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-557" x="781.33" y="7735.72" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-558" cx="806.33" cy="7745.72" r="7" fill="#65e5d1" opacity="1"></circle>
+<text id="screen-559" x="833.33" y="7747.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Minimizar para a Barra de Ícones (Tray)</text>
+<text id="screen-560" x="833.33" y="7772.88" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Oculta da barra de tarefas; menu Start/Stop</text>
+<text id="screen-561" x="833.33" y="7792.06" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">na bandeja</text>
+<rect id="screen-562" x="67" y="7828.89" width="335.66" height="156.17" rx="10" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-563" x="86" y="7862.03" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">Privilégios de Administrador</text>
+<text id="screen-564" x="86" y="7887.05" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Solicita UAC; reinicia para otimizar processos comuns</text>
+<text id="screen-565" x="86" y="7906.23" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">protegidos</text>
+<rect id="screen-566" x="86" y="7926.06" width="188.72" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-567" x="100" y="7950.42" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reabrir como administrador</text>
+<rect id="screen-568" x="0" y="8128" width="1165" height="1852.31" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-569" x="40" y="8156" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-570" x="65" y="8174.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
+<text id="screen-571" x="76.27" y="8201.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
+<text id="screen-572" x="123" y="8184.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
+<text id="screen-573" x="123" y="8213.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
+<rect id="screen-574" x="848.78" y="8183.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-575" x="858.78" y="8200.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
+<rect id="screen-576" x="997.44" y="8183.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-577" x="1007.44" y="8200.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
+<rect id="screen-578" x="65" y="8239" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
+<text id="screen-579" x="75" y="8255.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
+<rect id="screen-580" x="228.36" y="8231.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-581" x="242.36" y="8255.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
+<rect id="screen-582" x="317.05" y="8231.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-583" x="331.05" y="8255.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
+<rect id="screen-584" x="462.44" y="8231.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-585" x="476.44" y="8255.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
+<rect id="screen-586" x="621.13" y="8231.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
+<text id="screen-587" x="635.13" y="8255.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
+<rect id="screen-588" x="40" y="8308.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-589" x="40" y="8316.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-590" x="61" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
+<text id="screen-591" x="61" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
+<text id="screen-592" x="130.05" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
+<text id="screen-593" x="130.05" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
+<text id="screen-594" x="199.09" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
+<text id="screen-595" x="199.09" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
+<text id="screen-596" x="274.7" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
+<text id="screen-597" x="274.7" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
+<text id="screen-598" x="383.63" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
+<text id="screen-599" x="383.63" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
+<text id="screen-600" x="493.23" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
+<text id="screen-601" x="493.23" y="8359.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
+<text id="screen-602" x="1076.8" y="8338.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
+<text id="screen-603" x="853" y="8359.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
+<rect id="screen-604" x="40" y="8385.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-605" x="118.17" y="8413.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
+<text id="screen-606" x="351.61" y="8413.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
+<text id="screen-607" x="567.48" y="8413.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
+<rect id="screen-608" x="693.59" y="8390.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
+<text id="screen-609" x="775.67" y="8413.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
+<text id="screen-610" x="997.22" y="8413.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
+<rect id="screen-611" x="40" y="8453.5" width="1085" height="200.47" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-612" x="68" y="8494.86" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PLANO DE ENERGIA ATIVO NO WINDOWS</text>
+<text id="screen-613" x="68" y="8542.07" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="600" opacity="1">Desempenho Máximo</text>
+<text id="screen-614" x="68" y="8581.3" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">GUID:</text>
+<text id="screen-615" x="110.78" y="8581.74" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">e9a42b02-d5df-448d-aa00-03f14749eb61</text>
+<text id="screen-616" x="68" y="8619.09" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.</text>
+<rect id="screen-617" x="40" y="8673.97" width="1085" height="1238.34" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-618" x="68" y="8715.33" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">ENGINE.INI DO AION 2</text>
+<rect id="screen-619" x="68" y="8740.16" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-620" cx="78" cy="8750.16" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-621" x="120" y="8752.3" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" opacity="1">OFF · nenhuma linha do RAPO no Engine.ini</text>
+<text id="screen-622" x="120" y="8777.31" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Arquivo sem linhas do RAPO</text>
+<text id="screen-623" x="68" y="8799.5" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">C:\Users\Jogador\AppData\Local\AION2\Saved_Steam\Config\Windows\Engine.ini</text>
+<text id="screen-624" x="68" y="8845.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="600" opacity="1">PERFIL SALVO</text>
+<rect id="screen-625" x="68" y="8870.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-626" cx="78" cy="8880.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-627" x="118" y="8893.89" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Limite de FPS (editável; padrão 120; 0 = sem limite) ·</text>
+<text id="screen-628" x="597.95" y="8893.89" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">FPS (0 = sem limite)</text>
+<text id="screen-629" x="405.14" y="8893.89" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">t.MaxFPS=</text>
+<rect id="screen-630" x="469.95" y="8870.13" width="128" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-631" x="482.95" y="8895.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">120</text>
+<rect id="screen-632" x="68" y="8928.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-633" cx="78" cy="8938.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-634" x="118" y="8940.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Ativar NVIDIA Reflex ·</text>
+<text id="screen-635" x="239.38" y="8940.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">t.Streamline.Reflex.Enable=1</text>
+<rect id="screen-636" x="68" y="8966.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-637" cx="78" cy="8976.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-638" x="118" y="8978.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Reflex em modo baixa latência (fila de renderização vazia) ·</text>
+<text id="screen-639" x="440.16" y="8978.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">t.Streamline.Reflex.Mode=1</text>
+<rect id="screen-640" x="68" y="9004.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-641" cx="78" cy="9014.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-642" x="118" y="9016.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Sem fila de frames: game thread espera a apresentação (RHI) ·</text>
+<text id="screen-643" x="460.83" y="9016.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.GTSyncType=1</text>
+<rect id="screen-644" x="68" y="9042.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-645" cx="78" cy="9052.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-646" x="118" y="9054.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Sem frame extra da render thread (menos latência; pode reduzir FPS) ·</text>
+<text id="screen-647" x="501.52" y="9054.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.OneFrameThreadLag=0</text>
+<rect id="screen-648" x="68" y="9080.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-649" cx="78" cy="9090.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-650" x="118" y="9092.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desativar VSync (r.VSync=0) ·</text>
+<text id="screen-651" x="283.73" y="9092.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.VSync=0</text>
+<rect id="screen-652" x="68" y="9118.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-653" cx="78" cy="9128.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-654" x="118" y="9130.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Não forçar sincronização de cada frame na CPU (mais FPS; r.FinishCurrentFrame=0) ·</text>
+<text id="screen-655" x="583.84" y="9130.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.FinishCurrentFrame=0</text>
+<rect id="screen-656" x="68" y="9156.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-657" cx="78" cy="9166.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-658" x="118" y="9168.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Usar thread RHI dedicada em paralelo (r.RHICmdBypass=0) ·</text>
+<text id="screen-659" x="450.47" y="9168.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.RHICmdBypass=0</text>
+<rect id="screen-660" x="68" y="9194.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-661" cx="78" cy="9204.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-662" x="118" y="9206.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Ativar cache de pipeline de shaders (reduz engasgos) ·</text>
+<text id="screen-663" x="415.52" y="9206.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.ShaderPipelineCache.Enabled=1</text>
+<rect id="screen-664" x="68" y="9232.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-665" cx="78" cy="9242.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-666" x="118" y="9244.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Compilar shaders no carregamento (evita stutter em combate) ·</text>
+<text id="screen-667" x="459.48" y="9244.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.CreateShadersOnLoad=1</text>
+<rect id="screen-668" x="68" y="9270.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-669" cx="78" cy="9280.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-670" x="118" y="9293.89" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Pool de streaming de texturas em MB (editável; padrão 6144 = 6 GB) ·</text>
+<text id="screen-671" x="741.41" y="9293.89" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">MB (entre 256 e 32768)</text>
+<text id="screen-672" x="497.2" y="9293.89" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.Streaming.PoolSize=</text>
+<rect id="screen-673" x="648.41" y="9270.13" width="93" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-674" x="661.41" y="9295.13" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">6144</text>
+<rect id="screen-675" x="68" y="9328.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-676" cx="78" cy="9338.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-677" x="118" y="9340.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Limitar pool de texturas à VRAM física disponível ·</text>
+<text id="screen-678" x="390.13" y="9340.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.Streaming.LimitPoolSizeToVRAM=1</text>
+<rect id="screen-679" x="68" y="9366.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-680" cx="78" cy="9376.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-681" x="118" y="9378.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Memória temporária de streaming em 512 MB ·</text>
+<text id="screen-682" x="373.44" y="9378.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.Streaming.MaxTempMemoryAllowed=512</text>
+<rect id="screen-683" x="68" y="9404.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-684" cx="78" cy="9414.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-685" x="118" y="9416.48" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Processar 64 componentes estáticos por frame no streaming ·</text>
+<text id="screen-686" x="452.83" y="9416.48" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.Streaming.NumStaticComponentsProcessedPerFrame=64</text>
+<rect id="screen-687" x="68" y="9442.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-688" cx="78" cy="9452.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-689" x="118" y="9454.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Qualidade de sombras: Médio (sg.ShadowQuality=2) ·</text>
+<text id="screen-690" x="410.48" y="9454.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">sg.ShadowQuality=2</text>
+<rect id="screen-691" x="68" y="9480.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-692" cx="78" cy="9490.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-693" x="118" y="9492.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Qualidade de efeitos: Médio (sg.EffectsQuality=2) ·</text>
+<text id="screen-694" x="392.92" y="9492.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">sg.EffectsQuality=2</text>
+<rect id="screen-695" x="68" y="9518.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-696" cx="78" cy="9528.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-697" x="118" y="9530.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Qualidade de reflexos: Baixo (sg.ReflectionQuality=1) ·</text>
+<text id="screen-698" x="413.83" y="9530.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">sg.ReflectionQuality=1</text>
+<rect id="screen-699" x="68" y="9556.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-700" cx="78" cy="9566.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-701" x="118" y="9568.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Qualidade de pós-processamento: Baixo (sg.PostProcessQuality=1) ·</text>
+<text id="screen-702" x="491.19" y="9568.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">sg.PostProcessQuality=1</text>
+<rect id="screen-703" x="68" y="9594.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-704" cx="78" cy="9604.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-705" x="118" y="9606.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Qualidade de vegetação: Médio (sg.FoliageQuality=2) ·</text>
+<text id="screen-706" x="415.84" y="9606.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">sg.FoliageQuality=2</text>
+<rect id="screen-707" x="68" y="9632.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-708" cx="78" cy="9642.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-709" x="118" y="9644.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desligar motion blur (mais FPS; muda o visual) ·</text>
+<text id="screen-710" x="379.42" y="9644.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.MotionBlurQuality=0</text>
+<rect id="screen-711" x="68" y="9670.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-712" cx="78" cy="9680.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-713" x="118" y="9682.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desligar profundidade de campo (mais FPS; muda o visual) ·</text>
+<text id="screen-714" x="446.16" y="9682.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.DepthOfFieldQuality=0</text>
+<rect id="screen-715" x="68" y="9708.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-716" cx="78" cy="9718.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-717" x="118" y="9720.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desligar aberração cromática (imagem mais nítida; muda o visual) ·</text>
+<text id="screen-718" x="481.47" y="9720.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.SceneColorFringeQuality=0</text>
+<rect id="screen-719" x="68" y="9746.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-720" cx="78" cy="9756.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-721" x="118" y="9758.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desligar granulação de filme (imagem mais limpa; muda o visual) ·</text>
+<text id="screen-722" x="476.14" y="9758.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.FilmGrain=0</text>
+<rect id="screen-723" x="68" y="9784.13" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-724" cx="78" cy="9794.13" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-725" x="118" y="9796.49" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Desligar lens flare (menos brilho na tela; muda o visual) ·</text>
+<text id="screen-726" x="424.81" y="9796.49" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="12" font-weight="400" opacity="1">r.LensFlareQuality=0</text>
+<rect id="screen-727" x="68" y="9826.13" width="1030" height="45.19" rx="8" fill="rgb(17, 23, 19)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-728" x="95.7" y="9852.49" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Como funciona</text>
+<rect id="screen-729" x="0" y="10028" width="1165" height="669.89" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-730" x="40" y="10056" width="1085" height="132.5" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<rect id="screen-731" x="65" y="10074.25" width="44" height="44" rx="12" fill="rgb(101, 229, 209)" stroke="none" stroke-width="0" opacity="1"></rect>
+<text id="screen-732" x="76.27" y="10101.89" fill="rgb(7, 9, 15)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="13" font-weight="700" opacity="1">APO</text>
+<text id="screen-733" x="123" y="10084.8" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PAINEL DE CONTROLE</text>
+<text id="screen-734" x="123" y="10113.16" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="650" opacity="1">RINTEL RAPO</text>
+<rect id="screen-735" x="848.78" y="10083.75" width="140.66" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-736" x="858.78" y="10100.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">AGENDAMENTO WINDOWS</text>
+<rect id="screen-737" x="997.44" y="10083.75" width="102.56" height="25" rx="6" fill="rgb(27, 44, 33)" stroke="rgb(54, 90, 67)" stroke-width="1" opacity="1"></rect>
+<text id="screen-738" x="1007.44" y="10100.55" fill="rgb(101, 229, 209)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ATIVO (START)</text>
+<rect id="screen-739" x="65" y="10139" width="153.36" height="25" rx="6" fill="rgb(41, 37, 27)" stroke="rgb(91, 76, 48)" stroke-width="1" opacity="1"></rect>
+<text id="screen-740" x="75" y="10155.8" fill="rgb(240, 207, 137)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">INTEL DTT EM EXECUÇÃO</text>
+<rect id="screen-741" x="228.36" y="10131.5" width="78.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-742" x="242.36" y="10155.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Atualizar</text>
+<rect id="screen-743" x="317.05" y="10131.5" width="135.39" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-744" x="331.05" y="10155.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Reexaminar Steam</text>
+<rect id="screen-745" x="462.44" y="10131.5" width="148.69" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-746" x="476.44" y="10155.86" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Configuração padrão</text>
+<rect id="screen-747" x="621.13" y="10131.5" width="65.2" height="40" rx="8" fill="rgb(245, 247, 251)" stroke="rgb(245, 247, 251)" stroke-width="1" opacity="1"></rect>
+<text id="screen-748" x="635.13" y="10155.86" fill="rgb(16, 23, 19)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">⏹ Stop</text>
+<rect id="screen-749" x="40" y="10208.5" width="1085" height="125" rx="0" fill="rgb(7, 9, 15)" stroke="none" stroke-width="0" opacity="1"></rect>
+<rect id="screen-750" x="40" y="10216.5" width="1085" height="61" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-751" x="61" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">CPU</text>
+<text id="screen-752" x="61" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">34.5%</text>
+<text id="screen-753" x="130.05" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">GPU</text>
+<text id="screen-754" x="130.05" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">78.0%</text>
+<text id="screen-755" x="199.09" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">MEMÓRIA</text>
+<text id="screen-756" x="199.09" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">9.2 GB</text>
+<text id="screen-757" x="274.7" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">REDE</text>
+<text id="screen-758" x="274.7" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">2300.0 KB/s</text>
+<text id="screen-759" x="383.63" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">PING DO JOGO</text>
+<text id="screen-760" x="383.63" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">16 ms</text>
+<text id="screen-761" x="493.23" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">RELAY</text>
+<text id="screen-762" x="493.23" y="10259.2" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">HY2 ativo</text>
+<text id="screen-763" x="1076.8" y="10238.3" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="10" font-weight="500" opacity="1">ALVO</text>
+<text id="screen-764" x="853" y="10259.2" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2 · 4 processos · 2 executáveis</text>
+<rect id="screen-765" x="40" y="10285.5" width="1085" height="48" rx="12" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-766" x="118.17" y="10313.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Visão geral</text>
+<text id="screen-767" x="351.61" y="10313.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Rede</text>
+<text id="screen-768" x="567.48" y="10313.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Perfil</text>
+<text id="screen-769" x="775.67" y="10313.86" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Sistema</text>
+<rect id="screen-770" x="909.8" y="10290.5" width="210.2" height="38" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(82, 119, 95)" stroke-width="1" opacity="1"></rect>
+<text id="screen-771" x="997.22" y="10313.86" fill="rgb(101, 229, 209)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="1">Jogos</text>
+<text id="screen-772" x="40" y="10386.47" fill="rgb(162, 173, 185)" font-family="&quot;Cascadia Code&quot;, Consolas, SFMono-Regular, monospace" font-size="11" font-weight="400" opacity="1">BUSCAR JOGO</text>
+<rect id="screen-773" x="131.86" y="10361.5" width="480" height="42.39" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-774" x="144.86" y="10387.7" fill="#87958c" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" opacity="1">Buscar jogo na biblioteca Steam...</text>
+<rect id="screen-775" x="40" y="10419.89" width="1085" height="130" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-776" x="65" y="10462.59" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">AION 2</text>
+<text id="screen-777" x="399.06" y="10461.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade de memória / EcoQoS</text>
+<rect id="screen-778" x="351.06" y="10447.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="0.48"></rect>
+<circle id="screen-779" cx="361.06" cy="10457.89" r="7" fill="#b1beb5" opacity="0.48"></circle>
+<text id="screen-780" x="643.16" y="10461.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Somente P-cores</text>
+<rect id="screen-781" x="595.16" y="10447.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="0.48"></rect>
+<circle id="screen-782" cx="620.16" cy="10457.89" r="7" fill="#65e5d1" opacity="0.48"></circle>
+<text id="screen-783" x="803.88" y="10461.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade automática</text>
+<rect id="screen-784" x="755.88" y="10447.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="0.48"></rect>
+<circle id="screen-785" cx="780.88" cy="10457.89" r="7" fill="#65e5d1" opacity="0.48"></circle>
+<text id="screen-786" x="988.61" y="10461.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">RAPO (aprendizado)</text>
+<rect id="screen-787" x="940.61" y="10447.89" width="35" height="20" rx="10" fill="rgba(101, 229, 209, 0.24)" stroke="rgb(101, 229, 209)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-788" cx="965.61" cy="10457.89" r="7" fill="#65e5d1" opacity="1"></circle>
+<rect id="screen-789" x="65" y="10488.89" width="130.25" height="40" rx="8" fill="rgb(16, 21, 29)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-790" x="79" y="10513.25" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" opacity="0.48">Aplicar perfil APO</text>
+<rect id="screen-791" x="40" y="10559.89" width="1085" height="76" rx="16" fill="rgb(12, 15, 22)" stroke="rgb(37, 45, 55)" stroke-width="1" opacity="1"></rect>
+<text id="screen-792" x="65" y="10602.59" fill="rgb(245, 247, 251)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="600" opacity="1">Counter-Strike 2</text>
+<text id="screen-793" x="399.06" y="10601.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade de memória / EcoQoS</text>
+<rect id="screen-794" x="351.06" y="10587.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-795" cx="361.06" cy="10597.89" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-796" x="643.16" y="10601.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Somente P-cores</text>
+<rect id="screen-797" x="595.16" y="10587.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-798" cx="605.16" cy="10597.89" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-799" x="803.88" y="10601.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">Prioridade automática</text>
+<rect id="screen-800" x="755.88" y="10587.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-801" cx="765.88" cy="10597.89" r="7" fill="#b1beb5" opacity="1"></circle>
+<text id="screen-802" x="988.61" y="10601.66" fill="rgb(162, 173, 185)" font-family="&quot;Segoe UI&quot;, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="400" opacity="1">RAPO (aprendizado)</text>
+<rect id="screen-803" x="940.61" y="10587.89" width="35" height="20" rx="10" fill="rgb(37, 46, 40)" stroke="rgb(88, 103, 94)" stroke-width="1" opacity="1"></rect>
+<circle id="screen-804" cx="950.61" cy="10597.89" r="7" fill="#b1beb5" opacity="1"></circle>
 </svg>

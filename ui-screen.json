@@ -4,7 +4,7 @@
  "language": "pt-BR",
  "canvas": {
   "width": 1180,
-  "height": 9652,
+  "height": 10928,
   "units": "px"
  },
  "basis": {
@@ -12,7 +12,9 @@
   "sources": [
    "ui-wasm/index.html",
    "ui-wasm/src/lib.rs",
-   "ui-wasm/src/dashboard.rs"
+   "ui-wasm/src/dashboard.rs",
+   "ui-wasm/src/vpn.rs",
+   "scripts/ui-screen/state.js"
   ],
   "liveCapture": false,
   "state": "Interface com o AION 2 em execução (4 processos, 2 executáveis) e telemetria ilustrativa de scripts/ui-screen/state.js; valores são transitórios, não resultados de benchmark.",
@@ -31,17 +33,17 @@
    {
     "id": "profile",
     "label": "Perfil",
-    "yOffset": 6272
+    "yOffset": 6634
    },
    {
     "id": "system",
     "label": "Sistema",
-    "yOffset": 7766
+    "yOffset": 8128
    },
    {
     "id": "games",
     "label": "Jogos",
-    "yOffset": 8752
+    "yOffset": 10028
    }
   ]
  },
@@ -61,7 +63,7 @@
     "x": 0,
     "y": 0,
     "width": 1180,
-    "height": 9652,
+    "height": 10928,
     "rx": 0,
     "fill": "rgb(7, 9, 15)",
     "stroke": "none",
@@ -3907,7 +3909,7 @@
     "x": 0,
     "y": 3125,
     "width": 1165,
-    "height": 3098.98,
+    "height": 3461.14,
     "rx": 0,
     "fill": "rgb(7, 9, 15)",
     "stroke": "none",
@@ -4523,7 +4525,7 @@
     "x": 40,
     "y": 3450.5,
     "width": 1085,
-    "height": 1427.44,
+    "height": 1789.59,
     "rx": 16,
     "fill": "rgb(12, 15, 22)",
     "stroke": "rgb(37, 45, 55)",
@@ -5031,7 +5033,7 @@
     "x": 67,
     "y": 3990.14,
     "width": 1031,
-    "height": 488.55,
+    "height": 598.73,
     "rx": 10,
     "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(60, 92, 71)",
@@ -5280,7 +5282,22 @@
    "type": "rect",
    "attributes": {
     "x": 86,
-    "y": 4414.5,
+    "y": 4418.5,
+    "width": 993,
+    "height": 1,
+    "rx": 0,
+    "fill": "none",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-365"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 86,
+    "y": 4458.5,
     "width": 993,
     "height": 45.19,
     "rx": 8,
@@ -5289,13 +5306,42 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-365"
+   "id": "screen-366"
   },
   {
    "type": "text",
    "attributes": {
     "x": 113.7,
-    "y": 4440.86,
+    "y": 4484.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "UDPspeeder · Redundância de pacotes UDP (Desativado · +0% tráfego)",
+   "id": "screen-367"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 86,
+    "y": 4524.69,
+    "width": 993,
+    "height": 45.19,
+    "rx": 8,
+    "fill": "rgb(17, 23, 19)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-368"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 113.7,
+    "y": 4551.05,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5303,13 +5349,13 @@
     "opacity": 1
    },
    "text": "Transporte · Neural Auto · direto/HY2 nas novas conexões TCP",
-   "id": "screen-366"
+   "id": "screen-369"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 67,
-    "y": 4490.69,
+    "y": 4600.88,
     "width": 1031,
     "height": 360.25,
     "rx": 10,
@@ -5318,13 +5364,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-367"
+   "id": "screen-370"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 4521.49,
+    "y": 4631.68,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -5332,13 +5378,13 @@
     "opacity": 1
    },
    "text": "MODELO NEURAL · RELAY",
-   "id": "screen-368"
+   "id": "screen-371"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 4553.29,
+    "y": 4663.48,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
@@ -5346,13 +5392,13 @@
     "opacity": 1
    },
    "text": "Flow 9→16→1 · Aprendendo com conexões reais",
-   "id": "screen-369"
+   "id": "screen-372"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 4581.05,
+    "y": 4691.24,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5360,13 +5406,13 @@
     "opacity": 1
    },
    "text": "Compara o tempo de abertura TCP por destino e saída, não o ping da partida nem a latência de cada pacote.",
-   "id": "screen-370"
+   "id": "screen-373"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4626.28,
+    "y": 4736.47,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -5374,13 +5420,13 @@
     "opacity": 1
    },
    "text": "DESTINO / SAÍDA",
-   "id": "screen-371"
+   "id": "screen-374"
   },
   {
    "type": "text",
    "attributes": {
     "x": 344.25,
-    "y": 4626.28,
+    "y": 4736.47,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -5388,13 +5434,13 @@
     "opacity": 1
    },
    "text": "MEDIDO",
-   "id": "screen-372"
+   "id": "screen-375"
   },
   {
    "type": "text",
    "attributes": {
     "x": 592.5,
-    "y": 4626.28,
+    "y": 4736.47,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -5402,13 +5448,13 @@
     "opacity": 1
    },
    "text": "PREVISÃO (TCP/UDP)",
-   "id": "screen-373"
+   "id": "screen-376"
   },
   {
    "type": "text",
    "attributes": {
     "x": 840.75,
-    "y": 4626.28,
+    "y": 4736.47,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -5416,13 +5462,13 @@
     "opacity": 1
    },
    "text": "AMOSTRAS / FALHAS",
-   "id": "screen-374"
+   "id": "screen-377"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4668.84,
+    "y": 4779.03,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5430,13 +5476,13 @@
     "opacity": 1
    },
    "text": "203.0.113.7:443",
-   "id": "screen-375"
+   "id": "screen-378"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4688.03,
+    "y": 4798.22,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5444,13 +5490,13 @@
     "opacity": 1
    },
    "text": "if 3 · 192.0.2.10 via túnel HY2 · última",
-   "id": "screen-376"
+   "id": "screen-379"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4707.83,
+    "y": 4818.02,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5458,13 +5504,13 @@
     "opacity": 1
    },
    "text": "saída escolhida",
-   "id": "screen-377"
+   "id": "screen-380"
   },
   {
    "type": "text",
    "attributes": {
     "x": 344.25,
-    "y": 4668.84,
+    "y": 4779.03,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5472,13 +5518,13 @@
     "opacity": 1
    },
    "text": "21.4 ms",
-   "id": "screen-378"
+   "id": "screen-381"
   },
   {
    "type": "text",
    "attributes": {
     "x": 592.5,
-    "y": 4668.84,
+    "y": 4779.03,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5486,13 +5532,13 @@
     "opacity": 1
    },
    "text": "22.0 ms",
-   "id": "screen-379"
+   "id": "screen-382"
   },
   {
    "type": "text",
    "attributes": {
     "x": 592.5,
-    "y": 4688.03,
+    "y": 4798.22,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5500,13 +5546,13 @@
     "opacity": 1
    },
    "text": "Desvio/resíduo: 3.1 ms",
-   "id": "screen-380"
+   "id": "screen-383"
   },
   {
    "type": "text",
    "attributes": {
     "x": 840.75,
-    "y": 4668.84,
+    "y": 4779.03,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5514,13 +5560,13 @@
     "opacity": 1
    },
    "text": "14 / 0",
-   "id": "screen-381"
+   "id": "screen-384"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4752.63,
+    "y": 4862.81,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5528,13 +5574,13 @@
     "opacity": 1
    },
    "text": "203.0.113.7:443",
-   "id": "screen-382"
+   "id": "screen-385"
   },
   {
    "type": "text",
    "attributes": {
     "x": 96,
-    "y": 4771.81,
+    "y": 4882,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5542,13 +5588,13 @@
     "opacity": 1
    },
    "text": "if 2 · 192.0.2.2 via rota do sistema",
-   "id": "screen-383"
+   "id": "screen-386"
   },
   {
    "type": "text",
    "attributes": {
     "x": 344.25,
-    "y": 4752.63,
+    "y": 4862.81,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5556,13 +5602,13 @@
     "opacity": 1
    },
    "text": "48.0 ms",
-   "id": "screen-384"
+   "id": "screen-387"
   },
   {
    "type": "text",
    "attributes": {
     "x": 592.5,
-    "y": 4752.63,
+    "y": 4862.81,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5570,13 +5616,13 @@
     "opacity": 1
    },
    "text": "46.2 ms",
-   "id": "screen-385"
+   "id": "screen-388"
   },
   {
    "type": "text",
    "attributes": {
     "x": 592.5,
-    "y": 4771.81,
+    "y": 4882,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5584,13 +5630,13 @@
     "opacity": 1
    },
    "text": "Desvio/resíduo: 6.0 ms",
-   "id": "screen-386"
+   "id": "screen-389"
   },
   {
    "type": "text",
    "attributes": {
     "x": 840.75,
-    "y": 4752.63,
+    "y": 4862.81,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -5598,13 +5644,13 @@
     "opacity": 1
    },
    "text": "9 / 1",
-   "id": "screen-387"
+   "id": "screen-390"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 4825.83,
+    "y": 4936.02,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 11,
@@ -5612,118 +5658,74 @@
     "opacity": 1
    },
    "text": "Previsão de abertura TCP após poucas amostras; desvio/resíduo é descritivo, não intervalo de confiança nem ganho confirmado.",
-   "id": "screen-388"
+   "id": "screen-391"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 40,
-    "y": 4897.94,
-    "width": 1085,
-    "height": 1258.05,
-    "rx": 16,
-    "fill": "rgb(12, 15, 22)",
+    "x": 67,
+    "y": 4973.13,
+    "width": 1031,
+    "height": 219.97,
+    "rx": 14,
+    "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-389"
+   "id": "screen-392"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 67,
-    "y": 4939.3,
+    "x": 90,
+    "y": 5008.49,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "ROTAS POR IP · INTERFACE / GATEWAY",
-   "id": "screen-390"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 67,
-    "y": 4962.13,
-    "width": 1031,
-    "height": 71.59,
-    "rx": 0,
-    "fill": "rgb(41, 37, 27)",
-    "stroke": "none",
-    "stroke-width": 0,
-    "opacity": 1
-   },
-   "id": "screen-391"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 83,
-    "y": 4990.05,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de",
-   "id": "screen-392"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 83,
-    "y": 5013.84,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "payload ou garantia de ping/anti-cheat.",
+   "text": "PERFIS DE VPN",
    "id": "screen-393"
   },
   {
-   "type": "rect",
+   "type": "text",
    "attributes": {
-    "x": 67,
-    "y": 5047.72,
-    "width": 1031,
-    "height": 45.19,
-    "rx": 8,
-    "fill": "rgb(17, 23, 19)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
+    "x": 90,
+    "y": 5044.67,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
     "opacity": 1
    },
+   "text": "Um perfil ativo por vez. Segredos são cifrados com o Windows (DPAPI) e nunca voltam para esta tela.",
    "id": "screen-394"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 94.7,
-    "y": 5074.08,
-    "fill": "rgb(245, 247, 251)",
+    "x": 90,
+    "y": 5078.47,
+    "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
-    "font-weight": "600",
+    "font-weight": "400",
     "opacity": 1
    },
-   "text": "Limpeza e registro de erros",
+   "text": "Nenhum perfil salvo.",
    "id": "screen-395"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 67,
-    "y": 5110.91,
-    "width": 1031,
-    "height": 720.72,
-    "rx": 10,
-    "fill": "none",
+    "x": 90,
+    "y": 5112.91,
+    "width": 985,
+    "height": 45.19,
+    "rx": 8,
+    "fill": "rgb(17, 23, 19)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
@@ -5733,26 +5735,26 @@
   {
    "type": "text",
    "attributes": {
-    "x": 94,
-    "y": 5123.49,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 11,
-    "font-weight": "400",
+    "x": 117.7,
+    "y": 5139.27,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
     "opacity": 1
    },
-   "text": "Configuração explícita de rede",
+   "text": "Adicionar ou editar perfil",
    "id": "screen-397"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 86,
-    "y": 5147.69,
-    "width": 196.08,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
+    "x": 40,
+    "y": 5260.09,
+    "width": 1085,
+    "height": 1258.05,
+    "rx": 16,
+    "fill": "rgb(12, 15, 22)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
@@ -5762,97 +5764,98 @@
   {
    "type": "text",
    "attributes": {
-    "x": 100,
-    "y": 5172.05,
+    "x": 67,
+    "y": 5301.45,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "ROTAS POR IP · INTERFACE / GATEWAY",
+   "id": "screen-399"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 67,
+    "y": 5324.28,
+    "width": 1031,
+    "height": 71.59,
+    "rx": 0,
+    "fill": "rgb(41, 37, 27)",
+    "stroke": "none",
+    "stroke-width": 0,
+    "opacity": 1
+   },
+   "id": "screen-400"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 83,
+    "y": 5352.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Rota /32 ou /128 afeta TODOS os aplicativos e portas que acessam o IP, não somente o jogo. Pode desconectar sessões. Sem túnel/relay, driver, alteração de",
+   "id": "screen-401"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 83,
+    "y": 5376,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "payload ou garantia de ping/anti-cheat.",
+   "id": "screen-402"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 67,
+    "y": 5409.88,
+    "width": 1031,
+    "height": 45.19,
+    "rx": 8,
+    "fill": "rgb(17, 23, 19)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-403"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 94.7,
+    "y": 5436.24,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "Atualizar gateways/interfaces",
-   "id": "screen-399"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 294.08,
-    "y": 5171.45,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "IP numérico de destino",
-   "id": "screen-400"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 428.61,
-    "y": 5146.5,
-    "width": 650.39,
-    "height": 42.39,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-401"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 441.61,
-    "y": 5172.7,
-    "fill": "#87958c",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "192.0.2.42 ou 2001:db8::42",
-   "id": "screen-402"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5216.81,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "As sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto.",
-   "id": "screen-403"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5264.45,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Gateway/interface existentes",
+   "text": "Limpeza e registro de erros",
    "id": "screen-404"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 252.08,
-    "y": 5240.69,
-    "width": 674.89,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
+    "x": 67,
+    "y": 5473.06,
+    "width": 1031,
+    "height": 720.72,
+    "rx": 10,
+    "fill": "none",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
@@ -5862,23 +5865,23 @@
   {
    "type": "text",
    "attributes": {
-    "x": 265.08,
-    "y": 5265.69,
-    "fill": "#87958c",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
+    "x": 94,
+    "y": 5485.64,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 11,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Selecione uma saída",
+   "text": "Configuração explícita de rede",
    "id": "screen-406"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 938.97,
-    "y": 5240.69,
-    "width": 140.03,
+    "x": 86,
+    "y": 5509.84,
+    "width": 196.08,
     "height": 40,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
@@ -5891,91 +5894,94 @@
   {
    "type": "text",
    "attributes": {
-    "x": 952.97,
-    "y": 5265.05,
+    "x": 100,
+    "y": 5534.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "Aplicar rota manual",
+   "text": "Atualizar gateways/interfaces",
    "id": "screen-408"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 86,
-    "y": 5331.05,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "x": 294.08,
+    "y": 5533.61,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
-    "font-weight": "600",
+    "font-weight": "400",
     "opacity": 1
    },
-   "text": "GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA",
+   "text": "IP numérico de destino",
    "id": "screen-409"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 428.61,
+    "y": 5508.66,
+    "width": 650.39,
+    "height": 42.39,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-410"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 441.61,
+    "y": 5534.85,
+    "fill": "#87958c",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "192.0.2.42 ou 2001:db8::42",
+   "id": "screen-411"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 5373.8,
+    "y": 5578.97,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Sem saída alternativa disponível da mesma família: atualize a lista. Automático não altera rotas com apenas um gateway.",
-   "id": "screen-410"
+   "text": "As sugestões são IPs TCP observados, não servidores de partida confirmados. Aplicação manual também aceita outro IP numérico remoto.",
+   "id": "screen-412"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 136,
-    "y": 5419.03,
-    "fill": "rgb(162, 173, 185)",
+    "x": 86,
+    "y": 5626.61,
+    "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo. Nada será alterado apenas por detectar um jogo.",
-   "id": "screen-411"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 86,
-    "y": 5407.67,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgb(37, 46, 40)",
-    "stroke": "rgb(88, 103, 94)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-412"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 96,
-    "cy": 5417.67,
-    "r": 7,
-    "fill": "#b1beb5",
-    "opacity": 1
-   },
+   "text": "Gateway/interface existentes",
    "id": "screen-413"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 86,
-    "y": 5447.67,
-    "width": 243.41,
+    "x": 252.08,
+    "y": 5602.84,
+    "width": 674.89,
     "height": 40,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
@@ -5988,122 +5994,121 @@
   {
    "type": "text",
    "attributes": {
-    "x": 100,
-    "y": 5472.03,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 0.48
-   },
-   "text": "Aprender e aplicar · rotas autorizadas",
-   "id": "screen-415"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5538.03,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "QOS DE SAÍDA DO SISTEMA · MB/S DECIMAIS",
-   "id": "screen-416"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5580.78,
-    "fill": "rgb(162, 173, 185)",
+    "x": 265.08,
+    "y": 5627.84,
+    "fill": "#87958c",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download",
+   "text": "Selecione uma saída",
+   "id": "screen-415"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 938.97,
+    "y": 5602.84,
+    "width": 140.03,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-416"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 952.97,
+    "y": 5627.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Aplicar rota manual",
    "id": "screen-417"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 5604.58,
+    "y": 5693.2,
     "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "600",
     "opacity": 1
    },
-   "text": "não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido.",
+   "text": "GATEWAYS AUTORIZADOS PARA EXPLORAÇÃO ATIVA",
    "id": "screen-418"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 5628.37,
+    "y": 5735.95,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.",
+   "text": "Sem saída alternativa disponível da mesma família: atualize a lista. Automático não altera rotas com apenas um gateway.",
    "id": "screen-419"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 86,
-    "y": 5668.17,
+    "x": 136,
+    "y": 5781.19,
     "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Jogo alvo isento: AION 2 · 4 processos · 2 executáveis. Todos os executáveis do jogo ficam fora do limite, identificados pelo caminho (os PIDs mudam a cada",
-   "id": "screen-420"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5691.97,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "abertura) e revalidados pelo host.",
-   "id": "screen-421"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 86,
-    "y": 5740.8,
-    "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Limite do sistema em MB/s",
+   "text": "Autorizo testes ativos SOMENTE das saídas/taxas selecionadas; podem desconectar ou atrasar meu jogo. Nada será alterado apenas por detectar um jogo.",
+   "id": "screen-420"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 86,
+    "y": 5769.83,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-421"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 96,
+    "cy": 5779.83,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
    "id": "screen-422"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 242.05,
-    "y": 5715.84,
-    "width": 655.56,
-    "height": 42.39,
+    "x": 86,
+    "y": 5809.83,
+    "width": 243.41,
+    "height": 40,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
@@ -6115,125 +6120,122 @@
   {
    "type": "text",
    "attributes": {
-    "x": 255.05,
-    "y": 5742.04,
-    "fill": "#87958c",
+    "x": 100,
+    "y": 5834.19,
+    "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 0.48
    },
-   "text": "5",
+   "text": "Aprender e aplicar · rotas autorizadas",
    "id": "screen-424"
   },
   {
-   "type": "rect",
+   "type": "text",
    "attributes": {
-    "x": 909.61,
-    "y": 5717.03,
-    "width": 169.39,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
+    "x": 86,
+    "y": 5900.19,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "600",
     "opacity": 1
    },
+   "text": "QOS DE SAÍDA DO SISTEMA · MB/S DECIMAIS",
    "id": "screen-425"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 923.61,
-    "y": 5741.39,
-    "fill": "rgb(245, 247, 251)",
+    "x": 86,
+    "y": 5942.94,
+    "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
+    "font-size": 14,
+    "font-weight": "400",
     "opacity": 1
    },
-   "text": "Aplicar limite do sistema",
+   "text": "Limita o envio (upload) de todo o Windows; Steam, o próprio RAPO (que encaminha o tráfego do jogo pelo relay) e o jogo alvo ficam fora do limite. Download",
    "id": "screen-426"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 5795.19,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)",
-   "id": "screen-427"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 534.88,
-    "y": 5770.23,
-    "width": 287.38,
-    "height": 42.39,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-428"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 547.88,
-    "y": 5796.43,
-    "fill": "#87958c",
+    "y": 5966.73,
+    "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "2, 5",
+   "text": "não é limitado. Não é pacing de pacotes, SQM/CAKE nem controle da fila da operadora. Informe taxas autorizadas; velocidade da placa não é upload medido.",
+   "id": "screen-427"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 86,
+    "y": 5990.53,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Outra política global existente recusa a aplicação; DSCP de políticas anteriores é preservado.",
+   "id": "screen-428"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 86,
+    "y": 6030.33,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Jogo alvo isento: AION 2 · 4 processos · 2 executáveis. Todos os executáveis do jogo ficam fora do limite, identificados pelo caminho (os PIDs mudam a cada",
    "id": "screen-429"
   },
   {
-   "type": "rect",
+   "type": "text",
    "attributes": {
-    "x": 834.25,
-    "y": 5771.42,
-    "width": 244.75,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
+    "x": 86,
+    "y": 6054.12,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
     "opacity": 1
    },
+   "text": "abertura) e revalidados pelo host.",
    "id": "screen-430"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 848.25,
-    "y": 5795.78,
+    "x": 86,
+    "y": 6102.95,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
-    "font-weight": "600",
+    "font-weight": "400",
     "opacity": 1
    },
-   "text": "Aprender e aplicar · taxas autorizadas",
+   "text": "Limite do sistema em MB/s",
    "id": "screen-431"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 67,
-    "y": 5849.63,
-    "width": 258.78,
-    "height": 40,
+    "x": 242.05,
+    "y": 6078,
+    "width": 655.56,
+    "height": 42.39,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
@@ -6245,23 +6247,23 @@
   {
    "type": "text",
    "attributes": {
-    "x": 81,
-    "y": 5873.99,
-    "fill": "rgb(245, 247, 251)",
+    "x": 255.05,
+    "y": 6104.2,
+    "fill": "#87958c",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 0.48
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
    },
-   "text": "Parar aprendizado e restaurar referência",
+   "text": "5",
    "id": "screen-433"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 325.78,
-    "y": 5849.63,
-    "width": 302.13,
+    "x": 909.61,
+    "y": 6079.19,
+    "width": 169.39,
     "height": 40,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
@@ -6274,8 +6276,138 @@
   {
    "type": "text",
    "attributes": {
+    "x": 923.61,
+    "y": 6103.55,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Aplicar limite do sistema",
+   "id": "screen-435"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 86,
+    "y": 6157.34,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Taxas autorizadas em MB/s, separadas por vírgula (mínimo duas; exige jogo alvo)",
+   "id": "screen-436"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 534.88,
+    "y": 6132.39,
+    "width": 287.38,
+    "height": 42.39,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-437"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 547.88,
+    "y": 6158.59,
+    "fill": "#87958c",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "2, 5",
+   "id": "screen-438"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 834.25,
+    "y": 6133.58,
+    "width": 244.75,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-439"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 848.25,
+    "y": 6157.94,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Aprender e aplicar · taxas autorizadas",
+   "id": "screen-440"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 67,
+    "y": 6211.78,
+    "width": 258.78,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-441"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 81,
+    "y": 6236.14,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 0.48
+   },
+   "text": "Parar aprendizado e restaurar referência",
+   "id": "screen-442"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 325.78,
+    "y": 6211.78,
+    "width": 302.13,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-443"
+  },
+  {
+   "type": "text",
+   "attributes": {
     "x": 339.78,
-    "y": 5873.99,
+    "y": 6236.14,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -6283,13 +6415,13 @@
     "opacity": 1
    },
    "text": "Remover todos os ajustes de rede desta sessão",
-   "id": "screen-435"
+   "id": "screen-444"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 627.91,
-    "y": 5849.63,
+    "y": 6211.78,
     "width": 180.06,
     "height": 40,
     "rx": 8,
@@ -6298,13 +6430,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-436"
+   "id": "screen-445"
   },
   {
    "type": "text",
    "attributes": {
     "x": 641.91,
-    "y": 5873.99,
+    "y": 6236.14,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -6312,13 +6444,13 @@
     "opacity": 0.48
    },
    "text": "Remover limite do sistema",
-   "id": "screen-437"
+   "id": "screen-446"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 5927.99,
+    "y": 6290.14,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
@@ -6326,13 +6458,13 @@
     "opacity": 1
    },
    "text": "ROTAS REGISTRADAS NESTA SESSÃO",
-   "id": "screen-438"
+   "id": "screen-447"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 5958.73,
+    "y": 6320.89,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -6340,13 +6472,13 @@
     "opacity": 1
    },
    "text": "Nenhuma rota host própria registrada.",
-   "id": "screen-439"
+   "id": "screen-448"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6004.97,
+    "y": 6367.13,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
@@ -6354,13 +6486,13 @@
     "opacity": 1
    },
    "text": "APRENDIZADO ONLINE · ICMP, NÃO LATÊNCIA DE ENVIO",
-   "id": "screen-440"
+   "id": "screen-449"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6035.72,
+    "y": 6397.87,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -6368,13 +6500,13 @@
     "opacity": 1
    },
    "text": "Flow 9→16→1 em memória por rota/taxa realmente medida. Previsões ordenam candidatos; nunca confirmam ganho. Sem previsão para gateways/taxas nunca",
-   "id": "screen-441"
+   "id": "screen-450"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6059.51,
+    "y": 6421.67,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -6382,13 +6514,13 @@
     "opacity": 1
    },
    "text": "medidos. Mesmos PIDs/IP, rota e origem confirmadas ao redor da sonda; timeout não é 0 ms. Três respostas por janela, referência antes/depois, melhora acima de",
-   "id": "screen-442"
+   "id": "screen-451"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6083.31,
+    "y": 6445.47,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -6396,13 +6528,13 @@
     "opacity": 1
    },
    "text": "10% e 3 ms sem sobreposição e dois pares favoráveis antes de promover. Revalida continuamente; regressão/erro pede restauração. Incerteza é descritiva, não",
-   "id": "screen-443"
+   "id": "screen-452"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6107.11,
+    "y": 6469.26,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -6410,13 +6542,13 @@
     "opacity": 1
    },
    "text": "intervalo estatístico. Variações de cena/rede não provam causalidade. Rotas e taxas não são treinadas juntas.",
-   "id": "screen-444"
+   "id": "screen-453"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 0,
-    "y": 6272,
+    "y": 6634,
     "width": 1165,
     "height": 1446.06,
     "rx": 0,
@@ -6425,13 +6557,13 @@
     "stroke-width": 0,
     "opacity": 1
    },
-   "id": "screen-445"
+   "id": "screen-454"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 6300,
+    "y": 6662,
     "width": 1085,
     "height": 132.5,
     "rx": 16,
@@ -6440,13 +6572,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-446"
+   "id": "screen-455"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 65,
-    "y": 6318.25,
+    "y": 6680.25,
     "width": 44,
     "height": 44,
     "rx": 12,
@@ -6455,13 +6587,13 @@
     "stroke-width": 0,
     "opacity": 1
    },
-   "id": "screen-447"
+   "id": "screen-456"
   },
   {
    "type": "text",
    "attributes": {
     "x": 76.27,
-    "y": 6345.89,
+    "y": 6707.89,
     "fill": "rgb(7, 9, 15)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 13,
@@ -6469,13 +6601,13 @@
     "opacity": 1
    },
    "text": "APO",
-   "id": "screen-448"
+   "id": "screen-457"
   },
   {
    "type": "text",
    "attributes": {
     "x": 123,
-    "y": 6328.8,
+    "y": 6690.8,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6483,13 +6615,13 @@
     "opacity": 1
    },
    "text": "PAINEL DE CONTROLE",
-   "id": "screen-449"
+   "id": "screen-458"
   },
   {
    "type": "text",
    "attributes": {
     "x": 123,
-    "y": 6357.16,
+    "y": 6719.16,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 22,
@@ -6497,13 +6629,13 @@
     "opacity": 1
    },
    "text": "RINTEL RAPO",
-   "id": "screen-450"
+   "id": "screen-459"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 848.78,
-    "y": 6327.75,
+    "y": 6689.75,
     "width": 140.66,
     "height": 25,
     "rx": 6,
@@ -6512,13 +6644,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-451"
+   "id": "screen-460"
   },
   {
    "type": "text",
    "attributes": {
     "x": 858.78,
-    "y": 6344.55,
+    "y": 6706.55,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6526,13 +6658,13 @@
     "opacity": 1
    },
    "text": "AGENDAMENTO WINDOWS",
-   "id": "screen-452"
+   "id": "screen-461"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 997.44,
-    "y": 6327.75,
+    "y": 6689.75,
     "width": 102.56,
     "height": 25,
     "rx": 6,
@@ -6541,13 +6673,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-453"
+   "id": "screen-462"
   },
   {
    "type": "text",
    "attributes": {
     "x": 1007.44,
-    "y": 6344.55,
+    "y": 6706.55,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6555,13 +6687,13 @@
     "opacity": 1
    },
    "text": "ATIVO (START)",
-   "id": "screen-454"
+   "id": "screen-463"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 65,
-    "y": 6383,
+    "y": 6745,
     "width": 153.36,
     "height": 25,
     "rx": 6,
@@ -6570,13 +6702,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-455"
+   "id": "screen-464"
   },
   {
    "type": "text",
    "attributes": {
     "x": 75,
-    "y": 6399.8,
+    "y": 6761.8,
     "fill": "rgb(240, 207, 137)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6584,148 +6716,17 @@
     "opacity": 1
    },
    "text": "INTEL DTT EM EXECUÇÃO",
-   "id": "screen-456"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 228.36,
-    "y": 6375.5,
-    "width": 78.69,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-457"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 242.36,
-    "y": 6399.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Atualizar",
-   "id": "screen-458"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 317.05,
-    "y": 6375.5,
-    "width": 135.39,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-459"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 331.05,
-    "y": 6399.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Reexaminar Steam",
-   "id": "screen-460"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 462.44,
-    "y": 6375.5,
-    "width": 148.69,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-461"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 476.44,
-    "y": 6399.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Configuração padrão",
-   "id": "screen-462"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 621.13,
-    "y": 6375.5,
-    "width": 65.2,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(245, 247, 251)",
-    "stroke": "rgb(245, 247, 251)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-463"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 635.13,
-    "y": 6399.86,
-    "fill": "rgb(16, 23, 19)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "⏹ Stop",
-   "id": "screen-464"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 6452.5,
-    "width": 1085,
-    "height": 125,
-    "rx": 0,
-    "fill": "rgb(7, 9, 15)",
-    "stroke": "none",
-    "stroke-width": 0,
-    "opacity": 1
-   },
    "id": "screen-465"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 40,
-    "y": 6460.5,
-    "width": 1085,
-    "height": 61,
-    "rx": 12,
-    "fill": "rgb(12, 15, 22)",
+    "x": 228.36,
+    "y": 6737.5,
+    "width": 78.69,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
@@ -6735,8 +6736,139 @@
   {
    "type": "text",
    "attributes": {
+    "x": 242.36,
+    "y": 6761.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Atualizar",
+   "id": "screen-467"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 317.05,
+    "y": 6737.5,
+    "width": 135.39,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-468"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 331.05,
+    "y": 6761.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Reexaminar Steam",
+   "id": "screen-469"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 462.44,
+    "y": 6737.5,
+    "width": 148.69,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-470"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 476.44,
+    "y": 6761.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Configuração padrão",
+   "id": "screen-471"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 621.13,
+    "y": 6737.5,
+    "width": 65.2,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(245, 247, 251)",
+    "stroke": "rgb(245, 247, 251)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-472"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 635.13,
+    "y": 6761.86,
+    "fill": "rgb(16, 23, 19)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "⏹ Stop",
+   "id": "screen-473"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 6814.5,
+    "width": 1085,
+    "height": 125,
+    "rx": 0,
+    "fill": "rgb(7, 9, 15)",
+    "stroke": "none",
+    "stroke-width": 0,
+    "opacity": 1
+   },
+   "id": "screen-474"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 6822.5,
+    "width": 1085,
+    "height": 61,
+    "rx": 12,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-475"
+  },
+  {
+   "type": "text",
+   "attributes": {
     "x": 61,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6744,13 +6876,13 @@
     "opacity": 1
    },
    "text": "CPU",
-   "id": "screen-467"
+   "id": "screen-476"
   },
   {
    "type": "text",
    "attributes": {
     "x": 61,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6758,13 +6890,13 @@
     "opacity": 1
    },
    "text": "34.5%",
-   "id": "screen-468"
+   "id": "screen-477"
   },
   {
    "type": "text",
    "attributes": {
     "x": 130.05,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6772,13 +6904,13 @@
     "opacity": 1
    },
    "text": "GPU",
-   "id": "screen-469"
+   "id": "screen-478"
   },
   {
    "type": "text",
    "attributes": {
     "x": 130.05,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6786,13 +6918,13 @@
     "opacity": 1
    },
    "text": "78.0%",
-   "id": "screen-470"
+   "id": "screen-479"
   },
   {
    "type": "text",
    "attributes": {
     "x": 199.09,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6800,13 +6932,13 @@
     "opacity": 1
    },
    "text": "MEMÓRIA",
-   "id": "screen-471"
+   "id": "screen-480"
   },
   {
    "type": "text",
    "attributes": {
     "x": 199.09,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6814,13 +6946,13 @@
     "opacity": 1
    },
    "text": "9.2 GB",
-   "id": "screen-472"
+   "id": "screen-481"
   },
   {
    "type": "text",
    "attributes": {
     "x": 274.7,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6828,13 +6960,13 @@
     "opacity": 1
    },
    "text": "REDE",
-   "id": "screen-473"
+   "id": "screen-482"
   },
   {
    "type": "text",
    "attributes": {
     "x": 274.7,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6842,13 +6974,13 @@
     "opacity": 1
    },
    "text": "2300.0 KB/s",
-   "id": "screen-474"
+   "id": "screen-483"
   },
   {
    "type": "text",
    "attributes": {
     "x": 383.63,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6856,13 +6988,13 @@
     "opacity": 1
    },
    "text": "PING DO JOGO",
-   "id": "screen-475"
+   "id": "screen-484"
   },
   {
    "type": "text",
    "attributes": {
     "x": 383.63,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6870,13 +7002,13 @@
     "opacity": 1
    },
    "text": "16 ms",
-   "id": "screen-476"
+   "id": "screen-485"
   },
   {
    "type": "text",
    "attributes": {
     "x": 493.23,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6884,13 +7016,13 @@
     "opacity": 1
    },
    "text": "RELAY",
-   "id": "screen-477"
+   "id": "screen-486"
   },
   {
    "type": "text",
    "attributes": {
     "x": 493.23,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6898,13 +7030,13 @@
     "opacity": 1
    },
    "text": "HY2 ativo",
-   "id": "screen-478"
+   "id": "screen-487"
   },
   {
    "type": "text",
    "attributes": {
     "x": 1076.8,
-    "y": 6482.3,
+    "y": 6844.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -6912,13 +7044,13 @@
     "opacity": 1
    },
    "text": "ALVO",
-   "id": "screen-479"
+   "id": "screen-488"
   },
   {
    "type": "text",
    "attributes": {
     "x": 853,
-    "y": 6503.2,
+    "y": 6865.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -6926,13 +7058,13 @@
     "opacity": 1
    },
    "text": "AION 2 · 4 processos · 2 executáveis",
-   "id": "screen-480"
+   "id": "screen-489"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 6529.5,
+    "y": 6891.5,
     "width": 1085,
     "height": 48,
     "rx": 12,
@@ -6941,13 +7073,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-481"
+   "id": "screen-490"
   },
   {
    "type": "text",
    "attributes": {
     "x": 118.17,
-    "y": 6557.86,
+    "y": 6919.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -6955,13 +7087,13 @@
     "opacity": 1
    },
    "text": "Visão geral",
-   "id": "screen-482"
+   "id": "screen-491"
   },
   {
    "type": "text",
    "attributes": {
     "x": 351.61,
-    "y": 6557.86,
+    "y": 6919.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -6969,13 +7101,13 @@
     "opacity": 1
    },
    "text": "Rede",
-   "id": "screen-483"
+   "id": "screen-492"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 477.39,
-    "y": 6534.5,
+    "y": 6896.5,
     "width": 210.2,
     "height": 38,
     "rx": 8,
@@ -6984,13 +7116,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-484"
+   "id": "screen-493"
   },
   {
    "type": "text",
    "attributes": {
     "x": 567.48,
-    "y": 6557.86,
+    "y": 6919.86,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -6998,13 +7130,13 @@
     "opacity": 1
    },
    "text": "Perfil",
-   "id": "screen-485"
+   "id": "screen-494"
   },
   {
    "type": "text",
    "attributes": {
     "x": 775.67,
-    "y": 6557.86,
+    "y": 6919.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7012,13 +7144,13 @@
     "opacity": 1
    },
    "text": "Sistema",
-   "id": "screen-486"
+   "id": "screen-495"
   },
   {
    "type": "text",
    "attributes": {
     "x": 997.22,
-    "y": 6557.86,
+    "y": 6919.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7026,13 +7158,13 @@
     "opacity": 1
    },
    "text": "Jogos",
-   "id": "screen-487"
+   "id": "screen-496"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 6597.5,
+    "y": 6959.5,
     "width": 1085,
     "height": 671.03,
     "rx": 16,
@@ -7041,13 +7173,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-488"
+   "id": "screen-497"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6638.86,
+    "y": 7000.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
@@ -7055,13 +7187,13 @@
     "opacity": 1
    },
    "text": "PERFIL EM USO · AION 2 · PID 4812",
-   "id": "screen-489"
+   "id": "screen-498"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6686.07,
+    "y": 7048.07,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 21,
@@ -7069,13 +7201,13 @@
     "opacity": 1
    },
    "text": "Perfil aprendido",
-   "id": "screen-490"
+   "id": "screen-499"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6725.3,
+    "y": 7087.3,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -7083,13 +7215,13 @@
     "opacity": 1
    },
    "text": "AJUSTES ATIVOS NESTE PROCESSO",
-   "id": "screen-491"
+   "id": "screen-500"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 67,
-    "y": 6749.77,
+    "y": 7111.77,
     "width": 116.72,
     "height": 37.19,
     "rx": 6,
@@ -7098,13 +7230,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-492"
+   "id": "screen-501"
   },
   {
    "type": "text",
    "attributes": {
     "x": 80,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7112,13 +7244,13 @@
     "opacity": 1
    },
    "text": "Prioridade:",
-   "id": "screen-493"
+   "id": "screen-502"
   },
   {
    "type": "text",
    "attributes": {
     "x": 141.38,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7126,13 +7258,13 @@
     "opacity": 1
    },
    "text": "Ativa",
-   "id": "screen-494"
+   "id": "screen-503"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 191.72,
-    "y": 6749.77,
+    "y": 7111.77,
     "width": 180.77,
     "height": 37.19,
     "rx": 6,
@@ -7141,13 +7273,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-495"
+   "id": "screen-504"
   },
   {
    "type": "text",
    "attributes": {
     "x": 204.72,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7155,13 +7287,13 @@
     "opacity": 1
    },
    "text": "Afinidade:",
-   "id": "screen-496"
+   "id": "screen-505"
   },
   {
    "type": "text",
    "attributes": {
     "x": 261.44,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7169,13 +7301,13 @@
     "opacity": 1
    },
    "text": "4 threads fixadas",
-   "id": "screen-497"
+   "id": "screen-506"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 380.48,
-    "y": 6749.77,
+    "y": 7111.77,
     "width": 208.08,
     "height": 37.19,
     "rx": 6,
@@ -7184,13 +7316,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-498"
+   "id": "screen-507"
   },
   {
    "type": "text",
    "attributes": {
     "x": 393.48,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7198,13 +7330,13 @@
     "opacity": 1
    },
    "text": "Memória / EcoQoS:",
-   "id": "screen-499"
+   "id": "screen-508"
   },
   {
    "type": "text",
    "attributes": {
     "x": 501.53,
-    "y": 6772.13,
+    "y": 7134.13,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7212,13 +7344,13 @@
     "opacity": 1
    },
    "text": "Não aplicada",
-   "id": "screen-500"
+   "id": "screen-509"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6825.31,
+    "y": 7187.31,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
@@ -7226,13 +7358,13 @@
     "opacity": 1
    },
    "text": "CONFIGURAÇÃO SELECIONADA",
-   "id": "screen-501"
+   "id": "screen-510"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6856.06,
+    "y": 7218.06,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -7240,13 +7372,13 @@
     "opacity": 1
    },
    "text": "Os campos abaixo são a configuração solicitada. O estado acima mostra os ajustes aplicados pelo RAPO; pausa, falta de foco ou acesso negado podem impedir a",
-   "id": "screen-502"
+   "id": "screen-511"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 6879.86,
+    "y": 7241.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 14,
@@ -7254,13 +7386,13 @@
     "opacity": 1
    },
    "text": "aplicação.",
-   "id": "screen-503"
+   "id": "screen-512"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 67,
-    "y": 6905.73,
+    "y": 7267.73,
     "width": 247.25,
     "height": 115.8,
     "rx": 10,
@@ -7269,13 +7401,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-504"
+   "id": "screen-513"
   },
   {
    "type": "text",
    "attributes": {
     "x": 88,
-    "y": 6936.53,
+    "y": 7298.53,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -7283,13 +7415,13 @@
     "opacity": 1
    },
    "text": "PRIORIDADE DO PROCESSO",
-   "id": "screen-505"
+   "id": "screen-514"
   },
   {
    "type": "text",
    "attributes": {
     "x": 88,
-    "y": 6968.33,
+    "y": 7330.33,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
@@ -7297,13 +7429,13 @@
     "opacity": 1
    },
    "text": "Ativado",
-   "id": "screen-506"
+   "id": "screen-515"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 328.25,
-    "y": 6905.73,
+    "y": 7267.73,
     "width": 247.25,
     "height": 115.8,
     "rx": 10,
@@ -7312,13 +7444,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-507"
+   "id": "screen-516"
   },
   {
    "type": "text",
    "attributes": {
     "x": 349.25,
-    "y": 6936.53,
+    "y": 7298.53,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -7326,13 +7458,13 @@
     "opacity": 1
    },
    "text": "AFINIDADE DE CPU",
-   "id": "screen-508"
+   "id": "screen-517"
   },
   {
    "type": "text",
    "attributes": {
     "x": 349.25,
-    "y": 6968.33,
+    "y": 7330.33,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
@@ -7340,13 +7472,13 @@
     "opacity": 1
    },
    "text": "Ativado",
-   "id": "screen-509"
+   "id": "screen-518"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 589.5,
-    "y": 6905.73,
+    "y": 7267.73,
     "width": 247.25,
     "height": 115.8,
     "rx": 10,
@@ -7355,13 +7487,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-510"
+   "id": "screen-519"
   },
   {
    "type": "text",
    "attributes": {
     "x": 610.5,
-    "y": 6936.53,
+    "y": 7298.53,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -7369,13 +7501,13 @@
     "opacity": 1
    },
    "text": "MEMÓRIA / ECOQOS",
-   "id": "screen-511"
+   "id": "screen-520"
   },
   {
    "type": "text",
    "attributes": {
     "x": 610.5,
-    "y": 6968.33,
+    "y": 7330.33,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
@@ -7383,13 +7515,13 @@
     "opacity": 1
    },
    "text": "Desativado",
-   "id": "screen-512"
+   "id": "screen-521"
   },
   {
    "type": "text",
    "attributes": {
     "x": 610.5,
-    "y": 6996.09,
+    "y": 7358.09,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7397,144 +7529,15 @@
     "opacity": 1
    },
    "text": "Sem efeito neste perfil",
-   "id": "screen-513"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 850.75,
-    "y": 6905.73,
-    "width": 247.25,
-    "height": 115.8,
-    "rx": 10,
-    "fill": "none",
-    "stroke": "rgb(60, 92, 71)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-514"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 871.75,
-    "y": 6936.53,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "THREADS CRÍTICAS (LIMITE)",
-   "id": "screen-515"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 871.75,
-    "y": 6968.33,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 20,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "4",
-   "id": "screen-516"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 67,
-    "y": 7035.53,
-    "width": 247.25,
-    "height": 88,
-    "rx": 10,
-    "fill": "none",
-    "stroke": "rgb(60, 92, 71)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-517"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 88,
-    "y": 7066.33,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "NÚCLEOS FÍSICOS (LIMITE)",
-   "id": "screen-518"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 88,
-    "y": 7098.13,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 20,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "8",
-   "id": "screen-519"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 328.25,
-    "y": 7035.53,
-    "width": 247.25,
-    "height": 88,
-    "rx": 10,
-    "fill": "none",
-    "stroke": "rgb(60, 92, 71)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-520"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 349.25,
-    "y": 7066.33,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "LIMIAR DE CPU (%)",
-   "id": "screen-521"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 349.25,
-    "y": 7098.13,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 20,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "5",
    "id": "screen-522"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 589.5,
-    "y": 7035.53,
+    "x": 850.75,
+    "y": 7267.73,
     "width": 247.25,
-    "height": 88,
+    "height": 115.8,
     "rx": 10,
     "fill": "none",
     "stroke": "rgb(60, 92, 71)",
@@ -7546,36 +7549,36 @@
   {
    "type": "text",
    "attributes": {
-    "x": 610.5,
-    "y": 7066.33,
+    "x": 871.75,
+    "y": 7298.53,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
     "font-weight": "500",
     "opacity": 1
    },
-   "text": "NÚCLEOS ELEGÍVEIS",
+   "text": "THREADS CRÍTICAS (LIMITE)",
    "id": "screen-524"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 610.5,
-    "y": 7098.13,
+    "x": 871.75,
+    "y": 7330.33,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "Somente P-cores",
+   "text": "4",
    "id": "screen-525"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 850.75,
-    "y": 7035.53,
+    "x": 67,
+    "y": 7397.53,
     "width": 247.25,
     "height": 88,
     "rx": 10,
@@ -7589,38 +7592,38 @@
   {
    "type": "text",
    "attributes": {
-    "x": 871.75,
-    "y": 7066.33,
+    "x": 88,
+    "y": 7428.33,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
     "font-weight": "500",
     "opacity": 1
    },
-   "text": "PERMITIR IRMÃOS SMT / HT",
+   "text": "NÚCLEOS FÍSICOS (LIMITE)",
    "id": "screen-527"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 871.75,
-    "y": 7098.13,
+    "x": 88,
+    "y": 7460.13,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "Ativado",
+   "text": "8",
    "id": "screen-528"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 67,
-    "y": 7137.53,
+    "x": 328.25,
+    "y": 7397.53,
     "width": 247.25,
-    "height": 104,
+    "height": 88,
     "rx": 10,
     "fill": "none",
     "stroke": "rgb(60, 92, 71)",
@@ -7632,8 +7635,137 @@
   {
    "type": "text",
    "attributes": {
+    "x": 349.25,
+    "y": 7428.33,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "LIMIAR DE CPU (%)",
+   "id": "screen-530"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 349.25,
+    "y": 7460.13,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 20,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "5",
+   "id": "screen-531"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 589.5,
+    "y": 7397.53,
+    "width": 247.25,
+    "height": 88,
+    "rx": 10,
+    "fill": "none",
+    "stroke": "rgb(60, 92, 71)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-532"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 610.5,
+    "y": 7428.33,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "NÚCLEOS ELEGÍVEIS",
+   "id": "screen-533"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 610.5,
+    "y": 7460.13,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 20,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Somente P-cores",
+   "id": "screen-534"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 850.75,
+    "y": 7397.53,
+    "width": 247.25,
+    "height": 88,
+    "rx": 10,
+    "fill": "none",
+    "stroke": "rgb(60, 92, 71)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-535"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 871.75,
+    "y": 7428.33,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "PERMITIR IRMÃOS SMT / HT",
+   "id": "screen-536"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 871.75,
+    "y": 7460.13,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 20,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Ativado",
+   "id": "screen-537"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 67,
+    "y": 7499.53,
+    "width": 247.25,
+    "height": 104,
+    "rx": 10,
+    "fill": "none",
+    "stroke": "rgb(60, 92, 71)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-538"
+  },
+  {
+   "type": "text",
+   "attributes": {
     "x": 88,
-    "y": 7168.33,
+    "y": 7530.33,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -7641,13 +7773,13 @@
     "opacity": 1
    },
    "text": "RESTRINGIR PROCESSO AOS",
-   "id": "screen-530"
+   "id": "screen-539"
   },
   {
    "type": "text",
    "attributes": {
     "x": 88,
-    "y": 7184.33,
+    "y": 7546.33,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -7655,13 +7787,13 @@
     "opacity": 1
    },
    "text": "NÚCLEOS ALOCADOS",
-   "id": "screen-531"
+   "id": "screen-540"
   },
   {
    "type": "text",
    "attributes": {
     "x": 88,
-    "y": 7216.13,
+    "y": 7578.13,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 20,
@@ -7669,13 +7801,13 @@
     "opacity": 1
    },
    "text": "Desativado",
-   "id": "screen-532"
+   "id": "screen-541"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 7288.53,
+    "y": 7650.53,
     "width": 1085,
     "height": 361.53,
     "rx": 16,
@@ -7684,13 +7816,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-533"
+   "id": "screen-542"
   },
   {
    "type": "text",
    "attributes": {
     "x": 67,
-    "y": 7329.89,
+    "y": 7691.89,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
@@ -7698,13 +7830,13 @@
     "opacity": 1
    },
    "text": "OPÇÕES E DIRETRIZES DE AGENDAMENTO",
-   "id": "screen-534"
+   "id": "screen-543"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 67,
-    "y": 7352.72,
+    "y": 7714.72,
     "width": 335.66,
     "height": 102.17,
     "rx": 10,
@@ -7713,13 +7845,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-535"
+   "id": "screen-544"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 86,
-    "y": 7373.72,
+    "y": 7735.72,
     "width": 35,
     "height": 20,
     "rx": 10,
@@ -7728,24 +7860,24 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-536"
+   "id": "screen-545"
   },
   {
    "type": "circle",
    "attributes": {
     "cx": 111,
-    "cy": 7383.72,
+    "cy": 7745.72,
     "r": 7,
     "fill": "#65e5d1",
     "opacity": 1
    },
-   "id": "screen-537"
+   "id": "screen-546"
   },
   {
    "type": "text",
    "attributes": {
     "x": 138,
-    "y": 7385.86,
+    "y": 7747.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 13,
@@ -7753,13 +7885,13 @@
     "opacity": 1
    },
    "text": "Auto-Yield (afinidade)",
-   "id": "screen-538"
+   "id": "screen-547"
   },
   {
    "type": "text",
    "attributes": {
     "x": 138,
-    "y": 7410.88,
+    "y": 7772.88,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7767,13 +7899,13 @@
     "opacity": 1
    },
    "text": "Cede afinidade se outro programa mudar a",
-   "id": "screen-539"
+   "id": "screen-548"
   },
   {
    "type": "text",
    "attributes": {
     "x": 138,
-    "y": 7430.06,
+    "y": 7792.06,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7781,13 +7913,13 @@
     "opacity": 1
    },
    "text": "máscara de uma thread já fixada",
-   "id": "screen-540"
+   "id": "screen-549"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 414.66,
-    "y": 7352.72,
+    "y": 7714.72,
     "width": 335.67,
     "height": 102.17,
     "rx": 10,
@@ -7796,13 +7928,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-541"
+   "id": "screen-550"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 433.66,
-    "y": 7373.72,
+    "y": 7735.72,
     "width": 35,
     "height": 20,
     "rx": 10,
@@ -7811,24 +7943,24 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-542"
+   "id": "screen-551"
   },
   {
    "type": "circle",
    "attributes": {
     "cx": 443.66,
-    "cy": 7383.72,
+    "cy": 7745.72,
     "r": 7,
     "fill": "#b1beb5",
     "opacity": 1
    },
-   "id": "screen-543"
+   "id": "screen-552"
   },
   {
    "type": "text",
    "attributes": {
     "x": 485.66,
-    "y": 7385.86,
+    "y": 7747.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 13,
@@ -7836,13 +7968,13 @@
     "opacity": 1
    },
    "text": "Manter ajustes em segundo plano",
-   "id": "screen-544"
+   "id": "screen-553"
   },
   {
    "type": "text",
    "attributes": {
     "x": 485.66,
-    "y": 7410.88,
+    "y": 7772.88,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7850,13 +7982,13 @@
     "opacity": 1
    },
    "text": "Mantém prioridade e afinidade mesmo com o",
-   "id": "screen-545"
+   "id": "screen-554"
   },
   {
    "type": "text",
    "attributes": {
     "x": 485.66,
-    "y": 7430.06,
+    "y": 7792.06,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7864,13 +7996,13 @@
     "opacity": 1
    },
    "text": "jogo fora de foco",
-   "id": "screen-546"
+   "id": "screen-555"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 762.33,
-    "y": 7352.72,
+    "y": 7714.72,
     "width": 335.66,
     "height": 102.17,
     "rx": 10,
@@ -7879,13 +8011,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-547"
+   "id": "screen-556"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 781.33,
-    "y": 7373.72,
+    "y": 7735.72,
     "width": 35,
     "height": 20,
     "rx": 10,
@@ -7894,24 +8026,24 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-548"
+   "id": "screen-557"
   },
   {
    "type": "circle",
    "attributes": {
     "cx": 806.33,
-    "cy": 7383.72,
+    "cy": 7745.72,
     "r": 7,
     "fill": "#65e5d1",
     "opacity": 1
    },
-   "id": "screen-549"
+   "id": "screen-558"
   },
   {
    "type": "text",
    "attributes": {
     "x": 833.33,
-    "y": 7385.86,
+    "y": 7747.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 13,
@@ -7919,13 +8051,13 @@
     "opacity": 1
    },
    "text": "Minimizar para a Barra de Ícones (Tray)",
-   "id": "screen-550"
+   "id": "screen-559"
   },
   {
    "type": "text",
    "attributes": {
     "x": 833.33,
-    "y": 7410.88,
+    "y": 7772.88,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7933,13 +8065,13 @@
     "opacity": 1
    },
    "text": "Oculta da barra de tarefas; menu Start/Stop",
-   "id": "screen-551"
+   "id": "screen-560"
   },
   {
    "type": "text",
    "attributes": {
     "x": 833.33,
-    "y": 7430.06,
+    "y": 7792.06,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7947,13 +8079,13 @@
     "opacity": 1
    },
    "text": "na bandeja",
-   "id": "screen-552"
+   "id": "screen-561"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 67,
-    "y": 7466.89,
+    "y": 7828.89,
     "width": 335.66,
     "height": 156.17,
     "rx": 10,
@@ -7962,13 +8094,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-553"
+   "id": "screen-562"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 7500.03,
+    "y": 7862.03,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 13,
@@ -7976,13 +8108,13 @@
     "opacity": 1
    },
    "text": "Privilégios de Administrador",
-   "id": "screen-554"
+   "id": "screen-563"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 7525.05,
+    "y": 7887.05,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -7990,13 +8122,13 @@
     "opacity": 1
    },
    "text": "Solicita UAC; reinicia para otimizar processos comuns",
-   "id": "screen-555"
+   "id": "screen-564"
   },
   {
    "type": "text",
    "attributes": {
     "x": 86,
-    "y": 7544.23,
+    "y": 7906.23,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -8004,13 +8136,13 @@
     "opacity": 1
    },
    "text": "protegidos",
-   "id": "screen-556"
+   "id": "screen-565"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 86,
-    "y": 7564.06,
+    "y": 7926.06,
     "width": 188.72,
     "height": 40,
     "rx": 8,
@@ -8019,13 +8151,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-557"
+   "id": "screen-566"
   },
   {
    "type": "text",
    "attributes": {
     "x": 100,
-    "y": 7588.42,
+    "y": 7950.42,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -8033,28 +8165,28 @@
     "opacity": 1
    },
    "text": "Reabrir como administrador",
-   "id": "screen-558"
+   "id": "screen-567"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 0,
-    "y": 7766,
+    "y": 8128,
     "width": 1165,
-    "height": 938.31,
+    "height": 1852.31,
     "rx": 0,
     "fill": "rgb(7, 9, 15)",
     "stroke": "none",
     "stroke-width": 0,
     "opacity": 1
    },
-   "id": "screen-559"
+   "id": "screen-568"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 7794,
+    "y": 8156,
     "width": 1085,
     "height": 132.5,
     "rx": 16,
@@ -8063,13 +8195,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-560"
+   "id": "screen-569"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 65,
-    "y": 7812.25,
+    "y": 8174.25,
     "width": 44,
     "height": 44,
     "rx": 12,
@@ -8078,13 +8210,13 @@
     "stroke-width": 0,
     "opacity": 1
    },
-   "id": "screen-561"
+   "id": "screen-570"
   },
   {
    "type": "text",
    "attributes": {
     "x": 76.27,
-    "y": 7839.89,
+    "y": 8201.89,
     "fill": "rgb(7, 9, 15)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 13,
@@ -8092,13 +8224,13 @@
     "opacity": 1
    },
    "text": "APO",
-   "id": "screen-562"
+   "id": "screen-571"
   },
   {
    "type": "text",
    "attributes": {
     "x": 123,
-    "y": 7822.8,
+    "y": 8184.8,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -8106,13 +8238,13 @@
     "opacity": 1
    },
    "text": "PAINEL DE CONTROLE",
-   "id": "screen-563"
+   "id": "screen-572"
   },
   {
    "type": "text",
    "attributes": {
     "x": 123,
-    "y": 7851.16,
+    "y": 8213.16,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 22,
@@ -8120,13 +8252,13 @@
     "opacity": 1
    },
    "text": "RINTEL RAPO",
-   "id": "screen-564"
+   "id": "screen-573"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 848.78,
-    "y": 7821.75,
+    "y": 8183.75,
     "width": 140.66,
     "height": 25,
     "rx": 6,
@@ -8135,13 +8267,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-565"
+   "id": "screen-574"
   },
   {
    "type": "text",
    "attributes": {
     "x": 858.78,
-    "y": 7838.55,
+    "y": 8200.55,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -8149,13 +8281,13 @@
     "opacity": 1
    },
    "text": "AGENDAMENTO WINDOWS",
-   "id": "screen-566"
+   "id": "screen-575"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 997.44,
-    "y": 7821.75,
+    "y": 8183.75,
     "width": 102.56,
     "height": 25,
     "rx": 6,
@@ -8164,13 +8296,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-567"
+   "id": "screen-576"
   },
   {
    "type": "text",
    "attributes": {
     "x": 1007.44,
-    "y": 7838.55,
+    "y": 8200.55,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -8178,13 +8310,13 @@
     "opacity": 1
    },
    "text": "ATIVO (START)",
-   "id": "screen-568"
+   "id": "screen-577"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 65,
-    "y": 7877,
+    "y": 8239,
     "width": 153.36,
     "height": 25,
     "rx": 6,
@@ -8193,13 +8325,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-569"
+   "id": "screen-578"
   },
   {
    "type": "text",
    "attributes": {
     "x": 75,
-    "y": 7893.8,
+    "y": 8255.8,
     "fill": "rgb(240, 207, 137)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -8207,148 +8339,17 @@
     "opacity": 1
    },
    "text": "INTEL DTT EM EXECUÇÃO",
-   "id": "screen-570"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 228.36,
-    "y": 7869.5,
-    "width": 78.69,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-571"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 242.36,
-    "y": 7893.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Atualizar",
-   "id": "screen-572"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 317.05,
-    "y": 7869.5,
-    "width": 135.39,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-573"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 331.05,
-    "y": 7893.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Reexaminar Steam",
-   "id": "screen-574"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 462.44,
-    "y": 7869.5,
-    "width": 148.69,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-575"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 476.44,
-    "y": 7893.86,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Configuração padrão",
-   "id": "screen-576"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 621.13,
-    "y": 7869.5,
-    "width": 65.2,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(245, 247, 251)",
-    "stroke": "rgb(245, 247, 251)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-577"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 635.13,
-    "y": 7893.86,
-    "fill": "rgb(16, 23, 19)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "⏹ Stop",
-   "id": "screen-578"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 7946.5,
-    "width": 1085,
-    "height": 125,
-    "rx": 0,
-    "fill": "rgb(7, 9, 15)",
-    "stroke": "none",
-    "stroke-width": 0,
-    "opacity": 1
-   },
    "id": "screen-579"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 40,
-    "y": 7954.5,
-    "width": 1085,
-    "height": 61,
-    "rx": 12,
-    "fill": "rgb(12, 15, 22)",
+    "x": 228.36,
+    "y": 8231.5,
+    "width": 78.69,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
@@ -8358,772 +8359,8 @@
   {
    "type": "text",
    "attributes": {
-    "x": 61,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "CPU",
-   "id": "screen-581"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 61,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "34.5%",
-   "id": "screen-582"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 130.05,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "GPU",
-   "id": "screen-583"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 130.05,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "78.0%",
-   "id": "screen-584"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 199.09,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "MEMÓRIA",
-   "id": "screen-585"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 199.09,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "9.2 GB",
-   "id": "screen-586"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 274.7,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "REDE",
-   "id": "screen-587"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 274.7,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "2300.0 KB/s",
-   "id": "screen-588"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 383.63,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "PING DO JOGO",
-   "id": "screen-589"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 383.63,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "16 ms",
-   "id": "screen-590"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 493.23,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "RELAY",
-   "id": "screen-591"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 493.23,
-    "y": 7997.2,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "HY2 ativo",
-   "id": "screen-592"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 1076.8,
-    "y": 7976.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "ALVO",
-   "id": "screen-593"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 853,
-    "y": 7997.2,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "AION 2 · 4 processos · 2 executáveis",
-   "id": "screen-594"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 8023.5,
-    "width": 1085,
-    "height": 48,
-    "rx": 12,
-    "fill": "rgb(12, 15, 22)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-595"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 118.17,
-    "y": 8051.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Visão geral",
-   "id": "screen-596"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 351.61,
-    "y": 8051.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Rede",
-   "id": "screen-597"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 567.48,
-    "y": 8051.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Perfil",
-   "id": "screen-598"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 693.59,
-    "y": 8028.5,
-    "width": 210.2,
-    "height": 38,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(82, 119, 95)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-599"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 775.67,
-    "y": 8051.86,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Sistema",
-   "id": "screen-600"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 997.22,
-    "y": 8051.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Jogos",
-   "id": "screen-601"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 8091.5,
-    "width": 1085,
-    "height": 200.47,
-    "rx": 16,
-    "fill": "rgb(12, 15, 22)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-602"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8132.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "PLANO DE ENERGIA ATIVO NO WINDOWS",
-   "id": "screen-603"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8180.07,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 21,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Desempenho Máximo",
-   "id": "screen-604"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8219.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "GUID:",
-   "id": "screen-605"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 110.78,
-    "y": 8219.74,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "e9a42b02-d5df-448d-aa00-03f14749eb61",
-   "id": "screen-606"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8257.09,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.",
-   "id": "screen-607"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 8311.97,
-    "width": 1085,
-    "height": 324.34,
-    "rx": 16,
-    "fill": "rgb(12, 15, 22)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-608"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8353.33,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "ENGINE.INI DO AION 2",
-   "id": "screen-609"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 68,
-    "y": 8378.16,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgb(37, 46, 40)",
-    "stroke": "rgb(88, 103, 94)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-610"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 78,
-    "cy": 8388.16,
-    "r": 7,
-    "fill": "#b1beb5",
-    "opacity": 1
-   },
-   "id": "screen-611"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 120,
-    "y": 8390.3,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 13,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "OFF · nenhuma linha do RAPO no Engine.ini",
-   "id": "screen-612"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 120,
-    "y": 8415.31,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Arquivo sem linhas do RAPO",
-   "id": "screen-613"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8437.5,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "C:\\Users\\Jogador\\AppData\\Local\\AION2\\Saved_Steam\\Config\\Windows\\Engine.ini",
-   "id": "screen-614"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 68,
-    "y": 8483.3,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "PERFIL SALVO",
-   "id": "screen-615"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 68,
-    "y": 8508.13,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgb(37, 46, 40)",
-    "stroke": "rgb(88, 103, 94)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-616"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 78,
-    "cy": 8518.13,
-    "r": 7,
-    "fill": "#b1beb5",
-    "opacity": 1
-   },
-   "id": "screen-617"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 118,
-    "y": 8520.49,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "Motion blur desligado ·",
-   "id": "screen-618"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 242.73,
-    "y": 8520.49,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 12,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "r.MotionBlurQuality=0",
-   "id": "screen-619"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 68,
-    "y": 8550.13,
-    "width": 1030,
-    "height": 45.19,
-    "rx": 8,
-    "fill": "rgb(17, 23, 19)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-620"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 95.7,
-    "y": 8576.49,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Como funciona",
-   "id": "screen-621"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 0,
-    "y": 8752,
-    "width": 1165,
-    "height": 669.89,
-    "rx": 0,
-    "fill": "rgb(7, 9, 15)",
-    "stroke": "none",
-    "stroke-width": 0,
-    "opacity": 1
-   },
-   "id": "screen-622"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 40,
-    "y": 8780,
-    "width": 1085,
-    "height": 132.5,
-    "rx": 16,
-    "fill": "rgb(12, 15, 22)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-623"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 65,
-    "y": 8798.25,
-    "width": 44,
-    "height": 44,
-    "rx": 12,
-    "fill": "rgb(101, 229, 209)",
-    "stroke": "none",
-    "stroke-width": 0,
-    "opacity": 1
-   },
-   "id": "screen-624"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 76.27,
-    "y": 8825.89,
-    "fill": "rgb(7, 9, 15)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 13,
-    "font-weight": "700",
-    "opacity": 1
-   },
-   "text": "APO",
-   "id": "screen-625"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 123,
-    "y": 8808.8,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "PAINEL DE CONTROLE",
-   "id": "screen-626"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 123,
-    "y": 8837.16,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 22,
-    "font-weight": "650",
-    "opacity": 1
-   },
-   "text": "RINTEL RAPO",
-   "id": "screen-627"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 848.78,
-    "y": 8807.75,
-    "width": 140.66,
-    "height": 25,
-    "rx": 6,
-    "fill": "rgb(27, 44, 33)",
-    "stroke": "rgb(54, 90, 67)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-628"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 858.78,
-    "y": 8824.55,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "AGENDAMENTO WINDOWS",
-   "id": "screen-629"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 997.44,
-    "y": 8807.75,
-    "width": 102.56,
-    "height": 25,
-    "rx": 6,
-    "fill": "rgb(27, 44, 33)",
-    "stroke": "rgb(54, 90, 67)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-630"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 1007.44,
-    "y": 8824.55,
-    "fill": "rgb(101, 229, 209)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "ATIVO (START)",
-   "id": "screen-631"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 65,
-    "y": 8863,
-    "width": 153.36,
-    "height": 25,
-    "rx": 6,
-    "fill": "rgb(41, 37, 27)",
-    "stroke": "rgb(91, 76, 48)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-632"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 75,
-    "y": 8879.8,
-    "fill": "rgb(240, 207, 137)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 10,
-    "font-weight": "500",
-    "opacity": 1
-   },
-   "text": "INTEL DTT EM EXECUÇÃO",
-   "id": "screen-633"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 228.36,
-    "y": 8855.5,
-    "width": 78.69,
-    "height": 40,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-634"
-  },
-  {
-   "type": "text",
-   "attributes": {
     "x": 242.36,
-    "y": 8879.86,
+    "y": 8255.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9131,13 +8368,13 @@
     "opacity": 1
    },
    "text": "Atualizar",
-   "id": "screen-635"
+   "id": "screen-581"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 317.05,
-    "y": 8855.5,
+    "y": 8231.5,
     "width": 135.39,
     "height": 40,
     "rx": 8,
@@ -9146,13 +8383,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-636"
+   "id": "screen-582"
   },
   {
    "type": "text",
    "attributes": {
     "x": 331.05,
-    "y": 8879.86,
+    "y": 8255.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9160,13 +8397,13 @@
     "opacity": 1
    },
    "text": "Reexaminar Steam",
-   "id": "screen-637"
+   "id": "screen-583"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 462.44,
-    "y": 8855.5,
+    "y": 8231.5,
     "width": 148.69,
     "height": 40,
     "rx": 8,
@@ -9175,13 +8412,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-638"
+   "id": "screen-584"
   },
   {
    "type": "text",
    "attributes": {
     "x": 476.44,
-    "y": 8879.86,
+    "y": 8255.86,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9189,13 +8426,13 @@
     "opacity": 1
    },
    "text": "Configuração padrão",
-   "id": "screen-639"
+   "id": "screen-585"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 621.13,
-    "y": 8855.5,
+    "y": 8231.5,
     "width": 65.2,
     "height": 40,
     "rx": 8,
@@ -9204,13 +8441,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-640"
+   "id": "screen-586"
   },
   {
    "type": "text",
    "attributes": {
     "x": 635.13,
-    "y": 8879.86,
+    "y": 8255.86,
     "fill": "rgb(16, 23, 19)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9218,13 +8455,13 @@
     "opacity": 1
    },
    "text": "⏹ Stop",
-   "id": "screen-641"
+   "id": "screen-587"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 8932.5,
+    "y": 8308.5,
     "width": 1085,
     "height": 125,
     "rx": 0,
@@ -9233,13 +8470,13 @@
     "stroke-width": 0,
     "opacity": 1
    },
-   "id": "screen-642"
+   "id": "screen-588"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 8940.5,
+    "y": 8316.5,
     "width": 1085,
     "height": 61,
     "rx": 12,
@@ -9248,13 +8485,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-643"
+   "id": "screen-589"
   },
   {
    "type": "text",
    "attributes": {
     "x": 61,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9262,13 +8499,13 @@
     "opacity": 1
    },
    "text": "CPU",
-   "id": "screen-644"
+   "id": "screen-590"
   },
   {
    "type": "text",
    "attributes": {
     "x": 61,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9276,13 +8513,13 @@
     "opacity": 1
    },
    "text": "34.5%",
-   "id": "screen-645"
+   "id": "screen-591"
   },
   {
    "type": "text",
    "attributes": {
     "x": 130.05,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9290,13 +8527,13 @@
     "opacity": 1
    },
    "text": "GPU",
-   "id": "screen-646"
+   "id": "screen-592"
   },
   {
    "type": "text",
    "attributes": {
     "x": 130.05,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9304,13 +8541,13 @@
     "opacity": 1
    },
    "text": "78.0%",
-   "id": "screen-647"
+   "id": "screen-593"
   },
   {
    "type": "text",
    "attributes": {
     "x": 199.09,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9318,13 +8555,13 @@
     "opacity": 1
    },
    "text": "MEMÓRIA",
-   "id": "screen-648"
+   "id": "screen-594"
   },
   {
    "type": "text",
    "attributes": {
     "x": 199.09,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9332,13 +8569,13 @@
     "opacity": 1
    },
    "text": "9.2 GB",
-   "id": "screen-649"
+   "id": "screen-595"
   },
   {
    "type": "text",
    "attributes": {
     "x": 274.7,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9346,13 +8583,13 @@
     "opacity": 1
    },
    "text": "REDE",
-   "id": "screen-650"
+   "id": "screen-596"
   },
   {
    "type": "text",
    "attributes": {
     "x": 274.7,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9360,13 +8597,13 @@
     "opacity": 1
    },
    "text": "2300.0 KB/s",
-   "id": "screen-651"
+   "id": "screen-597"
   },
   {
    "type": "text",
    "attributes": {
     "x": 383.63,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9374,13 +8611,13 @@
     "opacity": 1
    },
    "text": "PING DO JOGO",
-   "id": "screen-652"
+   "id": "screen-598"
   },
   {
    "type": "text",
    "attributes": {
     "x": 383.63,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9388,13 +8625,13 @@
     "opacity": 1
    },
    "text": "16 ms",
-   "id": "screen-653"
+   "id": "screen-599"
   },
   {
    "type": "text",
    "attributes": {
     "x": 493.23,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9402,13 +8639,13 @@
     "opacity": 1
    },
    "text": "RELAY",
-   "id": "screen-654"
+   "id": "screen-600"
   },
   {
    "type": "text",
    "attributes": {
     "x": 493.23,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9416,13 +8653,13 @@
     "opacity": 1
    },
    "text": "HY2 ativo",
-   "id": "screen-655"
+   "id": "screen-601"
   },
   {
    "type": "text",
    "attributes": {
     "x": 1076.8,
-    "y": 8962.3,
+    "y": 8338.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 10,
@@ -9430,13 +8667,13 @@
     "opacity": 1
    },
    "text": "ALVO",
-   "id": "screen-656"
+   "id": "screen-602"
   },
   {
    "type": "text",
    "attributes": {
     "x": 853,
-    "y": 8983.2,
+    "y": 8359.2,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 15,
@@ -9444,13 +8681,13 @@
     "opacity": 1
    },
    "text": "AION 2 · 4 processos · 2 executáveis",
-   "id": "screen-657"
+   "id": "screen-603"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 9009.5,
+    "y": 8385.5,
     "width": 1085,
     "height": 48,
     "rx": 12,
@@ -9459,13 +8696,13 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-658"
+   "id": "screen-604"
   },
   {
    "type": "text",
    "attributes": {
     "x": 118.17,
-    "y": 9037.86,
+    "y": 8413.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9473,13 +8710,13 @@
     "opacity": 1
    },
    "text": "Visão geral",
-   "id": "screen-659"
+   "id": "screen-605"
   },
   {
    "type": "text",
    "attributes": {
     "x": 351.61,
-    "y": 9037.86,
+    "y": 8413.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9487,13 +8724,13 @@
     "opacity": 1
    },
    "text": "Rede",
-   "id": "screen-660"
+   "id": "screen-606"
   },
   {
    "type": "text",
    "attributes": {
     "x": 567.48,
-    "y": 9037.86,
+    "y": 8413.86,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9501,27 +8738,13 @@
     "opacity": 1
    },
    "text": "Perfil",
-   "id": "screen-661"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 775.67,
-    "y": 9037.86,
-    "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 12,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Sistema",
-   "id": "screen-662"
+   "id": "screen-607"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 909.8,
-    "y": 9014.5,
+    "x": 693.59,
+    "y": 8390.5,
     "width": 210.2,
     "height": 38,
     "rx": 8,
@@ -9530,260 +8753,306 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-663"
+   "id": "screen-608"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 997.22,
-    "y": 9037.86,
+    "x": 775.67,
+    "y": 8413.86,
     "fill": "rgb(101, 229, 209)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "Jogos",
-   "id": "screen-664"
+   "text": "Sistema",
+   "id": "screen-609"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 40,
-    "y": 9110.47,
+    "x": 997.22,
+    "y": 8413.86,
     "fill": "rgb(162, 173, 185)",
-    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
-    "font-size": 11,
-    "font-weight": "400",
-    "opacity": 1
-   },
-   "text": "BUSCAR JOGO",
-   "id": "screen-665"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 131.86,
-    "y": 9085.5,
-    "width": 480,
-    "height": 42.39,
-    "rx": 8,
-    "fill": "rgb(16, 21, 29)",
-    "stroke": "rgb(37, 45, 55)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-666"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 144.86,
-    "y": 9111.7,
-    "fill": "#87958c",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 14,
-    "font-weight": "400",
+    "font-size": 12,
+    "font-weight": "600",
     "opacity": 1
    },
-   "text": "Buscar jogo na biblioteca Steam...",
-   "id": "screen-667"
+   "text": "Jogos",
+   "id": "screen-610"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 40,
-    "y": 9143.89,
+    "y": 8453.5,
     "width": 1085,
-    "height": 130,
+    "height": 200.47,
     "rx": 16,
     "fill": "rgb(12, 15, 22)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-668"
+   "id": "screen-611"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 65,
-    "y": 9186.59,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
+    "x": 68,
+    "y": 8494.86,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
     "font-weight": "600",
     "opacity": 1
    },
-   "text": "AION 2",
-   "id": "screen-669"
+   "text": "PLANO DE ENERGIA ATIVO NO WINDOWS",
+   "id": "screen-612"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 399.06,
-    "y": 9185.66,
+    "x": 68,
+    "y": 8542.07,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 21,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Desempenho Máximo",
+   "id": "screen-613"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 68,
+    "y": 8581.3,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "GUID:",
+   "id": "screen-614"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 110.78,
+    "y": 8581.74,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Prioridade de memória / EcoQoS",
-   "id": "screen-670"
+   "text": "e9a42b02-d5df-448d-aa00-03f14749eb61",
+   "id": "screen-615"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 68,
+    "y": 8619.09,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Atualizado quando o Windows notifica troca de plano. Este bloco não altera o plano.",
+   "id": "screen-616"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 351.06,
-    "y": 9171.89,
+    "x": 40,
+    "y": 8673.97,
+    "width": 1085,
+    "height": 1238.34,
+    "rx": 16,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-617"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 68,
+    "y": 8715.33,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "ENGINE.INI DO AION 2",
+   "id": "screen-618"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 8740.16,
     "width": 35,
     "height": 20,
     "rx": 10,
     "fill": "rgb(37, 46, 40)",
     "stroke": "rgb(88, 103, 94)",
     "stroke-width": 1,
-    "opacity": 0.48
+    "opacity": 1
    },
-   "id": "screen-671"
+   "id": "screen-619"
   },
   {
    "type": "circle",
    "attributes": {
-    "cx": 361.06,
-    "cy": 9181.89,
+    "cx": 78,
+    "cy": 8750.16,
     "r": 7,
     "fill": "#b1beb5",
-    "opacity": 0.48
+    "opacity": 1
    },
-   "id": "screen-672"
+   "id": "screen-620"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 643.16,
-    "y": 9185.66,
+    "x": 120,
+    "y": 8752.3,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 13,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "OFF · nenhuma linha do RAPO no Engine.ini",
+   "id": "screen-621"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 120,
+    "y": 8777.31,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Somente P-cores",
-   "id": "screen-673"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 595.16,
-    "y": 9171.89,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgba(101, 229, 209, 0.24)",
-    "stroke": "rgb(101, 229, 209)",
-    "stroke-width": 1,
-    "opacity": 0.48
-   },
-   "id": "screen-674"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 620.16,
-    "cy": 9181.89,
-    "r": 7,
-    "fill": "#65e5d1",
-    "opacity": 0.48
-   },
-   "id": "screen-675"
+   "text": "Arquivo sem linhas do RAPO",
+   "id": "screen-622"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 803.88,
-    "y": 9185.66,
+    "x": 68,
+    "y": 8799.5,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "C:\\Users\\Jogador\\AppData\\Local\\AION2\\Saved_Steam\\Config\\Windows\\Engine.ini",
+   "id": "screen-623"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 68,
+    "y": 8845.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "PERFIL SALVO",
+   "id": "screen-624"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 8870.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-625"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 8880.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-626"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 8893.89,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Prioridade automática",
-   "id": "screen-676"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 755.88,
-    "y": 9171.89,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgba(101, 229, 209, 0.24)",
-    "stroke": "rgb(101, 229, 209)",
-    "stroke-width": 1,
-    "opacity": 0.48
-   },
-   "id": "screen-677"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 780.88,
-    "cy": 9181.89,
-    "r": 7,
-    "fill": "#65e5d1",
-    "opacity": 0.48
-   },
-   "id": "screen-678"
+   "text": "Limite de FPS (editável; padrão 120; 0 = sem limite) ·",
+   "id": "screen-627"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 988.61,
-    "y": 9185.66,
+    "x": 597.95,
+    "y": 8893.89,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "RAPO (aprendizado)",
-   "id": "screen-679"
+   "text": "FPS (0 = sem limite)",
+   "id": "screen-628"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 405.14,
+    "y": 8893.89,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "t.MaxFPS=",
+   "id": "screen-629"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 940.61,
-    "y": 9171.89,
-    "width": 35,
-    "height": 20,
-    "rx": 10,
-    "fill": "rgba(101, 229, 209, 0.24)",
-    "stroke": "rgb(101, 229, 209)",
-    "stroke-width": 1,
-    "opacity": 1
-   },
-   "id": "screen-680"
-  },
-  {
-   "type": "circle",
-   "attributes": {
-    "cx": 965.61,
-    "cy": 9181.89,
-    "r": 7,
-    "fill": "#65e5d1",
-    "opacity": 1
-   },
-   "id": "screen-681"
-  },
-  {
-   "type": "rect",
-   "attributes": {
-    "x": 65,
-    "y": 9212.89,
-    "width": 130.25,
+    "x": 469.95,
+    "y": 8870.13,
+    "width": 128,
     "height": 40,
     "rx": 8,
     "fill": "rgb(16, 21, 29)",
@@ -9791,33 +9060,735 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-682"
+   "id": "screen-630"
   },
   {
    "type": "text",
    "attributes": {
-    "x": 79,
-    "y": 9237.25,
+    "x": 482.95,
+    "y": 8895.13,
     "fill": "rgb(245, 247, 251)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
-    "font-weight": "600",
-    "opacity": 0.48
+    "font-weight": "400",
+    "opacity": 1
    },
-   "text": "Aplicar perfil APO",
-   "id": "screen-683"
+   "text": "120",
+   "id": "screen-631"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 40,
-    "y": 9283.89,
-    "width": 1085,
-    "height": 76,
-    "rx": 16,
-    "fill": "rgb(12, 15, 22)",
+    "x": 68,
+    "y": 8928.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-632"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 8938.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-633"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 8940.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Ativar NVIDIA Reflex ·",
+   "id": "screen-634"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 239.38,
+    "y": 8940.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "t.Streamline.Reflex.Enable=1",
+   "id": "screen-635"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 8966.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-636"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 8976.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-637"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 8978.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Reflex em modo baixa latência (fila de renderização vazia) ·",
+   "id": "screen-638"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 440.16,
+    "y": 8978.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "t.Streamline.Reflex.Mode=1",
+   "id": "screen-639"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9004.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-640"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9014.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-641"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9016.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Sem fila de frames: game thread espera a apresentação (RHI) ·",
+   "id": "screen-642"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 460.83,
+    "y": 9016.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.GTSyncType=1",
+   "id": "screen-643"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9042.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-644"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9052.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-645"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9054.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Sem frame extra da render thread (menos latência; pode reduzir FPS) ·",
+   "id": "screen-646"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 501.52,
+    "y": 9054.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.OneFrameThreadLag=0",
+   "id": "screen-647"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9080.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-648"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9090.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-649"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9092.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desativar VSync (r.VSync=0) ·",
+   "id": "screen-650"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 283.73,
+    "y": 9092.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.VSync=0",
+   "id": "screen-651"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9118.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-652"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9128.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-653"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9130.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Não forçar sincronização de cada frame na CPU (mais FPS; r.FinishCurrentFrame=0) ·",
+   "id": "screen-654"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 583.84,
+    "y": 9130.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.FinishCurrentFrame=0",
+   "id": "screen-655"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9156.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-656"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9166.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-657"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9168.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Usar thread RHI dedicada em paralelo (r.RHICmdBypass=0) ·",
+   "id": "screen-658"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 450.47,
+    "y": 9168.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.RHICmdBypass=0",
+   "id": "screen-659"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9194.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-660"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9204.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-661"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9206.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Ativar cache de pipeline de shaders (reduz engasgos) ·",
+   "id": "screen-662"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 415.52,
+    "y": 9206.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.ShaderPipelineCache.Enabled=1",
+   "id": "screen-663"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9232.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-664"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9242.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-665"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9244.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Compilar shaders no carregamento (evita stutter em combate) ·",
+   "id": "screen-666"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 459.48,
+    "y": 9244.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.CreateShadersOnLoad=1",
+   "id": "screen-667"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9270.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-668"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9280.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-669"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9293.89,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Pool de streaming de texturas em MB (editável; padrão 6144 = 6 GB) ·",
+   "id": "screen-670"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 741.41,
+    "y": 9293.89,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "MB (entre 256 e 32768)",
+   "id": "screen-671"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 497.2,
+    "y": 9293.89,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.Streaming.PoolSize=",
+   "id": "screen-672"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 648.41,
+    "y": 9270.13,
+    "width": 93,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
     "stroke": "rgb(37, 45, 55)",
     "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-673"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 661.41,
+    "y": 9295.13,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "6144",
+   "id": "screen-674"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9328.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-675"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9338.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-676"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9340.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Limitar pool de texturas à VRAM física disponível ·",
+   "id": "screen-677"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 390.13,
+    "y": 9340.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.Streaming.LimitPoolSizeToVRAM=1",
+   "id": "screen-678"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9366.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-679"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9376.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-680"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9378.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Memória temporária de streaming em 512 MB ·",
+   "id": "screen-681"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 373.44,
+    "y": 9378.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.Streaming.MaxTempMemoryAllowed=512",
+   "id": "screen-682"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9404.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-683"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9414.13,
+    "r": 7,
+    "fill": "#b1beb5",
     "opacity": 1
    },
    "id": "screen-684"
@@ -9825,36 +9796,36 @@
   {
    "type": "text",
    "attributes": {
-    "x": 65,
-    "y": 9326.59,
-    "fill": "rgb(245, 247, 251)",
-    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
-    "font-size": 15,
-    "font-weight": "600",
-    "opacity": 1
-   },
-   "text": "Counter-Strike 2",
-   "id": "screen-685"
-  },
-  {
-   "type": "text",
-   "attributes": {
-    "x": 399.06,
-    "y": 9325.66,
+    "x": 118,
+    "y": 9416.48,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
     "font-weight": "400",
     "opacity": 1
    },
-   "text": "Prioridade de memória / EcoQoS",
+   "text": "Processar 64 componentes estáticos por frame no streaming ·",
+   "id": "screen-685"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 452.83,
+    "y": 9416.48,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.Streaming.NumStaticComponentsProcessedPerFrame=64",
    "id": "screen-686"
   },
   {
    "type": "rect",
    "attributes": {
-    "x": 351.06,
-    "y": 9311.89,
+    "x": 68,
+    "y": 9442.13,
     "width": 35,
     "height": 20,
     "rx": 10,
@@ -9868,8 +9839,8 @@
   {
    "type": "circle",
    "attributes": {
-    "cx": 361.06,
-    "cy": 9321.89,
+    "cx": 78,
+    "cy": 9452.13,
     "r": 7,
     "fill": "#b1beb5",
     "opacity": 1
@@ -9879,8 +9850,1279 @@
   {
    "type": "text",
    "attributes": {
+    "x": 118,
+    "y": 9454.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Qualidade de sombras: Médio (sg.ShadowQuality=2) ·",
+   "id": "screen-689"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 410.48,
+    "y": 9454.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "sg.ShadowQuality=2",
+   "id": "screen-690"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9480.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-691"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9490.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-692"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9492.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Qualidade de efeitos: Médio (sg.EffectsQuality=2) ·",
+   "id": "screen-693"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 392.92,
+    "y": 9492.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "sg.EffectsQuality=2",
+   "id": "screen-694"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9518.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-695"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9528.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-696"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9530.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Qualidade de reflexos: Baixo (sg.ReflectionQuality=1) ·",
+   "id": "screen-697"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 413.83,
+    "y": 9530.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "sg.ReflectionQuality=1",
+   "id": "screen-698"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9556.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-699"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9566.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-700"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9568.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Qualidade de pós-processamento: Baixo (sg.PostProcessQuality=1) ·",
+   "id": "screen-701"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 491.19,
+    "y": 9568.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "sg.PostProcessQuality=1",
+   "id": "screen-702"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9594.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-703"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9604.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-704"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9606.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Qualidade de vegetação: Médio (sg.FoliageQuality=2) ·",
+   "id": "screen-705"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 415.84,
+    "y": 9606.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "sg.FoliageQuality=2",
+   "id": "screen-706"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9632.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-707"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9642.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-708"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9644.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desligar motion blur (mais FPS; muda o visual) ·",
+   "id": "screen-709"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 379.42,
+    "y": 9644.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.MotionBlurQuality=0",
+   "id": "screen-710"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9670.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-711"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9680.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-712"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9682.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desligar profundidade de campo (mais FPS; muda o visual) ·",
+   "id": "screen-713"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 446.16,
+    "y": 9682.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.DepthOfFieldQuality=0",
+   "id": "screen-714"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9708.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-715"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9718.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-716"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9720.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desligar aberração cromática (imagem mais nítida; muda o visual) ·",
+   "id": "screen-717"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 481.47,
+    "y": 9720.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.SceneColorFringeQuality=0",
+   "id": "screen-718"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9746.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-719"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9756.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-720"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9758.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desligar granulação de filme (imagem mais limpa; muda o visual) ·",
+   "id": "screen-721"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 476.14,
+    "y": 9758.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.FilmGrain=0",
+   "id": "screen-722"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9784.13,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-723"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 78,
+    "cy": 9794.13,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-724"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118,
+    "y": 9796.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Desligar lens flare (menos brilho na tela; muda o visual) ·",
+   "id": "screen-725"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 424.81,
+    "y": 9796.49,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "r.LensFlareQuality=0",
+   "id": "screen-726"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 68,
+    "y": 9826.13,
+    "width": 1030,
+    "height": 45.19,
+    "rx": 8,
+    "fill": "rgb(17, 23, 19)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-727"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 95.7,
+    "y": 9852.49,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Como funciona",
+   "id": "screen-728"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 0,
+    "y": 10028,
+    "width": 1165,
+    "height": 669.89,
+    "rx": 0,
+    "fill": "rgb(7, 9, 15)",
+    "stroke": "none",
+    "stroke-width": 0,
+    "opacity": 1
+   },
+   "id": "screen-729"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10056,
+    "width": 1085,
+    "height": 132.5,
+    "rx": 16,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-730"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 65,
+    "y": 10074.25,
+    "width": 44,
+    "height": 44,
+    "rx": 12,
+    "fill": "rgb(101, 229, 209)",
+    "stroke": "none",
+    "stroke-width": 0,
+    "opacity": 1
+   },
+   "id": "screen-731"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 76.27,
+    "y": 10101.89,
+    "fill": "rgb(7, 9, 15)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 13,
+    "font-weight": "700",
+    "opacity": 1
+   },
+   "text": "APO",
+   "id": "screen-732"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 123,
+    "y": 10084.8,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "PAINEL DE CONTROLE",
+   "id": "screen-733"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 123,
+    "y": 10113.16,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 22,
+    "font-weight": "650",
+    "opacity": 1
+   },
+   "text": "RINTEL RAPO",
+   "id": "screen-734"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 848.78,
+    "y": 10083.75,
+    "width": 140.66,
+    "height": 25,
+    "rx": 6,
+    "fill": "rgb(27, 44, 33)",
+    "stroke": "rgb(54, 90, 67)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-735"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 858.78,
+    "y": 10100.55,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "AGENDAMENTO WINDOWS",
+   "id": "screen-736"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 997.44,
+    "y": 10083.75,
+    "width": 102.56,
+    "height": 25,
+    "rx": 6,
+    "fill": "rgb(27, 44, 33)",
+    "stroke": "rgb(54, 90, 67)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-737"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 1007.44,
+    "y": 10100.55,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "ATIVO (START)",
+   "id": "screen-738"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 65,
+    "y": 10139,
+    "width": 153.36,
+    "height": 25,
+    "rx": 6,
+    "fill": "rgb(41, 37, 27)",
+    "stroke": "rgb(91, 76, 48)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-739"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 75,
+    "y": 10155.8,
+    "fill": "rgb(240, 207, 137)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "INTEL DTT EM EXECUÇÃO",
+   "id": "screen-740"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 228.36,
+    "y": 10131.5,
+    "width": 78.69,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-741"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 242.36,
+    "y": 10155.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Atualizar",
+   "id": "screen-742"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 317.05,
+    "y": 10131.5,
+    "width": 135.39,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-743"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 331.05,
+    "y": 10155.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Reexaminar Steam",
+   "id": "screen-744"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 462.44,
+    "y": 10131.5,
+    "width": 148.69,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-745"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 476.44,
+    "y": 10155.86,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Configuração padrão",
+   "id": "screen-746"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 621.13,
+    "y": 10131.5,
+    "width": 65.2,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(245, 247, 251)",
+    "stroke": "rgb(245, 247, 251)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-747"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 635.13,
+    "y": 10155.86,
+    "fill": "rgb(16, 23, 19)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "⏹ Stop",
+   "id": "screen-748"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10208.5,
+    "width": 1085,
+    "height": 125,
+    "rx": 0,
+    "fill": "rgb(7, 9, 15)",
+    "stroke": "none",
+    "stroke-width": 0,
+    "opacity": 1
+   },
+   "id": "screen-749"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10216.5,
+    "width": 1085,
+    "height": 61,
+    "rx": 12,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-750"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 61,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "CPU",
+   "id": "screen-751"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 61,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "34.5%",
+   "id": "screen-752"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 130.05,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "GPU",
+   "id": "screen-753"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 130.05,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "78.0%",
+   "id": "screen-754"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 199.09,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "MEMÓRIA",
+   "id": "screen-755"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 199.09,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "9.2 GB",
+   "id": "screen-756"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 274.7,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "REDE",
+   "id": "screen-757"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 274.7,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "2300.0 KB/s",
+   "id": "screen-758"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 383.63,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "PING DO JOGO",
+   "id": "screen-759"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 383.63,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "16 ms",
+   "id": "screen-760"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 493.23,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "RELAY",
+   "id": "screen-761"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 493.23,
+    "y": 10259.2,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "HY2 ativo",
+   "id": "screen-762"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 1076.8,
+    "y": 10238.3,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 10,
+    "font-weight": "500",
+    "opacity": 1
+   },
+   "text": "ALVO",
+   "id": "screen-763"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 853,
+    "y": 10259.2,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "AION 2 · 4 processos · 2 executáveis",
+   "id": "screen-764"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10285.5,
+    "width": 1085,
+    "height": 48,
+    "rx": 12,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-765"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 118.17,
+    "y": 10313.86,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Visão geral",
+   "id": "screen-766"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 351.61,
+    "y": 10313.86,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Rede",
+   "id": "screen-767"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 567.48,
+    "y": 10313.86,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Perfil",
+   "id": "screen-768"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 775.67,
+    "y": 10313.86,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Sistema",
+   "id": "screen-769"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 909.8,
+    "y": 10290.5,
+    "width": 210.2,
+    "height": 38,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(82, 119, 95)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-770"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 997.22,
+    "y": 10313.86,
+    "fill": "rgb(101, 229, 209)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Jogos",
+   "id": "screen-771"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 40,
+    "y": 10386.47,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Cascadia Code\", Consolas, SFMono-Regular, monospace",
+    "font-size": 11,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "BUSCAR JOGO",
+   "id": "screen-772"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 131.86,
+    "y": 10361.5,
+    "width": 480,
+    "height": 42.39,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-773"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 144.86,
+    "y": 10387.7,
+    "fill": "#87958c",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 14,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Buscar jogo na biblioteca Steam...",
+   "id": "screen-774"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10419.89,
+    "width": 1085,
+    "height": 130,
+    "rx": 16,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-775"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 65,
+    "y": 10462.59,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "AION 2",
+   "id": "screen-776"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 399.06,
+    "y": 10461.66,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Prioridade de memória / EcoQoS",
+   "id": "screen-777"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 351.06,
+    "y": 10447.89,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 0.48
+   },
+   "id": "screen-778"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 361.06,
+    "cy": 10457.89,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 0.48
+   },
+   "id": "screen-779"
+  },
+  {
+   "type": "text",
+   "attributes": {
     "x": 643.16,
-    "y": 9325.66,
+    "y": 10461.66,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9888,39 +11130,39 @@
     "opacity": 1
    },
    "text": "Somente P-cores",
-   "id": "screen-689"
+   "id": "screen-780"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 595.16,
-    "y": 9311.89,
+    "y": 10447.89,
     "width": 35,
     "height": 20,
     "rx": 10,
-    "fill": "rgb(37, 46, 40)",
-    "stroke": "rgb(88, 103, 94)",
+    "fill": "rgba(101, 229, 209, 0.24)",
+    "stroke": "rgb(101, 229, 209)",
     "stroke-width": 1,
-    "opacity": 1
+    "opacity": 0.48
    },
-   "id": "screen-690"
+   "id": "screen-781"
   },
   {
    "type": "circle",
    "attributes": {
-    "cx": 605.16,
-    "cy": 9321.89,
+    "cx": 620.16,
+    "cy": 10457.89,
     "r": 7,
-    "fill": "#b1beb5",
-    "opacity": 1
+    "fill": "#65e5d1",
+    "opacity": 0.48
    },
-   "id": "screen-691"
+   "id": "screen-782"
   },
   {
    "type": "text",
    "attributes": {
     "x": 803.88,
-    "y": 9325.66,
+    "y": 10461.66,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9928,39 +11170,39 @@
     "opacity": 1
    },
    "text": "Prioridade automática",
-   "id": "screen-692"
+   "id": "screen-783"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 755.88,
-    "y": 9311.89,
+    "y": 10447.89,
     "width": 35,
     "height": 20,
     "rx": 10,
-    "fill": "rgb(37, 46, 40)",
-    "stroke": "rgb(88, 103, 94)",
+    "fill": "rgba(101, 229, 209, 0.24)",
+    "stroke": "rgb(101, 229, 209)",
     "stroke-width": 1,
-    "opacity": 1
+    "opacity": 0.48
    },
-   "id": "screen-693"
+   "id": "screen-784"
   },
   {
    "type": "circle",
    "attributes": {
-    "cx": 765.88,
-    "cy": 9321.89,
+    "cx": 780.88,
+    "cy": 10457.89,
     "r": 7,
-    "fill": "#b1beb5",
-    "opacity": 1
+    "fill": "#65e5d1",
+    "opacity": 0.48
    },
-   "id": "screen-694"
+   "id": "screen-785"
   },
   {
    "type": "text",
    "attributes": {
     "x": 988.61,
-    "y": 9325.66,
+    "y": 10461.66,
     "fill": "rgb(162, 173, 185)",
     "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
     "font-size": 12,
@@ -9968,13 +11210,111 @@
     "opacity": 1
    },
    "text": "RAPO (aprendizado)",
-   "id": "screen-695"
+   "id": "screen-786"
   },
   {
    "type": "rect",
    "attributes": {
     "x": 940.61,
-    "y": 9311.89,
+    "y": 10447.89,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgba(101, 229, 209, 0.24)",
+    "stroke": "rgb(101, 229, 209)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-787"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 965.61,
+    "cy": 10457.89,
+    "r": 7,
+    "fill": "#65e5d1",
+    "opacity": 1
+   },
+   "id": "screen-788"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 65,
+    "y": 10488.89,
+    "width": 130.25,
+    "height": 40,
+    "rx": 8,
+    "fill": "rgb(16, 21, 29)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-789"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 79,
+    "y": 10513.25,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "600",
+    "opacity": 0.48
+   },
+   "text": "Aplicar perfil APO",
+   "id": "screen-790"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 40,
+    "y": 10559.89,
+    "width": 1085,
+    "height": 76,
+    "rx": 16,
+    "fill": "rgb(12, 15, 22)",
+    "stroke": "rgb(37, 45, 55)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-791"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 65,
+    "y": 10602.59,
+    "fill": "rgb(245, 247, 251)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 15,
+    "font-weight": "600",
+    "opacity": 1
+   },
+   "text": "Counter-Strike 2",
+   "id": "screen-792"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 399.06,
+    "y": 10601.66,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Prioridade de memória / EcoQoS",
+   "id": "screen-793"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 351.06,
+    "y": 10587.89,
     "width": 35,
     "height": 20,
     "rx": 10,
@@ -9983,18 +11323,138 @@
     "stroke-width": 1,
     "opacity": 1
    },
-   "id": "screen-696"
+   "id": "screen-794"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 361.06,
+    "cy": 10597.89,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-795"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 643.16,
+    "y": 10601.66,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Somente P-cores",
+   "id": "screen-796"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 595.16,
+    "y": 10587.89,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-797"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 605.16,
+    "cy": 10597.89,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-798"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 803.88,
+    "y": 10601.66,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "Prioridade automática",
+   "id": "screen-799"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 755.88,
+    "y": 10587.89,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-800"
+  },
+  {
+   "type": "circle",
+   "attributes": {
+    "cx": 765.88,
+    "cy": 10597.89,
+    "r": 7,
+    "fill": "#b1beb5",
+    "opacity": 1
+   },
+   "id": "screen-801"
+  },
+  {
+   "type": "text",
+   "attributes": {
+    "x": 988.61,
+    "y": 10601.66,
+    "fill": "rgb(162, 173, 185)",
+    "font-family": "\"Segoe UI\", -apple-system, BlinkMacSystemFont, sans-serif",
+    "font-size": 12,
+    "font-weight": "400",
+    "opacity": 1
+   },
+   "text": "RAPO (aprendizado)",
+   "id": "screen-802"
+  },
+  {
+   "type": "rect",
+   "attributes": {
+    "x": 940.61,
+    "y": 10587.89,
+    "width": 35,
+    "height": 20,
+    "rx": 10,
+    "fill": "rgb(37, 46, 40)",
+    "stroke": "rgb(88, 103, 94)",
+    "stroke-width": 1,
+    "opacity": 1
+   },
+   "id": "screen-803"
   },
   {
    "type": "circle",
    "attributes": {
     "cx": 950.61,
-    "cy": 9321.89,
+    "cy": 10597.89,
     "r": 7,
     "fill": "#b1beb5",
     "opacity": 1
    },
-   "id": "screen-697"
+   "id": "screen-804"
   }
  ]
 }

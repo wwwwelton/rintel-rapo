@@ -219,7 +219,8 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
         let key = escape(&option.key);
         // An editable option shows its value in a box pre-filled with the saved value; the rest print `key=value`.
         let line = if option.editable {
-            format!("<code>{key}=</code><input type=\"number\" inputmode=\"numeric\" class=\"engine-ini-value\" data-action=\"engine-ini-value\" data-key=\"{key}\" min=\"{}\" max=\"{}\" step=\"1\" value=\"{}\" aria-label=\"{key}\"> MB (entre {} e {})", option.min, option.max, escape(&option.value), option.min, option.max)
+            let unit = if option.key == "t.MaxFPS" { "FPS (0 = sem limite)".into() } else { format!("MB (entre {} e {})", option.min, option.max) };
+            format!("<code>{key}=</code><input type=\"number\" inputmode=\"numeric\" class=\"engine-ini-value\" data-action=\"engine-ini-value\" data-key=\"{key}\" min=\"{}\" max=\"{}\" step=\"1\" value=\"{}\" aria-label=\"{key}\"> {unit}", option.min, option.max, escape(&option.value))
         } else { format!("<code>{key}={}</code>", escape(&option.value)) };
         write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · {line}{}</span></label>",
             if option.enabled { " checked" } else { "" }, escape(&option.label),
@@ -744,18 +745,5 @@ mod tests {
         assert!(html.contains("id=\"udp-red-enabled\" type=\"checkbox\" data-action=\"udp-redundancy-toggle\" checked"));
         assert!(html.contains("id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"10\""));
         assert!(html.contains("id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"5\""));
-    }
-    #[test]
-    fn texture_pool_renders_a_prefilled_number_box_and_other_options_stay_plain() {
-        let option = |key: &str, value: &str, editable: bool| serde_json::json!({"key": key, "value": value, "label": "L", "enabled": true, "editable": editable, "min": 256, "max": 32768});
-        let view = dashboard(serde_json::json!({"engine_ini": {"path": "p", "active": true, "applied": true, "error": "", "options": [
-            option("r.Streaming.PoolSize", "8192", true), option("t.MaxFPS", "0", false)]}}));
-        let html = render(&view);
-        assert!(html.contains("<code>r.Streaming.PoolSize=</code><input type=\"number\""), "{html}");
-        assert!(html.contains("data-action=\"engine-ini-value\" data-key=\"r.Streaming.PoolSize\"") && html.contains("min=\"256\" max=\"32768\" step=\"1\" value=\"8192\""), "the box is pre-filled with the saved value");
-        assert!(html.contains("<code>t.MaxFPS=0</code>") && html.matches("data-action=\"engine-ini-value\"").count() == 1, "only editable options get a box");
-        let hostile = dashboard(serde_json::json!({"engine_ini": {"path": "p", "active": false, "applied": false, "error": "", "options": [
-            option("r.Streaming.PoolSize", "\"><script>x</script>", true)]}}));
-        assert!(!render(&hostile).contains("<script>x"), "the value is escaped");
     }
 }

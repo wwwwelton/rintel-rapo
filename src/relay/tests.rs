@@ -66,6 +66,10 @@ fn failed_bind_is_not_running_and_can_be_retried() {
     assert_eq!(server.start().unwrap_err().kind(), io::ErrorKind::AddrInUse);
     assert!(!server.state().running);
     drop(occupied);
+    let occupied_udp = UdpSocket::bind((Ipv4Addr::LOCALHOST, port)).unwrap();
+    assert_eq!(server.start().unwrap_err().kind(), io::ErrorKind::AddrInUse, "a successful start must reserve UDP too");
+    assert!(!server.state().running);
+    drop(occupied_udp);
     server.start().unwrap();
     let mut socket = client(&server); greet(&mut socket);
     server.stop();

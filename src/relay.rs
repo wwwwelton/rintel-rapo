@@ -258,10 +258,19 @@ impl RelayServer {
         result
     }
     fn launch(&mut self) -> io::Result<()> {
-        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, self.port))?;
+        // Port 0 needs a port available to both protocols; Windows excludes different ranges for TCP and UDP.
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let (listener, udp) = loop {
+            let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, self.port))?;
+            let address = listener.local_addr()?;
+            match UdpSocket::bind(address) {
+                Ok(udp) => break (listener, udp),
+                Err(error) if self.port == 0 && Instant::now() < deadline
+                    && matches!(error.kind(), io::ErrorKind::AddrInUse | io::ErrorKind::PermissionDenied) => continue,
+                Err(error) => return Err(error),
+            }
+        };
         let address = listener.local_addr()?;
-        // Bound before start() returns, so a datagram sent right after it is never dropped.
-        let udp = UdpSocket::bind((Ipv4Addr::LOCALHOST, address.port())).ok();
         let shared = Arc::new(Shared {
             mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, config: self.config.clone(), tunnel: self.tunnel.clone(), udp_destinations: AtomicU64::new(0),
             running: AtomicBool::new(true), connections: Mutex::new(Vec::new()), total: AtomicU64::new(0),
@@ -367,7 +376,7 @@ impl Drop for RelayServer {
     }
 }
 
-fn serve(listener: TcpListener, udp: Option<UdpSocket>, shared: Arc<Shared>, address: SocketAddr) {
+fn serve(listener: TcpListener, udp: UdpSocket, shared: Arc<Shared>, address: SocketAddr) {
     #[cfg(windows)]
     match crate::routes::native::candidates() {
         Ok(interfaces) => {
@@ -382,7 +391,7 @@ fn serve(listener: TcpListener, udp: Option<UdpSocket>, shared: Arc<Shared>, add
         .then(|| UdpSocket::bind((Ipv4Addr::LOCALHOST, swapped_port)).ok())
         .flatten();
     let mut udp_workers = Vec::new();
-    for sock in [udp, swapped_udp].into_iter().flatten() {
+    for sock in [Some(udp), swapped_udp].into_iter().flatten() {
         let state = Arc::clone(&shared);
         if let Ok(w) = thread::Builder::new().name("rapo-wfp-udp".into()).spawn(move || serve_wfp_udp(sock, state)) {
             udp_workers.push(w);

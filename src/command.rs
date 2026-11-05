@@ -50,7 +50,7 @@ pub enum Command {
     SetEngineIniOption { index: usize, on: bool },
     /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
     SetEngineIniActive(bool),
-    /// Sets the number of an editable Engine.ini option (the texture pool, in MB); the host validates the range.
+    /// Sets the number of an editable Engine.ini option; the host validates the range.
     SetEngineIniValue { index: usize, value: u32 },
     /// Creates or updates a VPN profile. A secret left empty keeps the stored value, so the page never needs it back.
     SaveVpnProfile { protocol: crate::vpn::Protocol, name: String, fields: std::collections::BTreeMap<String, String>, secrets: std::collections::BTreeMap<String, String> },
