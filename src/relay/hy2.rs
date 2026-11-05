@@ -129,8 +129,14 @@ mod platform {
         let module = LoadLibraryExW(wide.as_ptr(), std::ptr::null_mut(), LOAD_LIBRARY_SEARCH_SYSTEM32);
         drop(lock);
         if module.is_null() { return Err(io::Error::last_os_error()); }
-        Ok(move |name: &str| GetProcAddress(module, name.as_ptr()).map(|f| f as *const ())
-            .ok_or_else(|| io::Error::other(format!("símbolo ausente {}", name.trim_end_matches('\0')))))
+        Ok(move |name: &str| {
+            let addr = GetProcAddress(module, name.as_ptr());
+            if addr.is_none() {
+                Err(io::Error::other(format!("símbolo ausente {}", name.trim_end_matches('\0'))))
+            } else {
+                Ok(addr.unwrap() as *const ())
+            }
+        })
     }
 }
 
