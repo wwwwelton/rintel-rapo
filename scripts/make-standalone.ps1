@@ -37,7 +37,7 @@ using System.Net;
 using System.Text;
 
 public class StandaloneLauncher {
-    private const string CurrentVersion = "v0.2.5";
+    private const string CurrentVersion = "v0.3.1";
     private const string GithubRepo = "wwwwelton/rintel-rapo";
 
     public static void Main(string[] args) {

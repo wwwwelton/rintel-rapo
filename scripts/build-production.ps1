@@ -4,17 +4,21 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Gerando Build Release Local para Usuário Final (v0.2.7) ==="
+Write-Host "=== Encerrando processos anteriores para liberar arquivos ==="
+Get-Process -Name "rintel-rapo", "rintel-rapo-standalone" -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 500
 
+Write-Host "=== Gerando Build Release Local para Producao ==="
+Set-Location "C:\dev\rapo-src"
+$env:CARGO_TARGET_DIR = "C:\dev\rapo-build\target"
 $env:RAPO_HY2_LIBRARY = "C:\dev\rapo-build\rapo_hy2.dll"
 
-# 1. Compilação otimizada release nativa do binário principal
-cargo build --release --locked --offline
-if ($LASTEXITCODE -ne 0) { throw "Falha na compilacao release do Rust" }
+# 1. Compilacao otimizada release nativa do binario principal
+cargo build --release --locked --offline --bin rintel-rapo
+$targetExe = "C:\dev\rapo-build\target\release\rintel-rapo.exe"
+& "C:\dev\rapo-src\scripts\sign-release.ps1" -ExePath $targetExe
 
-# 2. Executa o empacotamento completo de staging e standalone
-& "C:\dev\rapo-src\scripts\stage-full-release.ps1" -TargetDir $OutDir
+# 2. Executa o empacotamento completo do standalone (make-standalone ja executa o stage-full-release)
 & "C:\dev\rapo-src\scripts\make-standalone.ps1" -StagedDir $OutDir -OutExe (Join-Path $OutDir "rintel-rapo-standalone.exe")
-
-Write-Host "=== Build de Usuário Final concluído com sucesso em: $OutDir ==="
+Write-Host "=== Build de Producao concluido com sucesso em: $OutDir ==="
 Get-ChildItem $OutDir | Select-Object Name, Length, LastWriteTime

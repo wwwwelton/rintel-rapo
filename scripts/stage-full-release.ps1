@@ -2,7 +2,7 @@ param(
     [string]$TargetDir = "C:\dev\rapo-build\staged"
 )
 $ErrorActionPreference = "Stop"
-$dir = (Resolve-Path -LiteralPath $TargetDir).Path
+$dir = (New-Item -ItemType Directory -Force -Path $TargetDir).FullName
 
 # Garante a estrutura exata solicitada
 $driversDir = Join-Path $dir "DRIVERS"
@@ -32,8 +32,9 @@ $exeSrc = "C:\dev\rapo-build\target\release\rintel-rapo.exe"
 $cerSrc = "C:\dev\rapo-build\target\release\rintel-rapo.cer"
 if (Test-Path -LiteralPath $exeSrc) {
     Copy-Item -LiteralPath $exeSrc -Destination (Join-Path $dir "rintel-rapo.exe") -Force
-    # Assina novamente o executável empacotado para garantir validade no release
-    & "C:\dev\rapo-src\scripts\sign-release.ps1" -ExePath (Join-Path $dir "rintel-rapo.exe")
+    if (Test-Path -LiteralPath "$exeSrc.sha256") {
+        Copy-Item -LiteralPath "$exeSrc.sha256" -Destination (Join-Path $dir "rintel-rapo.exe.sha256") -Force
+    }
 }
 if (Test-Path -LiteralPath $cerSrc) {
     Copy-Item -LiteralPath $cerSrc -Destination (Join-Path $dir "rintel-rapo.cer") -Force
