@@ -25,7 +25,7 @@ if (-not (Test-Path -LiteralPath $cscPath)) {
 
 $csFile = Join-Path $StagedDir "launcher.cs"
 
-# Código C# com Auto-Update via GitHub Releases integradas ao Launcher Standalone
+# Código C# corrigido para parsing robusto da API do GitHub e tratamento de exceção no Update
 $sourceCode = @'
 using System;
 using System.IO;
@@ -37,56 +37,60 @@ using System.Net;
 using System.Text;
 
 public class StandaloneLauncher {
-    private const string CurrentVersion = "v0.2.1";
+    private const string CurrentVersion = "v0.2.5";
     private const string GithubRepo = "wwwwelton/rintel-rapo";
 
     public static void Main(string[] args) {
         try {
-            // 1. Verificação silenciosa de atualização no GitHub (timeout de 3 segundos)
+            // 1. Verificação de atualização no GitHub
             try {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; // TLS 1.2
                 string apiUrl = "https://api.github.com/repos/" + GithubRepo + "/releases/latest";
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(apiUrl);
                 request.UserAgent = "RintelRapo-AutoUpdater";
-                request.Timeout = 3000;
+                request.Timeout = 4000;
+                request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
 
                 using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) {
                     using (StreamReader reader = new StreamReader(response.GetResponseStream())) {
                         string json = reader.ReadToEnd();
                         int tagIndex = json.IndexOf("tag_name");
                         if (tagIndex != -1) {
-                            int start = json.IndexOf("\"", tagIndex + 10) + 1;
+                            int start = json.IndexOf("\"", tagIndex + 8) + 1;
                             int end = json.IndexOf("\"", start);
-                            string latestVersion = json.Substring(start, end - start);
+                            if (start > 0 && end > start) {
+                                string latestVersion = json.Substring(start, end - start);
 
-                            if (latestVersion != CurrentVersion) {
-                                DialogResult dr = MessageBox.Show(
-                                    "Uma nova versão (" + latestVersion + ") do Rintel RAPO está disponível.\nDeseja baixar e atualizar agora?",
-                                    "Atualização Disponível",
-                                    MessageBoxButtons.YesNo,
-                                    MessageBoxIcon.Information
-                                );
+                                if (!string.IsNullOrEmpty(latestVersion) && latestVersion != CurrentVersion) {
+                                    DialogResult dr = MessageBox.Show(
+                                        "Uma nova versão (" + latestVersion + ") do Rintel RAPO está disponível.\nDeseja baixar e atualizar agora?",
+                                        "Atualização Disponível",
+                                        MessageBoxButtons.YesNo,
+                                        MessageBoxIcon.Information
+                                    );
 
-                                if (dr == DialogResult.Yes) {
-                                    PerformUpdate(latestVersion);
-                                    return;
+                                    if (dr == DialogResult.Yes) {
+                                        PerformUpdate(latestVersion);
+                                        return;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            } catch {
-                // Modo offline ou falha na rede: prossegue normalmente com a versão local
+            } catch (Exception netEx) {
+                // Log opcional ou bypass silencioso se offline
+                Console.WriteLine(netEx.Message);
             }
 
-            // 2. Extração e Execução Padrão
+            // 2. Extração e Execução Normal
             string tempDir = Path.Combine(Path.GetTempPath(), "RintelRapo_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
 
             Assembly asm = Assembly.GetExecutingAssembly();
             using (Stream stream = asm.GetManifestResourceStream("bundle.zip")) {
                 if (stream == null) {
-                    throw new Exception("Bundle embutido nao encontrado.");
+                    throw new Exception("Bundle embutido nao encontrado nos recursos.");
                 }
                 string zipPath = Path.Combine(tempDir, "bundle.zip");
                 using (FileStream fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write)) {
@@ -135,7 +139,7 @@ public class StandaloneLauncher {
             string batchPath = Path.Combine(Path.GetTempPath(), "update.bat");
             string batchContent = 
                 "@echo off\r\n" +
-                "timeout /t 2 /nobreak > nul\r\n" +
+                "timeout /t 3 /nobreak > nul\r\n" +
                 "move /y \"" + tempUpdatePath + "\" \"" + currentExe + "\"\r\n" +
                 "start \"\" \"" + currentExe + "\"\r\n" +
                 "del \"%~f0\"\r\n";
@@ -168,10 +172,10 @@ $arguments = @(
     "$csFile"
 )
 
-Write-Host "Compilando executavel standalone com Auto-Update..."
+Write-Host "Compilando executavel standalone com Auto-Update corrigido..."
 & $cscPath $arguments
 if ($LASTEXITCODE -ne 0) {
-    throw "Erro na compilacao do Standalone com Auto-Update."
+    throw "Erro na compilacao do Standalone."
 }
 
 & "C:\dev\rapo-src\scripts\sign-release.ps1" -ExePath $OutExe
@@ -179,6 +183,4 @@ if ($LASTEXITCODE -ne 0) {
 $hash = (Get-FileHash -LiteralPath $OutExe -Algorithm SHA256).Hash.ToLower()
 "$hash  rintel-rapo-standalone.exe" | Out-File -FilePath "$OutExe.sha256" -Encoding ascii
 
-Write-Host "Standalone com Auto-Update gerado e assinado com sucesso em: $OutExe"
-Get-Item $OutExe | Select-Object Name, Length, LastWriteTime
-Get-Content "$OutExe.sha256"
+Write-Host "Standalone gerado e assinado com sucesso em: $OutExe"
