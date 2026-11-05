@@ -95,6 +95,7 @@ struct Shared {
     /// Last HY2 connect failure, shown in the GUI; cleared by a successful connect.
     hy2_error: Mutex<String>,
     hy2_ping_ms: AtomicU32,
+    hy2_is_builtin: AtomicBool,
     redundancy: RwLock<RedundancyConfig>,
     redundancy_engine: RedundancyEngine,
 }
@@ -112,10 +113,26 @@ impl Shared {
         if let Some(client) = &*cached { return Ok(client.clone()); }
         if !self.running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
         // A VPN profile owns the exit: a failing tunnel reports its error, it never falls back to another route.
-        let connected = if let Some(tunnel) = &self.tunnel { tunnel.connect() } else {
-            // Typed server first, then the server sealed into the exe; the loopback HY2 is only a fallback (a remote server is the only real ping gain).
-            if !self.config.server.is_empty() { Ok(self.config.clone()) } else { hy2::builtin().map_or_else(hy2::local_server_config, Ok) }
-                .and_then(|config| hy2::Client::connect(&config))
+        let connected = if let Some(tunnel) = &self.tunnel {
+            self.hy2_is_builtin.store(false, Ordering::Relaxed);
+            tunnel.connect()
+        } else if !self.config.server.is_empty() {
+            self.hy2_is_builtin.store(false, Ordering::Relaxed);
+            hy2::Client::connect(&self.config)
+        } else {
+            let mut result = None;
+            if let Some(builtin) = hy2::builtin() {
+                if let Ok(client) = hy2::Client::connect(&builtin) {
+                    self.hy2_is_builtin.store(true, Ordering::Relaxed);
+                    result = Some(Ok(client));
+                }
+            }
+            if let Some(res) = result {
+                res
+            } else {
+                self.hy2_is_builtin.store(false, Ordering::Relaxed);
+                hy2::local_server_config().and_then(|config| hy2::Client::connect(&config))
+            }
         };
         *self.hy2_error.lock().unwrap() = connected.as_ref().err().map(ToString::to_string).unwrap_or_default();
         let client = connected?;
@@ -145,7 +162,13 @@ struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, address: Socke
 /// Measures the ICMP round trip to the HY2 server until the relay stops; resolves off the UI thread.
 #[cfg(windows)]
 fn ping_server(shared: Arc<Shared>) {
-    let server = if let Some(tunnel) = &shared.tunnel { Some(tunnel.endpoint().to_string()) } else if shared.config.server.is_empty() { hy2::builtin().map(|config| config.server) } else { Some(shared.config.server.clone()) };
+    let server = if let Some(tunnel) = &shared.tunnel {
+        Some(tunnel.endpoint().to_string())
+    } else if shared.config.server.is_empty() {
+        if shared.hy2_is_builtin.load(Ordering::Relaxed) { hy2::builtin().map(|config| config.server) } else { None }
+    } else {
+        Some(shared.config.server.clone())
+    };
     let ip = server.and_then(|server| server.to_socket_addrs().ok()?.find_map(|a| match a.ip() { IpAddr::V4(ip) if !ip.is_loopback() => Some(ip), _ => None }));
     let Some(ip) = ip else { return; };
     while shared.running.load(Ordering::Acquire) {
@@ -278,6 +301,7 @@ impl RelayServer {
             learning: Mutex::new(learning::Learning::with_prior(self.priors.clone())),
             prewarm: Mutex::new(prewarm::Prewarm::default()),
             interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()), hy2_ping_ms: AtomicU32::new(0),
+            hy2_is_builtin: AtomicBool::new(hy2::builtin().is_some()),
             redundancy: RwLock::new(self.redundancy), redundancy_engine: RedundancyEngine::new(),
         });
         let state = Arc::clone(&shared);
@@ -356,7 +380,7 @@ impl RelayServer {
             // try_lock: a connect in progress holds the lock and must not stall the UI thread.
             hy2_connected: running && run.shared.hy2.try_lock().is_ok_and(|client| client.is_some()),
             hy2_error: run.shared.hy2_error.lock().unwrap().clone(),
-            hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
+            hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && run.shared.hy2_is_builtin.load(Ordering::Relaxed),
             hy2_ping_ms: if running { run.shared.hy2_ping_ms.load(Ordering::Relaxed) } else { 0 },
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),

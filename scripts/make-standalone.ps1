@@ -16,7 +16,17 @@ $items = Get-ChildItem -LiteralPath $StagedDir | Where-Object {
     $_.Name -ne "launcher.cs" -and 
     $_.Name -ne "launcher.ress" 
 }
-Compress-Archive -Path ($items.FullName) -DestinationPath $zipPath -CompressionLevel Optimal -Force
+$retries = 5
+while ($retries -gt 0) {
+    try {
+        Compress-Archive -Path ($items.FullName) -DestinationPath $zipPath -CompressionLevel Optimal -Force
+        break
+    } catch {
+        $retries--
+        if ($retries -le 0) { throw $_ }
+        Start-Sleep -Milliseconds 800
+    }
+}
 
 $cscPath = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)) "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path -LiteralPath $cscPath)) {
