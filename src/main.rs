@@ -210,6 +210,9 @@ mod app {
                     if let Ok(red) = store.redundancy() {
                         let _ = app.relay.set_redundancy(red);
                     }
+                    if let Ok(Some(echo)) = store.auto_echo() {
+                        let _ = app.relay.set_auto_echo(Some(echo));
+                    }
                     app.store = Some(store);
                     app.reload_vpn();
                 }
@@ -799,7 +802,11 @@ mod app {
                     }
                 }
                 crate::command::Command::SetUdpRedundancyAuto(echo) => {
-                    let _ = self.relay.set_auto_echo(echo);
+                    if let Ok(()) = self.relay.set_auto_echo(echo) {
+                        if let Some(store) = &self.store {
+                            let _ = store.save_auto_echo(echo);
+                        }
+                    }
                 }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
                 crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),

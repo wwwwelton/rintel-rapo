@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS vpn_profiles (
 CREATE TABLE IF NOT EXISTS vpn_active (
     id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL REFERENCES vpn_profiles(name) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS udp_redundancy (
-    id INTEGER PRIMARY KEY CHECK (id = 1), enabled INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL);";
+    id INTEGER PRIMARY KEY CHECK (id = 1), enabled INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS udp_redundancy_auto (
+    id INTEGER PRIMARY KEY CHECK (id = 1), echo TEXT NOT NULL);";
 
 const SETTINGS: &str = "priority, pin, qos, threads, min_percent, cores, smt, p_only, park_cores";
 
@@ -188,6 +190,23 @@ impl Store {
         self.db.execute("INSERT INTO udp_redundancy (id, enabled, x, y) VALUES (1, ?1, ?2, ?3)
             ON CONFLICT(id) DO UPDATE SET enabled = ?1, x = ?2, y = ?3",
             params![if config.enabled { 1 } else { 0 }, config.x, config.y]).map(drop).map_err(text)
+    }
+
+    /// Loopback echo for learning-driven ratio selection; `None` when automatic selection is off.
+    pub fn save_auto_echo(&self, echo: Option<std::net::SocketAddr>) -> Result<(), String> {
+        match echo {
+            Some(addr) => self.db.execute("INSERT INTO udp_redundancy_auto (id, echo) VALUES (1, ?1)
+                ON CONFLICT(id) DO UPDATE SET echo = ?1", params![addr.to_string()]).map(drop).map_err(text),
+            None => self.db.execute("DELETE FROM udp_redundancy_auto WHERE id = 1", []).map(drop).map_err(text),
+        }
+    }
+
+    pub fn auto_echo(&self) -> Result<Option<std::net::SocketAddr>, String> {
+        match self.db.query_row("SELECT echo FROM udp_redundancy_auto WHERE id = 1", [], |row| row.get::<_, String>(0)) {
+            Ok(echo) => Ok(echo.parse().ok()),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(error) => Err(text(error)),
+        }
     }
 
     pub fn redundancy(&self) -> Result<crate::relay::RedundancyConfig, String> {
