@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS system_best (
     priority INTEGER NOT NULL, pin INTEGER NOT NULL, qos INTEGER NOT NULL, threads INTEGER NOT NULL,
     min_percent INTEGER NOT NULL, cores INTEGER NOT NULL, smt INTEGER NOT NULL, p_only INTEGER NOT NULL,
     park_cores INTEGER NOT NULL, fps REAL NOT NULL, low_fps REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS store_metadata (key TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS deleted_legacy_profiles (exe TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS relay_paths (
     destination TEXT NOT NULL, authorization TEXT NOT NULL, updated_at INTEGER NOT NULL,
     mean_ms REAL NOT NULL, samples INTEGER NOT NULL, failures INTEGER NOT NULL,
@@ -49,6 +51,11 @@ CREATE TABLE IF NOT EXISTS udp_redundancy_auto (
 const SETTINGS: &str = "priority, pin, qos, threads, min_percent, cores, smt, p_only, park_cores";
 
 fn now() -> i64 { SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64) }
+#[cfg(windows)]
+fn same_profile_path(a: &Path, b: &Path) -> bool { crate::windows::same_executable(a, b) }
+#[cfg(not(windows))]
+fn same_profile_path(a: &Path, b: &Path) -> bool { a == b }
+
 fn text(error: rusqlite::Error) -> String { format!("SQLite: {error}") }
 
 impl Store {
@@ -101,14 +108,38 @@ impl Store {
         Ok(rows.filter_map(Result::ok).filter(|p| p.settings.valid() && p.score.valid()).collect())
     }
 
+    /// Removes the saved best while retaining the measurement history.
+    pub fn delete_best(&self, exe: &Path) -> Result<(), String> {
+        let profiles = self.best_profiles()?;
+        let tx = self.db.unchecked_transaction().map_err(text)?;
+        tx.execute("INSERT OR IGNORE INTO deleted_legacy_profiles (exe) VALUES (?1)", [exe.to_string_lossy()]).map_err(text)?;
+        for profile in profiles.iter().filter(|profile| same_profile_path(&profile.exe, exe)) {
+            tx.execute("DELETE FROM system_best WHERE exe = ?1", [profile.exe.to_string_lossy()]).map_err(text)?;
+        }
+        tx.commit().map_err(text)
+    }
+
     /// One-time import of the registry profiles (formats 2-4); never overwrites a profile already in SQLite.
     pub fn import(&self, profiles: &[Profile]) -> Result<usize, String> {
-        let known = self.best_profiles()?;
-        let mut imported = 0;
-        for profile in profiles.iter().filter(|p| !known.iter().any(|k| k.exe == p.exe)) {
-            self.save_best(profile)?;
-            imported += 1;
+        if self.db.query_row("SELECT EXISTS(SELECT 1 FROM store_metadata WHERE key = 'registry_profiles_imported')", [], |row| row.get::<_, bool>(0)).map_err(text)? {
+            return Ok(0);
         }
+        let tx = self.db.unchecked_transaction().map_err(text)?;
+        let mut known = self.best_profiles()?;
+        let mut query = self.db.prepare("SELECT exe FROM deleted_legacy_profiles").map_err(text)?;
+        let deleted = query.query_map([], |row| row.get::<_, String>(0)).map_err(text)?
+            .collect::<Result<Vec<_>, _>>().map_err(text)?;
+        let mut imported = 0;
+        for profile in profiles {
+            if !known.iter().any(|k| same_profile_path(&k.exe, &profile.exe))
+                && !deleted.iter().any(|exe| same_profile_path(Path::new(exe), &profile.exe)) {
+                self.save_best(profile)?;
+                known.push(profile.clone());
+                imported += 1;
+            }
+        }
+        tx.execute("INSERT INTO store_metadata (key) VALUES ('registry_profiles_imported')", []).map_err(text)?;
+        tx.commit().map_err(text)?;
         Ok(imported)
     }
 
@@ -268,6 +299,38 @@ mod tests {
         assert!(store.save_best(&profile("c.exe", f64::NAN)).is_err());
         store.db.execute("UPDATE system_best SET threads = 0 WHERE exe = 'b.exe'", []).unwrap();
         assert_eq!(store.best_profiles().unwrap().len(), 1, "a corrupt row must not hide the others");
+    }
+
+    #[test]
+    fn deleting_best_preserves_trials_and_does_not_reimport_registry() {
+        let store = memory();
+        let saved = profile("game.exe", 100.0);
+        store.import(&[saved.clone()]).unwrap();
+        store.record_trial(&saved.exe, saved.settings, saved.score).unwrap();
+        store.delete_best(&saved.exe).unwrap();
+        assert_eq!(store.import(&[saved.clone()]).unwrap(), 0);
+        assert!(store.best_profiles().unwrap().is_empty());
+        assert_eq!(store.trial_count(&saved.exe).unwrap(), 1);
+    }
+
+    #[test]
+    fn deletion_before_legacy_import_prevents_resurrection() {
+        let store = memory();
+        let saved = profile("game.exe", 100.0);
+        store.save_best(&saved).unwrap();
+        store.delete_best(&saved.exe).unwrap();
+        assert_eq!(store.import(&[saved]).unwrap(), 0);
+        assert!(store.best_profiles().unwrap().is_empty());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn deleting_best_removes_equivalent_windows_paths() {
+        let store = memory();
+        store.save_best(&profile("C:\\Game\\game.exe", 100.0)).unwrap();
+        store.save_best(&profile("c:\\game\\GAME.exe", 110.0)).unwrap();
+        store.delete_best(Path::new("C:\\GAME\\game.exe")).unwrap();
+        assert!(store.best_profiles().unwrap().is_empty());
     }
 
     #[test]

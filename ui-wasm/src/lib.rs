@@ -186,7 +186,7 @@ pub struct TargetView {
 }
 
 /// Mirrors the serialized `snapshot::TrainingView`; labels are pre-formatted on the host.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TrainingView {
     pub cpu_line: Option<String>,
     pub active: bool,
@@ -200,7 +200,15 @@ pub struct TrainingView {
     pub targets: Vec<TargetView>,
     pub selected_label: Option<String>,
     pub can_start: bool,
+    pub profiles: Vec<SavedProfile>,
     pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SavedProfile {
+    pub exe: String,
+    pub fps: f64,
+    pub low_fps: f64,
 }
 
 /// Renders the training panel as HTML. Buttons carry `data-action` (and `data-pid`
@@ -256,6 +264,15 @@ pub fn render_training(view: &TrainingView) -> String {
                 "Aprendizado indisponível: o otimizador está em Stop. Clique em ▶ Start no topo para habilitar."
             }));
         }
+    }
+    if !view.profiles.is_empty() {
+        html.push_str("<h3>Perfis aprendidos</h3><ul>");
+        for saved in &view.profiles {
+            let exe = escape(&saved.exe);
+            let disabled = if view.active { " disabled" } else { "" };
+            html.push_str(&format!("<li>{exe} · {:.1} FPS · 1% low {:.1} FPS <button type=\"button\" data-action=\"profile-apply\" data-dir=\"{exe}\"{disabled}>Aplicar</button> <button type=\"button\" data-action=\"profile-delete\" data-dir=\"{exe}\"{disabled}>Excluir perfil</button></li>", saved.fps, saved.low_fps));
+        }
+        html.push_str("</ul>");
     }
     html.push_str(&paragraph("O resultado é o melhor perfil medido neste cenário, não garantia de ganho ou de compatibilidade com anti-cheat. Use uma cena repetível."));
     html.push_str("<details><summary id=\"collector-license\">Licença do coletor integrado</summary><p>PresentData / PresentMon 2.3.0 · Intel · MIT</p><pre>");
@@ -391,6 +408,7 @@ mod training_tests {
             targets: vec![TargetView { pid: 7, label: "AION 2 · aion.exe · PID 7".into(), hint: "C:/aion.exe".into(), selected: true }],
             selected_label: None,
             can_start,
+            profiles: Vec::new(),
             message: String::new(),
         }
     }
@@ -417,6 +435,17 @@ mod training_tests {
         assert!(html.contains("data-action=\"stop_training\""));
         assert!(!html.contains("start_training"));
         assert!(html.contains("RAPO ATIVO · &lt;medindo&gt;"));
+    }
+
+    #[test]
+    fn saved_profiles_are_escaped_and_locked_while_training() {
+        let mut state = view(false, true);
+        state.profiles.push(SavedProfile { exe: "C:/a\"b.exe".into(), fps: 100.0, low_fps: 80.0 });
+        let html = render_training(&state);
+        assert!(html.contains("data-action=\"profile-apply\" data-dir=\"C:/a&quot;b.exe\""));
+        assert!(html.contains("data-action=\"profile-delete\""));
+        state.active = true;
+        assert!(render_training(&state).contains("data-action=\"profile-delete\" data-dir=\"C:/a&quot;b.exe\" disabled"));
     }
 
 }

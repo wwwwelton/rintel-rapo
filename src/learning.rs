@@ -146,15 +146,22 @@ impl Search {
     pub fn completed(&self) -> usize { self.completed }
     #[cfg(windows)]
     pub fn explored(&self) -> usize { self.observations.len() }
-    #[cfg(windows)]
+    #[cfg(any(windows, test))]
     pub fn reject_current(&mut self) {
         self.pending = None;
+        self.observations[self.current].rejected = true;
         if self.current == self.reference {
             self.reference = 0;
             self.reference_score = None;
             self.reset_comparisons();
         }
         self.current = self.reference;
+    }
+    #[cfg(any(windows, test))]
+    pub fn reset_process(&mut self) {
+        self.pending = None;
+        self.reference_score = None;
+        self.reset_comparisons();
     }
     fn random(&mut self) -> u64 {
         self.random ^= self.random << 13;
@@ -294,18 +301,22 @@ pub struct Profile {
 }
 
 /// Profiles saved by earlier versions in `HKCU\Software\RintelRAPO\LearnedProfiles` (formats 2-4),
-/// imported once into SQLite. Unreadable or malformed values are skipped, never hiding the others.
+/// imported once into SQLite. Malformed values are skipped; read failures abort the import.
 #[cfg(windows)]
-pub fn registry_profiles() -> Vec<Profile> {
+pub fn registry_profiles() -> Result<Vec<Profile>, String> {
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
-    let Ok(key) = RegKey::predef(HKEY_CURRENT_USER).open_subkey("Software\\RintelRAPO\\LearnedProfiles") else { return Vec::new() };
-    key.enum_values()
-        .filter_map(|entry| {
-            let (exe, _) = entry.ok()?;
-            let text: String = key.get_value(&exe).ok()?;
-            decode(PathBuf::from(exe), &text).ok()
-        })
-        .collect()
+    let key = match RegKey::predef(HKEY_CURRENT_USER).open_subkey("Software\\RintelRAPO\\LearnedProfiles") {
+        Ok(key) => key,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("Registro de perfis: {error}")),
+    };
+    let mut profiles = Vec::new();
+    for entry in key.enum_values() {
+        let (exe, _) = entry.map_err(|e| format!("Registro de perfis: {e}"))?;
+        let text: String = key.get_value(&exe).map_err(|e| format!("Registro de perfis: {e}"))?;
+        if let Ok(profile) = decode(PathBuf::from(exe), &text) { profiles.push(profile); }
+    }
+    Ok(profiles)
 }
 fn decode(exe: PathBuf, text: &str) -> Result<Profile, String> {
     let invalid = || "Perfil salvo inválido".to_string();
@@ -353,6 +364,30 @@ fn decode(exe: PathBuf, text: &str) -> Result<Profile, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rejected_candidate_is_not_selected_again() {
+        let mut search = Search::new(42, Limits::default(), Settings::default());
+        search.record(Score { fps: 60.0, low_fps: 40.0 }).unwrap();
+        let rejected = search.current();
+        search.reject_current();
+        for _ in 0..100 {
+            assert_ne!(search.current(), rejected);
+            search.record(Score { fps: 60.0, low_fps: 40.0 }).unwrap();
+        }
+    }
+
+    #[test]
+    fn pid_change_discards_unpaired_measurement() {
+        let mut search = Search::new(42, Limits::default(), Settings::default());
+        let score = Score { fps: 60.0, low_fps: 40.0 };
+        search.record(score).unwrap();
+        search.record(score).unwrap();
+        assert!(search.pending.is_some());
+        search.reset_process();
+        assert!(search.pending.is_none());
+        assert!(search.best().is_none());
+    }
+
     #[test]
     fn paired_search_discovers_joint_improvements_without_single_axis_gain() {
         let mut search = Search::new(42, Limits::default(), Settings::default());
@@ -608,7 +643,7 @@ mod tests {
         let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey("Software\\RintelRAPO\\LearnedProfiles").unwrap();
         key.set_value(good.as_os_str(), &"4|35|3|8|2|123|81").unwrap();
         key.set_value(bad.as_os_str(), &"4|not-a-profile").unwrap();
-        let loaded = registry_profiles();
+        let loaded = registry_profiles().unwrap();
         key.delete_value(good.as_os_str()).unwrap();
         key.delete_value(bad.as_os_str()).unwrap();
         let profile = loaded.iter().find(|p| p.exe == good).expect("a valid profile survives a malformed sibling");

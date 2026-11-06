@@ -48,7 +48,8 @@ impl App {
                 if let Some(index) = self.running.iter().position(|p| {
                     p.pid == foreground && self.rapo_game.as_ref() == Some(&p.directory)
                 }) {
-                    self.training_target = index;
+                    let process = &self.running[index];
+                    self.training_selected = Some((process.pid, process.exe.clone()));
                     self.start_training();
                 }
             }
@@ -75,6 +76,10 @@ impl App {
         } else if let Some(target) = target {
             let pid = target.pid;
             if training.paused || training.pid != pid {
+                if training.pid != pid {
+                    training.search.reset_process();
+                    training.winner = None;
+                }
                 training.pid = pid;
                 training.capture = None;
                 let settings = training
@@ -127,13 +132,21 @@ impl App {
         if settings.pin && self.pinner.is_none() {
             self.pinner = Some(Pinner::new()?);
         }
-        self.runtime_profiles.retain(|path, _| !windows::same_executable(path, exe));
-        self.runtime_profiles.insert(exe.to_path_buf(), settings);
+        let mut changed = Vec::new();
         for process in self.running.iter().filter(|p| windows::same_executable(&p.exe, exe)) {
             if self.optimizer.enabled(process.pid) != settings.priority {
-                self.optimizer.toggle(process)?;
+                if let Err(error) = self.optimizer.toggle(process) {
+                    let mut rollback_errors = Vec::new();
+                    for previous in changed.into_iter().rev() {
+                        if let Err(rollback) = self.optimizer.toggle(previous) { rollback_errors.push(rollback); }
+                    }
+                    return Err(if rollback_errors.is_empty() { error } else { format!("{error}; falha ao restaurar ajustes anteriores: {}", rollback_errors.join("; ")) });
+                }
+                changed.push(process);
             }
         }
+        self.runtime_profiles.retain(|path, _| !windows::same_executable(path, exe));
+        self.runtime_profiles.insert(exe.to_path_buf(), settings);
         Ok(())
     }
     fn apply_learned_profiles(&mut self) {
@@ -204,10 +217,19 @@ impl App {
         self.running.first()
     }
     fn start_training(&mut self) {
+        if self.training.is_some() || !self.tray.is_optimizer_running() {
+            return;
+        }
         let Some(process) = self.selected_process().cloned() else {
             return;
         };
         self.training_selected = Some((process.pid, process.exe.clone()));
+        if self.pinner.is_none() {
+            match Pinner::new() {
+                Ok(pinner) => self.pinner = Some(pinner),
+                Err(error) => self.error = format!("Afinidade indisponível: {error}"),
+            }
+        }
         self.rapo_game = Some(process.directory.clone());
         let seed = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -305,18 +327,13 @@ impl App {
                 }
                 return;
             }
-            if self
-                .learned_profiles
-                .iter()
-                .find(|p| windows::same_executable(&p.exe, &training.exe))
-                .is_none_or(|p| score.improves(p.score))
             {
                 let profile = Profile {
                     exe: training.exe.clone(),
                     settings,
                     score,
                 };
-                // Without a store (open failed at startup) the winner still applies for this session.
+                // The paired search confirmed this winner against the current reference.
                 if let Some(Err(error)) = self.store.as_ref().map(|store| store.save_best(&profile)) {
                     self.restore_training(training, format!("Perfil não salvo: {error}"));
                     return;
@@ -324,7 +341,7 @@ impl App {
                 self.learned_profiles.retain(|p| !windows::same_executable(&p.exe, &profile.exe));
                 self.learned_profiles.push(profile);
                 training.saved = Some(settings);
-                self.training_message = format!("Melhor perfil salvo após {} medições; aprendizado continua. Prioridade {}, afinidade {}, {} núcleos, até {} threads, SMT {}, P-only {}, restringir processo {}, limiar {}%, memória {}. Média {:.1} FPS; 1% low {:.1} FPS.", training.search.completed(), settings.priority, settings.pin, settings.cores, settings.threads, settings.smt, settings.p_only, settings.park_cores, settings.min_percent, settings.qos, score.fps, score.low_fps);
+                self.training_message = format!("Melhor perfil confirmado após {} medições; aprendizado continua. Prioridade {}, afinidade {}, {} núcleos, até {} threads, SMT {}, P-only {}, restringir processo {}, limiar {}%, memória {}. Média {:.1} FPS; 1% low {:.1} FPS. {}", training.search.completed(), settings.priority, settings.pin, settings.cores, settings.threads, settings.smt, settings.p_only, settings.park_cores, settings.min_percent, settings.qos, score.fps, score.low_fps, if self.store.is_some() { "Salvo no SQLite." } else { "Disponível somente nesta sessão; banco indisponível." });
             }
             training.winner = None;
             if let Err(error) = self.set_settings(&training.exe, training.search.current()) {
@@ -361,6 +378,10 @@ impl App {
                 return;
             }
         }
+        if training.capture.is_none() && training.capture_started.elapsed() <= Duration::from_secs(5) {
+            self.training = Some(training);
+            return;
+        }
         if training.capture.is_none() {
             match Capture::start(training.pid) {
                 Ok(capture) => {
@@ -390,13 +411,7 @@ impl App {
                             self.restore_training(training, error);
                         } else {
                             training.capture_started = Instant::now();
-                            match Capture::start(training.pid) {
-                                Ok(capture) => {
-                                    training.capture = Some(capture);
-                                    self.training = Some(training);
-                                }
-                                Err(error) => self.restore_training(training, error),
-                            }
+                            self.training = Some(training);
                         }
                     }
                     Ok(Some(winner)) => self.queue_winner(training, winner),
@@ -429,10 +444,15 @@ impl App {
             selected_pid: self.selected_process().map(|p| p.pid),
             can_start: !self.running.is_empty() && self.tray.is_optimizer_running(),
             message: self.training_message.clone(),
+            profiles: self.learned_profiles.iter().map(|profile| crate::snapshot::SavedProfile {
+                exe: profile.exe.display().to_string(),
+                fps: profile.score.fps,
+                low_fps: profile.score.low_fps,
+            }).collect(),
             cpu_line: self.pinner.as_ref().map(|pinner| {
                 let limits = pinner.limits();
                 format!("CPU detectada: {} núcleos físicos · {} processadores lógicos · {} núcleos de maior desempenho · SMT disponível {}", limits.cores, limits.threads, limits.p_cores, limits.smt)
-            }),
+            }).or_else(|| self.training.as_ref().map(|_| "Topologia indisponível; afinidade e restrição de núcleos não serão testadas.".into())),
         }
     }
 }
