@@ -147,6 +147,15 @@
     color: var(--muted); font: 500 10px/1.6 var(--mono); letter-spacing: .07em; text-transform: uppercase;
   }
   .box-value { color: var(--text); font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
+  .resources-flow { width: 100%; height: auto; color: var(--text); font-family: var(--mono); }
+  .resources-flow .flow-node rect, .resources-flow .flow-dest rect { fill: var(--surface); stroke: var(--border); }
+  .resources-flow .flow-hub rect { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+  .resources-flow .flow-label { fill: var(--muted); font-size: 12px; }
+  .resources-flow .flow-value { fill: var(--text); font-size: 18px; font-weight: 600; }
+  .resources-flow .flow-hub-label { fill: var(--accent); font-size: 13px; letter-spacing: .08em; }
+  .resources-flow .flow-dest text { fill: var(--text); font-size: 13px; }
+  .resources-flow .flow-link { fill: none; stroke: var(--accent); stroke-width: 2; opacity: .55; }
+  .resources-flow .flow-out { stroke: var(--warning); }
   .box-value-text { font-size: 15px; font-weight: 600; line-height: 1.5; letter-spacing: 0; }
   .box-sub, .net-card-sub, .parameter small { color: var(--muted); font-size: 12px; line-height: 1.65; }
   .net-card-value { color: var(--text); font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }

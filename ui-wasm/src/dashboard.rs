@@ -548,15 +548,28 @@ fn is_resource_metric(label: &str) -> bool {
 
 /// Resources tab: CPU, GPU, memory, disk and network from the same telemetry the Visão geral tab shows.
 fn render_resources(html: &mut String, view: &Dashboard) {
-    html.push_str("<section class=\"resources-section\"><h2>RECURSOS DO SISTEMA</h2><div class=\"resources-grid\">");
-    for (label, value) in view.metrics.iter().filter(|(l, _)| is_resource_metric(l)) {
+    let metrics: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
+    html.push_str("<section class=\"resources-section\"><h2>RECURSOS DO SISTEMA</h2>");
+    // Flow in the reference style: sources (metrics) → central node → destinations (the RAPO actions on them).
+    html.push_str("<svg class=\"resources-flow\" viewBox=\"0 0 960 420\" role=\"img\" aria-label=\"Fluxo de recursos do sistema\">");
+    for (index, (label, value)) in metrics.iter().enumerate() {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
-        write!(html, "<div class=\"resource-card\"><span class=\"box-label\">{}</span><strong class=\"box-value\">{}</strong>", escape(label), escape(primary)).unwrap();
-        if !sub.is_empty() { write!(html, "<span class=\"box-sub\">{}</span>", escape(sub)).unwrap(); }
-        if label.starts_with("USO DE") { if let Some(percent) = first_percent(value) { usage_bar(html, percent, label); } }
-        html.push_str("</div>");
+        let y = 30.0 + index as f32 * 80.0;
+        write!(html, "<path class=\"flow-link\" d=\"M220 {y:.0} C 330 {y:.0}, 340 210, 420 210\"/>").unwrap();
+        write!(html, "<g class=\"flow-node\" transform=\"translate(20 {:.0})\"><rect width=\"200\" height=\"64\" rx=\"8\"/><text class=\"flow-label\" x=\"12\" y=\"24\">{}</text><text class=\"flow-value\" x=\"12\" y=\"48\">{}</text></g>", y - 32.0, escape(label), escape(primary)).unwrap();
+        if label.starts_with("USO DE") { if let Some(percent) = first_percent(value) { write!(html, "<rect class=\"flow-usage\" role=\"meter\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"{percent:.0}\" aria-label=\"{}\" x=\"12\" y=\"56\" width=\"{:.0}\" height=\"3\"/>", escape(label), 176.0 * percent.clamp(0.0, 100.0) / 100.0).unwrap(); } }
+        if !sub.is_empty() {
+            write!(html, "<title>{}</title>", escape(sub)).unwrap();
+        }
     }
-    html.push_str("</div></section>");
+    html.push_str("<g class=\"flow-hub\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"62\" text-anchor=\"middle\" class=\"flow-hub-label\">RECURSOS</text></g>");
+    for (index, (label, _)) in metrics.iter().enumerate() {
+        let y = 30.0 + index as f32 * 80.0;
+        write!(html, "<path class=\"flow-link flow-out\" d=\"M540 210 C 620 210, 640 {y:.0}, 720 {y:.0}\"/>").unwrap();
+        write!(html, "<g class=\"flow-dest\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"25\">{}</text></g>", y - 20.0, escape(label)).unwrap();
+    }
+    html.push_str("</svg>");
+    html.push_str("</section>");
 }
 
 fn render_telemetry(html: &mut String, view: &Dashboard) {
@@ -677,7 +690,7 @@ mod tests {
         assert!(html.contains("data-action=\"engine-ini-active\" checked>") && html.contains("ON · opções marcadas"), "the On/Off switch reflects the saved state");
         assert!(html.contains("data-action=\"engine-ini-backup\""));
         assert!(html.contains("data-action=\"engine-ini-restore\""));
-        assert!(html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"><div class=\"core-bar-fill core-low\" style=\"width: 18.2%\">"), "usage metrics get a 0–100% bar");
+        assert!(html.contains("class=\"flow-usage\"") && html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"") && html.contains("width=\"32\""), "usage metrics get a 0–100% bar in the flow node");
         assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }
     #[test]
@@ -821,7 +834,7 @@ mod tests {
     fn telemetry_figures_are_large_and_sentences_are_not() {
         let html = render(&dashboard(serde_json::json!({"metrics":[["USO DE CPU TOTAL","34.5% · Sistema 9%"],["REDE TOTAL (SISTEMA)","2300.0 KB/s · x"],
             ["ICMP · IPs TCP DO PROCESSO","4 IP(s) TCP observado(s); até 4 sondas, 250 ms cada · Não identifica servidor"]]})));
-        assert_eq!(html.matches("<strong class=\"box-value\">").count(), 2, "short figures keep the big style in the Resources tab");
+        assert_eq!(html.matches("<text class=\"flow-value\"").count(), 2, "short figures keep the big style in the Resources flow");
         assert_eq!(html.matches("<strong class=\"box-value box-value-text\">4 IP(s) TCP").count(), 1, "a sentence does not use the big-number style");
     }
     #[test]
