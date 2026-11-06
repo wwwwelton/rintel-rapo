@@ -773,6 +773,8 @@ mod tests {
                     destination: "192.0.2.42".into(),
                     outcome: crate::process_ping::EchoOutcome::Reply(42),
                     route: None,
+                    hops: None,
+                    trace: None,
                 });
                 collector.mailbox.snapshot(*snapshot);
                 break;

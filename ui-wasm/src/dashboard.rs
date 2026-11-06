@@ -101,9 +101,13 @@ pub struct Relay {
     pub redundancy: Redundancy,
     #[serde(default)]
     pub redundancy_auto_echo: String,
+    #[serde(default)]
+    pub redundancy_manual: Redundancy,
+    #[serde(default)]
+    pub redundancy_learning: String,
 }
 
-#[derive(Default, Clone, Copy, Deserialize)]
+#[derive(Default, Clone, Copy, Deserialize, PartialEq, Eq, Debug)]
 pub struct Redundancy {
     pub enabled: bool,
     pub x: u32,
@@ -255,17 +259,35 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
     write!(html, "<hr><label><input type=\"checkbox\" data-action=\"wfp\"{}{}> Tunelar processo via WFP ({wfp_status})</label>", if wfp.enabled { " checked" } else { "" }, if relay.stopping { " disabled" } else { "" }).unwrap();
     if !wfp.error.is_empty() { write!(html, "<span class=\"alert\" role=\"alert\">{}</span>", escape(&wfp.error)).unwrap(); }
     {
-        let r = relay.redundancy;
-        let x = if r.x > 0 { r.x } else { 20 };
-        let y = if r.y > 0 { r.y } else { 10 };
-        let overhead = if r.enabled && x > 0 { (y as u64 * 100) / x as u64 } else { 0 };
-        write!(html, "<hr><details><summary>UDPspeeder · Redundância de pacotes UDP ({} · +{overhead}% tráfego)</summary><p class=\"net-card-sub\">Replica pacotes UDP no cliente (razão X:Y) para tolerar perda sem depender de software no servidor.</p><fieldset id=\"udp-redundancy-fs\"><label><input id=\"udp-red-enabled\" type=\"checkbox\" data-action=\"udp-redundancy-toggle\"{}> Ativar redundância UDP (UDPspeeder)</label><label for=\"udp-red-x\">Pacotes originais (X)</label><input id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"{x}\"><label for=\"udp-red-y\">Pacotes redundantes (Y)</label><input id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"{y}\"><button type=\"button\" data-action=\"udp-redundancy-save\">Aplicar razão X:Y</button></fieldset></details>",
-            if r.enabled { "Ativo" } else { "Desativado" },
-            if r.enabled { " checked" } else { "" }).unwrap();
+        let eff = relay.redundancy;
+        let eff_x = if eff.x > 0 { eff.x } else { 20 };
+        let eff_y = if eff.y > 0 { eff.y } else { 10 };
+        let overhead = if eff.enabled && eff_x > 0 { (eff_y as u64 * 100) / eff_x as u64 } else { 0 };
+
+        let m = relay.redundancy_manual;
+        let manual_x = if m.x > 0 { m.x } else if eff.x > 0 { eff.x } else { 20 };
+        let manual_y = if m.y > 0 { m.y } else if eff.y > 0 { eff.y } else { 10 };
+        let manual_enabled = m.enabled || (m.x == 0 && m.y == 0 && eff.enabled);
+
+        let eff_status = if eff.enabled { format!("{eff_x}:{eff_y}") } else { "desativada".into() };
+
+        write!(html, "<hr><details><summary>UDPspeeder · Redundância de pacotes UDP ({} · +{overhead}% tráfego)</summary><p class=\"net-card-sub\">Replica pacotes UDP no cliente (razão X:Y) para tolerar perda sem depender de software no servidor.<br>Razão manual: {manual_x}:{manual_y} · Razão efetiva: {eff_status}</p><fieldset id=\"udp-redundancy-fs\"><legend>Configuração manual (X:Y manual: {manual_x}:{manual_y})</legend><label><input id=\"udp-red-enabled\" type=\"checkbox\" data-action=\"udp-redundancy-toggle\"{}> Ativar redundância UDP (UDPspeeder)</label><label for=\"udp-red-x\">Pacotes originais (X)</label><input id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"{manual_x}\"><label for=\"udp-red-y\">Pacotes redundantes (Y)</label><input id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"{manual_y}\"><button type=\"button\" data-action=\"udp-redundancy-save\">Aplicar razão X:Y</button></fieldset></details>",
+            if eff.enabled { "Ativo" } else { "Desativado" },
+            if manual_enabled { " checked" } else { "" }).unwrap();
     }
     {
         let r = relay;
-        write!(html, "<fieldset id=\"udp-redundancy-auto-fs\"><legend>Modo automático (sonda por eco local)</legend><label><input id=\"udp-red-auto\" type=\"checkbox\" data-action=\"udp-redundancy-auto-toggle\"{}> Escolher X:Y pelo eco</label><label for=\"udp-red-echo\">Eco UDP em loopback (IP:porta)</label><input id=\"udp-red-echo\" type=\"text\" value=\"{}\"><button type=\"button\" data-action=\"udp-redundancy-auto-save\">Aplicar eco</button></fieldset>", if r.redundancy_auto_echo.is_empty() { "" } else { " checked" }, escape(&r.redundancy_auto_echo)).unwrap();
+        let status = match r.redundancy_learning.trim() {
+            "aprendendo" => "aprendendo",
+            "ativo" => "ativo",
+            "sem feedback" | "sem_feedback" => "sem feedback",
+            _ => "desativado",
+        };
+        let eff = r.redundancy;
+        let eff_x = if eff.x > 0 { eff.x } else { 20 };
+        let eff_y = if eff.y > 0 { eff.y } else { 10 };
+        let eff_status = if eff.enabled { format!("{eff_x}:{eff_y}") } else { "desativada".into() };
+        write!(html, "<fieldset id=\"udp-redundancy-auto-fs\"><legend>Aprendizado da razão de pacotes (Estado: {status} · Razão efetiva: {eff_status})</legend><label><input id=\"udp-red-auto\" type=\"checkbox\" data-action=\"udp-redundancy-auto-toggle\"{}> Deixar o aprendizado controlar X:Y</label><p>Aprende com as últimas três rodadas do eco local. Não mede perda no caminho até o jogo. Pare o relay para alterar esta opção.</p><p class=\"net-card-sub\">Estado: {status} · Razão efetiva: {eff_status}</p><label for=\"udp-red-echo\">Eco UDP em loopback (IP:porta)</label><input id=\"udp-red-echo\" type=\"text\" value=\"{}\"><button type=\"button\" data-action=\"udp-redundancy-auto-save\">Aplicar eco</button></fieldset>", if r.redundancy_auto_echo.is_empty() { "" } else { " checked" }, escape(&r.redundancy_auto_echo)).unwrap();
     }
     // Without a remote server the relay uses the embedded loopback HY2 server, so HY2 is always configured.
     {
@@ -345,7 +367,7 @@ fn render_network(html: &mut String, view: &Dashboard) {
 
 /// Metrics the host always emits, in the order shown in the always-visible strip.
 const SUMMARY_METRICS: [(&str, &str); 5] = [("USO DE CPU TOTAL", "CPU"), ("USO DE GPU", "GPU"), ("USO DE MEMÓRIA", "Memória"),
-    ("REDE TOTAL", "Rede"), ("PING DO JOGO", "Ping do jogo")];
+    ("REDE TOTAL", "Rede"), ("PING DO JOGO", "Ping do jogo · traceroute / ICMP ao destino")];
 
 /// Compact always-visible status: a few headline metrics plus relay state, so the common
 /// question ("is it working, how is the load?") needs no scrolling or tab switch.
@@ -415,19 +437,19 @@ pub fn render(view: &Dashboard) -> String {
     if let Some((_, value)) = view.metrics.iter().find(|(l, _)| l.starts_with("PING DO JOGO")) {
         let (primary, caption) = value.split_once(" · ").unwrap_or((value, ""));
         let measured = primary.ends_with(" ms");
-        write!(html, "<div class=\"net-card {}\"><span class=\"net-card-label\">Ping do jogo · ICMP</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">{}</span></div>",
+        write!(html, "<div class=\"net-card {}\"><span class=\"net-card-label\">Ping do jogo · traceroute / ICMP ao destino</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">{}</span></div>",
             if measured { "" } else { "net-card-warn" }, escape(primary), escape(caption)).unwrap();
     }
     // Card 5 wide: ICMP destinations
-    let icmp_entries: Vec<_> = view.metrics.iter().filter(|(l, _)| l.contains("ICMP") && l.contains("DESTINO")).collect();
+    let icmp_entries: Vec<_> = view.metrics.iter().filter(|(l, _)| (l.contains("ICMP") || l.contains("TRACEROUTE")) && l.contains("DESTINO")).collect();
     if !icmp_entries.is_empty() {
-        html.push_str("<div class=\"net-card net-card-wide\"><span class=\"net-card-label\">ICMP · IPs TCP do processo</span><ul class=\"net-history\">");
+        html.push_str("<div class=\"net-card net-card-wide\"><span class=\"net-card-label\">traceroute / ICMP ao destino · IPs TCP do processo</span><ul class=\"net-history\">");
         for (_, value) in &icmp_entries {
             let (rtt, ip) = value.split_once(" · ").unwrap_or((value, ""));
             // The host labels success as "<n> ms" / "<1 ms"; anything else is a timeout or an unavailable probe, never shown in the success color.
             write!(html, "<li><span>{}</span><span{}>{}</span></li>", escape(ip), if rtt.ends_with(" ms") { "" } else { " class=\"icmp-fail\"" }, escape(rtt)).unwrap();
         }
-        html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. ICMP pode usar rota diferente do tráfego do jogo.</span></div>");
+        html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. traceroute / ICMP ao destino pode usar rota diferente do tráfego do jogo.</span></div>");
     }
     render_relay(&mut html, &view.relay, &view.wfp);
     crate::vpn::render(&mut html, &view.vpn);
@@ -697,9 +719,9 @@ mod tests {
         let ping = |value: &str| dashboard(serde_json::json!({"metrics":[["PING DO JOGO (ICMP)", value],["RTT TCP (EXTERNO)","18 ms · TCP até DNS público"]]}));
         let ok = ping("12 ms · ICMP ao IP TCP do jogo 10.0.0.3 · 2 de 4 responderam; não prova ser o servidor da partida");
         let summary = render_summary(&ok);
-        assert!(summary.contains("Ping do jogo") && summary.contains(">12 ms<") && !summary.contains("RTT"), "the strip shows the game ping, not the DNS probe: {summary}");
+        assert!(summary.contains("Ping do jogo") && summary.contains("traceroute / ICMP ao destino") && summary.contains(">12 ms<") && !summary.contains("RTT"), "the strip shows the game ping, not the DNS probe: {summary}");
         let page = render(&ok);
-        assert!(page.contains("Ping do jogo · ICMP") && page.contains("não prova ser o servidor da partida"), "the host's caveat is the card caption");
+        assert!(page.contains("Ping do jogo · traceroute / ICMP ao destino") && page.contains("não prova ser o servidor da partida"), "the host's caveat is the card caption");
         assert!(!page.contains("RTT TCP externo") && !page.contains("DNS público; não é ping"), "the external RTT card is gone");
         assert!(page.contains("<div class=\"net-card \"><span class=\"net-card-label\">Ping do jogo"), "a real measurement uses the neutral card");
         let silent = render(&ping("sem resposta · Os IPs TCP do jogo não responderam ao ICMP"));
@@ -730,5 +752,40 @@ mod tests {
         assert!(html.contains("id=\"udp-red-enabled\" type=\"checkbox\" data-action=\"udp-redundancy-toggle\" checked"));
         assert!(html.contains("id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"10\""));
         assert!(html.contains("id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"5\""));
+    }
+    #[test]
+    fn udp_redundancy_separates_manual_and_effective_ratios() {
+        let mut view = dashboard(serde_json::json!({}));
+        view.relay.redundancy_manual = Redundancy { enabled: true, x: 20, y: 10 };
+        view.relay.redundancy = Redundancy { enabled: true, x: 4, y: 1 };
+        view.relay.redundancy_learning = "ativo".into();
+        let html = render(&view);
+        assert!(html.contains("Razão manual: 20:10"), "must show manual ratio");
+        assert!(html.contains("Razão efetiva: 4:1"), "must show effective ratio");
+        assert!(html.contains("Estado: ativo"), "must show learning state");
+        assert!(html.contains("id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"20\""), "manual x input keeps manual value");
+        assert!(html.contains("id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"10\""), "manual y input keeps manual value");
+        assert!(html.contains("+25% tráfego"), "overhead summary reflects effective ratio");
+    }
+    #[test]
+    fn udp_redundancy_renders_all_learning_states() {
+        let mut view = dashboard(serde_json::json!({}));
+        view.relay.redundancy = Redundancy { enabled: true, x: 20, y: 10 };
+
+        for (input_state, expected) in [
+            ("aprendendo", "aprendendo"),
+            ("ativo", "ativo"),
+            ("sem feedback", "sem feedback"),
+            ("sem_feedback", "sem feedback"),
+            ("desativado", "desativado"),
+            ("", "desativado"),
+        ] {
+            view.relay.redundancy_learning = input_state.into();
+            let html = render(&view);
+            assert!(
+                html.contains(&format!("Estado: {expected}")),
+                "expected 'Estado: {expected}' for input '{input_state}'"
+            );
+        }
     }
 }

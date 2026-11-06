@@ -53,6 +53,7 @@ O RAPO inclui gerenciador de perfis VPN na aba **Rede** com regra de **exatament
 - **Hysteria 2:** perfis manuais para servidores remotos com suporte a CA customizada.
 - Ao iniciar o relay com um perfil de VPN ativo, todo o tráfego SOCKS5 sai obrigatoriamente pelo túnel configurado, **sem fallback direto**.
 - **UDPspeeder (Redundância de pacotes UDP `X:Y`):** opção client-side para ligar/desligar a replicação de datagramas UDP no relay local, nos túneis VPN (Hysteria 2, WireGuard e OpenVPN) e no tunelamento transparente WFP. Envia `Y` pacotes redundantes para cada `X` pacotes originais (limites de 1 a 30; padrão `20:10`, +50% de tráfego), mitigando perda de pacotes sem exigir instalação de software ou servidor UDPspeeder no destino remoto. A configuração persiste no SQLite (`udp_redundancy`).
+- **Aprendizado da razão UDP:** com o relay parado, marque **Deixar o aprendizado controlar X:Y** e informe um eco UDP em loopback. O controlador usa as últimas três rodadas completas e confirma mudanças em duas rodadas consecutivas; sem respostas mantém a razão atual. A opção e o eco persistem, mas as amostras são descartadas ao reiniciar. Desative o aprendizado antes de editar a razão manual. Esse eco não mede perda no caminho até o jogo; replicação aumenta tráfego e pode entregar duplicatas ao destino, sem garantia de compatibilidade com jogo ou anti-cheat.
 
 **Modos de saída** (em **Transporte**, alteráveis somente com o relay desabilitado; valem para a execução inteira):
 

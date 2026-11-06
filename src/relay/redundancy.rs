@@ -171,10 +171,80 @@ pub fn select(probes: &[Probe]) -> Option<RedundancyConfig> {
         .map(|p| p.config)
 }
 
+#[derive(Default)]
+pub(super) struct RatioLearning {
+    rounds: std::collections::VecDeque<Vec<Probe>>,
+    current: Option<RedundancyConfig>,
+    challenger: Option<RedundancyConfig>,
+    missing: usize,
+}
+
+impl RatioLearning {
+    pub fn observe(&mut self, probes: &[Probe]) -> Option<RedundancyConfig> {
+        let configs = candidates();
+        let valid = probes.len() == configs.len()
+            && configs.iter().all(|config| probes.iter().filter(|p| p.config == *config).count() == 1)
+            && probes.iter().all(|p| p.sent > 0 && p.received <= p.sent)
+            && probes.iter().any(|p| p.received > 0);
+        if !valid {
+            self.missing += 1;
+            self.challenger = None;
+            if self.missing >= 3 { self.rounds.clear(); }
+            return self.current;
+        }
+        self.missing = 0;
+        if self.rounds.len() == 3 { self.rounds.pop_front(); }
+        self.rounds.push_back(probes.to_vec());
+        let estimates: Vec<_> = configs.iter().map(|config| {
+            let (sent, received) = self.rounds.iter().flatten()
+                .filter(|p| p.config == *config)
+                .fold((0u64, 0u64), |(s, r), p| (s + p.sent as u64, r + p.received as u64));
+            (*config, received as f64 / sent as f64)
+        }).collect();
+        let best = estimates.iter().map(|(_, rate)| *rate).fold(0.0, f64::max);
+        let winner = estimates.iter().filter(|(_, rate)| *rate >= best - 0.005)
+            .min_by(|(a, _), (b, _)| (a.y as u64 * b.x as u64).cmp(&(b.y as u64 * a.x as u64)))
+            .map(|(config, _)| *config);
+        if self.current.is_none() || winner == self.current || winner == self.challenger {
+            self.current = winner;
+            self.challenger = None;
+        } else {
+            self.challenger = winner;
+        }
+        self.current
+    }
+    pub fn is_active(&self) -> bool { self.rounds.len() == 3 }
+}
+
+#[cfg(test)]
+mod learning_tests {
+    use super::*;
+
+    fn round(high_loss: bool) -> Vec<Probe> {
+        candidates().into_iter().map(|config| Probe {
+            config, sent: 200,
+            received: if high_loss && config != (RedundancyConfig { enabled: true, x: 1, y: 4 }) { 100 } else { 200 },
+        }).collect()
+    }
+
+    #[test]
+    fn learned_ratio_adapts_and_preserves_choice_without_feedback() {
+        let mut learning = RatioLearning::default();
+        let low = RedundancyConfig { enabled: true, x: 4, y: 1 };
+        let high = RedundancyConfig { enabled: true, x: 1, y: 4 };
+        assert_eq!(learning.observe(&round(false)), Some(low));
+        assert_eq!(learning.observe(&round(true)), Some(low));
+        assert_eq!(learning.observe(&round(true)), Some(high));
+        for _ in 0..3 { assert_eq!(learning.observe(&[]), Some(high)); }
+        assert_eq!(learning.observe(&round(false)), Some(high));
+        assert_eq!(learning.observe(&round(false)), Some(low));
+    }
+}
+
 /// Sends `count` numbered datagrams to a UDP echo at `echo` using the duplication of `config`, then counts
 /// the distinct sequence numbers echoed back within `wait`. Duplicates of one number count once.
-pub fn probe(echo: SocketAddr, config: RedundancyConfig, count: u32, wait: Duration) -> io::Result<Probe> {
-    let socket = UdpSocket::bind("127.0.0.1:0")?;
+pub fn probe(echo: SocketAddr, config: RedundancyConfig, count: u32, wait: Duration, running: &std::sync::atomic::AtomicBool) -> io::Result<Probe> {
+    let socket = UdpSocket::bind(if echo.is_ipv4() { "127.0.0.1:0" } else { "[::1]:0" })?;
     socket.connect(echo)?;
     let engine = RedundancyEngine::new();
     let mut seen = vec![false; count as usize];
@@ -182,6 +252,7 @@ pub fn probe(echo: SocketAddr, config: RedundancyConfig, count: u32, wait: Durat
     // Echoes arrive while sending; drain them as we go, or the receive buffer overflows and drops replies.
     socket.set_nonblocking(true)?;
     for seq in 0..count {
+        if !running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
         for _ in 0..engine.duplicates_for_next(&config) {
             socket.send(&seq.to_be_bytes())?;
         }
@@ -193,6 +264,7 @@ pub fn probe(echo: SocketAddr, config: RedundancyConfig, count: u32, wait: Durat
     socket.set_nonblocking(false)?;
     let deadline = Instant::now() + wait;
     loop {
+        if !running.load(Ordering::Acquire) { return Err(io::ErrorKind::Interrupted.into()); }
         let left = deadline.saturating_duration_since(Instant::now());
         if left.is_zero() { break; }
         socket.set_read_timeout(Some(left))?;
@@ -236,7 +308,7 @@ mod probe_tests {
     fn without_loss_the_lowest_overhead_candidate_wins() {
         let (addr, stop) = lossy_echo(0);
         let probes: Vec<Probe> = candidates().into_iter()
-            .map(|c| probe(addr, c, 200, Duration::from_millis(300)).unwrap()).collect();
+            .map(|c| probe(addr, c, 200, Duration::from_millis(300), &AtomicBool::new(true)).unwrap()).collect();
         stop.store(true, std::sync::atomic::Ordering::Relaxed);
         assert!(probes.iter().all(|p| p.received == p.sent));
         assert_eq!(select(&probes), Some(RedundancyConfig { enabled: true, x: 4, y: 1 }));
@@ -245,8 +317,8 @@ mod probe_tests {
     #[test]
     fn under_loss_redundancy_raises_delivery_and_is_selected() {
         let (addr, stop) = lossy_echo(300);
-        let single = probe(addr, RedundancyConfig { enabled: true, x: 4, y: 1 }, 400, Duration::from_millis(400)).unwrap();
-        let triple = probe(addr, RedundancyConfig { enabled: true, x: 1, y: 2 }, 400, Duration::from_millis(400)).unwrap();
+        let single = probe(addr, RedundancyConfig { enabled: true, x: 4, y: 1 }, 400, Duration::from_millis(400), &AtomicBool::new(true)).unwrap();
+        let triple = probe(addr, RedundancyConfig { enabled: true, x: 1, y: 2 }, 400, Duration::from_millis(400), &AtomicBool::new(true)).unwrap();
         stop.store(true, std::sync::atomic::Ordering::Relaxed);
         assert!(triple.received > single.received, "1:2 must recover more loss than 4:1");
         let chosen = select(&[single, triple]).unwrap();

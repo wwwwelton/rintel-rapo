@@ -74,7 +74,7 @@ impl Session {
             return Err("Automático exige uma amostra TCP/ICMP atual do processo selecionado.".into());
         }
         let endpoint = sample.endpoints.iter().find(|e| e.destination == destination).ok_or("Escolha um IP TCP observado atualmente; isso não identifica servidor de partida.")?;
-        if !matches!(endpoint.outcome, EchoOutcome::Reply(_)) { return Err("Automático exige resposta ICMP válida, não timeout/indisponibilidade.".into()); }
+        if !matches!(endpoint.outcome, EchoOutcome::Reply(_) | EchoOutcome::ReplyTrace { .. }) { return Err("Automático exige resposta ICMP válida, não timeout/indisponibilidade.".into()); }
         let baseline = endpoint.route.clone().ok_or("Rota efetiva da sonda não foi confirmada; não iniciar testes.")?;
         candidates.sort(); candidates.dedup();
         if candidates.len() < 2 || !candidates.contains(&baseline.candidate) {
@@ -127,7 +127,7 @@ impl Session {
             if self.trial_route.as_ref().is_some_and(|id| *id != route.id) { return Err("Rota/origem do candidato mudou; janela inválida.".into()); }
             self.trial_route = Some(route.id.clone());
         }
-        let ms = match endpoint.outcome { EchoOutcome::Reply(ms) => ms as f64,
+        let ms = match endpoint.outcome { EchoOutcome::Reply(ms) | EchoOutcome::ReplyTrace { ms, .. } => ms as f64,
             _ => return Err("Timeout/ICMP indisponível: não é 0 ms; restaurando referência, sem promoção.".into()) };
         self.last_valid = now;
         self.remember(route, ms, now);
@@ -204,6 +204,7 @@ mod tests {
         ProcessPing { sample_id: id, sampled_at: Some(at), pids: vec![42], summary: String::new(), endpoints: vec![EndpointPing {
             destination: "192.0.2.42".into(), outcome: ms.map_or(EchoOutcome::Timeout, EchoOutcome::Reply),
             route: Some(Observation { id: gateway.into(), candidate: gateway.into(), interface: 2, gateway: gateway.into(), source: "192.0.2.2".into() }),
+            hops: None, trace: None,
         }] }
     }
     #[test]

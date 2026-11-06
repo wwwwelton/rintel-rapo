@@ -72,6 +72,8 @@ pub struct State {
     pub allowed_interfaces: Vec<String>,
     pub redundancy: RedundancyConfig,
     pub redundancy_auto_echo: String,
+    pub redundancy_manual: RedundancyConfig,
+    pub redundancy_learning: String,
 }
 
 struct Connection { id: u64, client: TcpStream, outbound: Option<Outbound>, udp_bound: Option<SocketAddr> }
@@ -99,6 +101,7 @@ struct Shared {
     hy2_is_builtin: AtomicBool,
     redundancy: RwLock<RedundancyConfig>,
     redundancy_engine: RedundancyEngine,
+    redundancy_learning: Mutex<&'static str>,
 }
 impl Shared {
     fn close_connections(&self) {
@@ -158,7 +161,7 @@ impl Shared {
         Ok(())
     }
 }
-struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, address: SocketAddr }
+struct Run { shared: Arc<Shared>, worker: Option<JoinHandle<()>>, redundancy_worker: Option<JoinHandle<()>>, address: SocketAddr }
 
 /// Measures the ICMP round trip to the HY2 server until the relay stops; resolves off the UI thread.
 #[cfg(windows)]
@@ -240,6 +243,10 @@ impl RelayServer {
     fn tunnel_label(&self) -> String { self.tunnel.as_ref().map_or(String::new(), |t| t.label().into()) }
     pub fn set_redundancy(&mut self, config: RedundancyConfig) -> Result<(), &'static str> {
         config.validate()?;
+        if self.auto_echo.is_some() {
+            self.error = "Desative o aprendizado antes de alterar a razão manual".into();
+            return Err("Desative o aprendizado antes de alterar a razão manual");
+        }
         if let Some(run) = &self.run {
             *run.shared.redundancy.write().unwrap() = config;
         }
@@ -248,9 +255,16 @@ impl RelayServer {
     }
     /// Loopback echo that scores redundancy ratios while the relay runs; `None` turns automatic selection off.
     pub fn set_auto_echo(&mut self, echo: Option<SocketAddr>) -> Result<(), &'static str> {
-        if echo.is_some_and(|addr| !addr.ip().is_loopback()) { return Err("Eco de redundância deve ser loopback"); }
-        if self.run.as_ref().is_some_and(|run| run.shared.running.load(Ordering::Acquire)) { return Err("Pare o relay para alterar o eco de redundância"); }
+        if echo.is_some_and(|addr| !addr.ip().is_loopback()) {
+            self.error = "Eco de redundância deve ser loopback".into();
+            return Err("Eco de redundância deve ser loopback");
+        }
+        if self.run.as_ref().is_some_and(|run| run.shared.running.load(Ordering::Acquire)) {
+            self.error = "Pare o relay para alterar o eco de redundância".into();
+            return Err("Pare o relay para alterar o eco de redundância");
+        }
         self.auto_echo = echo;
+        self.error.clear();
         Ok(())
     }
     pub fn redundancy(&self) -> RedundancyConfig { self.redundancy }
@@ -282,7 +296,7 @@ impl RelayServer {
         self.poll();
         if let Some(run) = &self.run {
             if run.shared.running.load(Ordering::Acquire) { return Ok(()); }
-            if run.worker.is_some() { return Err(io::Error::new(io::ErrorKind::WouldBlock, "Relay ainda encerrando conexões")); }
+            if run.worker.is_some() || run.redundancy_worker.is_some() { return Err(io::Error::new(io::ErrorKind::WouldBlock, "Relay ainda encerrando conexões")); }
         }
         let result = self.launch();
         if let Err(error) = &result { self.error = format!("Não foi possível iniciar SOCKS5: {error}"); }
@@ -311,6 +325,7 @@ impl RelayServer {
             interfaces: Mutex::new(Vec::new()), allowed_interfaces: RwLock::new(Vec::new()), hy2: Mutex::new(None), hy2_error: Mutex::new(String::new()), hy2_ping_ms: AtomicU32::new(0),
             hy2_is_builtin: AtomicBool::new(hy2::builtin().is_some()),
             redundancy: RwLock::new(self.redundancy), redundancy_engine: RedundancyEngine::new(),
+            redundancy_learning: Mutex::new(if self.auto_echo.is_some() { "aprendendo" } else { "desativado" }),
         });
         let state = Arc::clone(&shared);
         let worker = thread::Builder::new().name("rapo-socks5".into()).spawn(move || serve(listener, udp, state, address))?;
@@ -329,12 +344,20 @@ impl RelayServer {
                 let _ = thread::Builder::new().name("rapo-hy2-ping".into()).spawn(move || ping_server(shared));
             }
         }
-        if let Some(echo) = self.auto_echo {
+        let redundancy_worker = if let Some(echo) = self.auto_echo {
             let auto = Arc::clone(&shared);
             let base = self.redundancy;
-            let _ = thread::Builder::new().name("rapo-redundancy".into()).spawn(move || auto_redundancy(auto, echo, base));
-        }
-        self.run = Some(Run { shared, worker: Some(worker), address });
+            match thread::Builder::new().name("rapo-redundancy".into()).spawn(move || auto_redundancy(auto, echo, base)) {
+                Ok(worker) => Some(worker),
+                Err(error) => {
+                    shared.running.store(false, Ordering::Release);
+                    let _ = TcpStream::connect_timeout(&address, Duration::from_millis(100));
+                    let _ = worker.join();
+                    return Err(error);
+                }
+            }
+        } else { None };
+        self.run = Some(Run { shared, worker: Some(worker), redundancy_worker, address });
         self.error.clear();
         Ok(())
     }
@@ -364,12 +387,16 @@ impl RelayServer {
                 run.shared.close_connections();
                 if run.worker.take().unwrap().join().is_err() { self.error = "Worker SOCKS5 encerrado inesperadamente".into(); }
             }
+            if run.redundancy_worker.as_ref().is_some_and(JoinHandle::is_finished) {
+                if run.redundancy_worker.take().unwrap().join().is_err() { self.error = "Aprendizado UDP encerrado inesperadamente".into(); }
+            }
         }
     }
     pub fn state(&self) -> State {
         let Some(run) = &self.run else {
             return State { mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(), tunnel: self.tunnel_label(),
                 hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
+                redundancy_manual: self.redundancy, redundancy_learning: "desativado".into(),
                 udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), redundancy: self.redundancy, redundancy_auto_echo: self.auto_echo.map(|a| a.to_string()).unwrap_or_default(), ..State::default() };
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
@@ -384,7 +411,7 @@ impl RelayServer {
             udp_associations, active_connections,
             udp_destinations: run.shared.udp_destinations.load(Ordering::Relaxed),
             udp_route: self.udp_route().into(),
-            running, stopping: !running && run.worker.as_ref().is_some_and(|w| !w.is_finished()),
+            running, stopping: !running && (run.worker.is_some() || run.redundancy_worker.is_some()),
             address: run.address.to_string(),
             total_connections: run.shared.total.load(Ordering::Relaxed),
             bytes_tx: run.shared.bytes_tx.load(Ordering::Relaxed), bytes_rx: run.shared.bytes_rx.load(Ordering::Relaxed),
@@ -398,7 +425,9 @@ impl RelayServer {
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),
-            redundancy: *run.shared.redundancy.read().unwrap(), redundancy_auto_echo: self.auto_echo.map(|a| a.to_string()).unwrap_or_default(),
+            redundancy: if running { *run.shared.redundancy.read().unwrap() } else { self.redundancy }, redundancy_auto_echo: self.auto_echo.map(|a| a.to_string()).unwrap_or_default(),
+            redundancy_manual: self.redundancy,
+            redundancy_learning: if running { (*run.shared.redundancy_learning.lock().unwrap()).into() } else { "desativado".into() },
         }
     }
     /// UDP has no per-flow RTT signal here, so an association keeps one fixed route.
@@ -410,6 +439,7 @@ impl Drop for RelayServer {
     fn drop(&mut self) {
         self.stop();
         if let Some(worker) = self.run.as_mut().and_then(|r| r.worker.take()) { let _ = worker.join(); }
+        if let Some(worker) = self.run.as_mut().and_then(|r| r.redundancy_worker.take()) { let _ = worker.join(); }
     }
 }
 
@@ -419,19 +449,27 @@ const REDUNDANCY_HOLD: Duration = Duration::from_secs(60);
 
 /// Re-scores every ratio against the local echo each cycle and applies the best one; restores the user's config on exit.
 fn auto_redundancy(shared: Arc<Shared>, echo: SocketAddr, base: RedundancyConfig) {
+    let mut learning = redundancy::RatioLearning::default();
     while shared.running.load(Ordering::Acquire) {
-        let probes: Vec<redundancy::Probe> = redundancy::candidates().into_iter()
-            .filter_map(|c| redundancy::probe(echo, c, REDUNDANCY_PROBE_COUNT, REDUNDANCY_PROBE_WAIT).ok())
-            .collect();
-        // Echo down: every candidate scores zero, so keep the current ratio instead of picking one blindly.
-        if probes.iter().any(|p| p.received > 0) {
-            if let Some(best) = redundancy::select(&probes) { *shared.redundancy.write().unwrap() = best; }
+        let mut probes = Vec::new();
+        for config in redundancy::candidates() {
+            if !shared.running.load(Ordering::Acquire) { break; }
+            if let Ok(probe) = redundancy::probe(echo, config, REDUNDANCY_PROBE_COUNT, REDUNDANCY_PROBE_WAIT, &shared.running) {
+                probes.push(probe);
+            }
+        }
+        let decision = learning.observe(&probes);
+        if shared.running.load(Ordering::Acquire) {
+            let state = if decision.is_none() { "sem feedback" } else if learning.is_active() { "ativo" } else { "aprendendo" };
+            *shared.redundancy_learning.lock().unwrap() = state;
+            if let Some(best) = decision { *shared.redundancy.write().unwrap() = best; }
         }
         let until = Instant::now() + REDUNDANCY_HOLD;
         while shared.running.load(Ordering::Acquire) && Instant::now() < until {
-            thread::sleep(Duration::from_millis(250));
+            thread::sleep(Duration::from_millis(100));
         }
     }
+    *shared.redundancy_learning.lock().unwrap() = "desativado";
     *shared.redundancy.write().unwrap() = base;
 }
 

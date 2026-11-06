@@ -795,17 +795,31 @@ mod app {
                     self.finish_vpn(result);
                 }
                 crate::command::Command::SetUdpRedundancy(config) => {
-                    if let Ok(()) = self.relay.set_redundancy(config) {
-                        if let Some(store) = &self.store {
-                            let _ = store.save_redundancy(config);
+                    let previous = self.relay.redundancy();
+                    match self.relay.set_redundancy(config) {
+                        Ok(()) => {
+                            if let Some(store) = &self.store {
+                                if let Err(e) = store.save_redundancy(config) {
+                                    let _ = self.relay.set_redundancy(previous);
+                                    self.training_message = format!("Falha ao salvar redundância: {e}");
+                                }
+                            }
                         }
+                        Err(error) => self.training_message = error.to_string(),
                     }
                 }
                 crate::command::Command::SetUdpRedundancyAuto(echo) => {
-                    if let Ok(()) = self.relay.set_auto_echo(echo) {
-                        if let Some(store) = &self.store {
-                            let _ = store.save_auto_echo(echo);
+                    let previous = self.relay.state().redundancy_auto_echo;
+                    match self.relay.set_auto_echo(echo) {
+                        Ok(()) => {
+                            if let Some(store) = &self.store {
+                                if let Err(e) = store.save_auto_echo(echo) {
+                                    let _ = self.relay.set_auto_echo(previous.parse().ok());
+                                    self.training_message = format!("Falha ao salvar eco de redundância: {e}");
+                                }
+                            }
                         }
+                        Err(error) => self.training_message = error.to_string(),
                     }
                 }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),

@@ -368,8 +368,22 @@
       }
       if (action === 'udp-redundancy-auto-toggle' || action === 'udp-redundancy-auto-save') {
         payload.action = 'udp-redundancy-auto';
-        payload.enabled = field('udp-red-auto')?.checked === true;
+        payload.enabled = action === 'udp-redundancy-auto-save' || field('udp-red-auto')?.checked === true;
         payload.echo = field('udp-red-echo')?.value.trim() || '';
+        if (payload.enabled) {
+          const echoValid = (v) => { const m = v.match(/^(?:127(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|\[::1\]):([1-9]\d{0,4})$/); return Boolean(m && Number(m[1]) <= 65535); };
+          if (!payload.echo) {
+            error.textContent = 'Informe o endereço do eco UDP em loopback (IP:porta).';
+            if (el.type === 'checkbox') el.checked = false;
+            return;
+          }
+          if (!echoValid(payload.echo)) {
+            error.textContent = 'Informe um eco UDP loopback válido no formato IP:porta (ex.: 127.0.0.1:9).';
+            if (el.type === 'checkbox') el.checked = false;
+            return;
+          }
+          if (field('udp-red-auto')) field('udp-red-auto').checked = true;
+        }
       }
       if (action.startsWith('route-') || action.startsWith('rate-')) {
         payload.destination = el.dataset.destination ?? field('route-destination')?.value.trim();

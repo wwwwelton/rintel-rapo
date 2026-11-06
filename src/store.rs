@@ -194,6 +194,9 @@ impl Store {
 
     /// Loopback echo for learning-driven ratio selection; `None` when automatic selection is off.
     pub fn save_auto_echo(&self, echo: Option<std::net::SocketAddr>) -> Result<(), String> {
+        if echo.is_some_and(|addr| !addr.ip().is_loopback()) {
+            return Err("Eco de redundância deve ser loopback".into());
+        }
         match echo {
             Some(addr) => self.db.execute("INSERT INTO udp_redundancy_auto (id, echo) VALUES (1, ?1)
                 ON CONFLICT(id) DO UPDATE SET echo = ?1", params![addr.to_string()]).map(drop).map_err(text),
@@ -203,7 +206,13 @@ impl Store {
 
     pub fn auto_echo(&self) -> Result<Option<std::net::SocketAddr>, String> {
         match self.db.query_row("SELECT echo FROM udp_redundancy_auto WHERE id = 1", [], |row| row.get::<_, String>(0)) {
-            Ok(echo) => Ok(echo.parse().ok()),
+            Ok(echo) => {
+                let addr: std::net::SocketAddr = echo.parse().map_err(|e| format!("SQLite: eco inválido ({e}): {echo}"))?;
+                if !addr.ip().is_loopback() {
+                    return Err(format!("SQLite: eco de redundância não é loopback: {addr}"));
+                }
+                Ok(Some(addr))
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(error) => Err(text(error)),
         }
@@ -357,5 +366,40 @@ mod tests {
         let updated = crate::relay::RedundancyConfig { enabled: false, x: 1, y: 2 };
         store.save_redundancy(updated).unwrap();
         assert_eq!(store.redundancy().unwrap(), updated);
+    }
+
+    #[test]
+    fn udp_redundancy_rejects_invalid_and_preserves_previous() {
+        let store = memory();
+        let valid = crate::relay::RedundancyConfig { enabled: true, x: 5, y: 3 };
+        store.save_redundancy(valid).unwrap();
+        assert!(store.save_redundancy(crate::relay::RedundancyConfig { enabled: true, x: 0, y: 3 }).is_err());
+        assert_eq!(store.redundancy().unwrap(), valid);
+        store.db.execute("UPDATE udp_redundancy SET x = 0 WHERE id = 1", []).unwrap();
+        assert!(store.redundancy().is_err());
+    }
+
+    #[test]
+    fn auto_echo_lifecycle_validation_and_corruption_handling() {
+        let store = memory();
+        assert_eq!(store.auto_echo().unwrap(), None);
+        let addr: std::net::SocketAddr = "127.0.0.1:4000".parse().unwrap();
+        store.save_auto_echo(Some(addr)).unwrap();
+        assert_eq!(store.auto_echo().unwrap(), Some(addr));
+
+        // Non-loopback rejected and previous value retained
+        let public_addr: std::net::SocketAddr = "1.1.1.1:4000".parse().unwrap();
+        assert!(store.save_auto_echo(Some(public_addr)).is_err());
+        assert_eq!(store.auto_echo().unwrap(), Some(addr));
+
+        // None clears the echo
+        store.save_auto_echo(None).unwrap();
+        assert_eq!(store.auto_echo().unwrap(), None);
+
+        // Corrupted rows surface as errors instead of silent None
+        store.db.execute("INSERT INTO udp_redundancy_auto (id, echo) VALUES (1, 'invalid-addr')", []).unwrap();
+        assert!(store.auto_echo().is_err());
+        store.db.execute("UPDATE udp_redundancy_auto SET echo = '8.8.8.8:53' WHERE id = 1", []).unwrap();
+        assert!(store.auto_echo().is_err());
     }
 }

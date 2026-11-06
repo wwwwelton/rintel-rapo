@@ -100,6 +100,14 @@ pub fn from_json(body: &str) -> Option<Command> {
     let checked = event.get("checked").and_then(|v| v.as_bool());
     let pid = event.get("pid").and_then(|v| v.as_u64()).and_then(|p| u32::try_from(p).ok());
     let text = |key| event.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned);
+    let bool_or = |key, default| match event.get(key) {
+        None | Some(serde_json::Value::Null) => Some(default),
+        Some(v) => v.as_bool(),
+    };
+    let u32_or = |key, default| match event.get(key) {
+        None | Some(serde_json::Value::Null) => Some(default),
+        Some(v) => v.as_u64().and_then(|n| u32::try_from(n).ok()),
+    };
     match action {
         "relay-configure" => {
             let mode = serde_json::from_value(event.get("mode")?.clone()).ok()?;
@@ -142,14 +150,20 @@ pub fn from_json(body: &str) -> Option<Command> {
         "vpn-deactivate" => return Some(Command::ActivateVpnProfile(None)),
         "vpn-remove" => return Some(Command::RemoveVpnProfile(text("name")?)),
         "udp-redundancy" => {
-            let enabled = event.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
-            let x = event.get("x").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok()).unwrap_or(20);
-            let y = event.get("y").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok()).unwrap_or(10);
+            let enabled = bool_or("enabled", false)?;
+            let x = u32_or("x", 20)?;
+            let y = u32_or("y", 10)?;
             let config = crate::relay::RedundancyConfig::new(enabled, x, y).ok()?;
             return Some(Command::SetUdpRedundancy(config));
         }
         "udp-redundancy-auto" => {
-            let echo = if event.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false) { Some(text("echo")?.parse::<std::net::SocketAddr>().ok()?) } else { None };
+            let enabled = bool_or("enabled", false)?;
+            let echo = if enabled {
+                let raw = text("echo")?;
+                Some(raw.parse::<std::net::SocketAddr>().ok()?)
+            } else {
+                None
+            };
             return Some(Command::SetUdpRedundancyAuto(echo));
         }
         "route-refresh" => return Some(Command::RefreshRoutes),
@@ -325,6 +339,12 @@ mod tests {
         assert!(matches!(page("relay-configure", serde_json::json!({ "mode": "hy2", "server": "", "server_name": "", "auth": "", "ca_pem": "" })),
             Some(Command::ConfigureRelay { mode: crate::relay::Mode::Hy2, .. })), "an empty server and secret select the integrated HY2 server");
         assert_eq!(from_json(r#"{"action":"search","text":"aion"}"#), Some(Command::SetSearch("aion".into())));
+        assert_eq!(page("udp-redundancy", serde_json::json!({ "enabled": true, "x": 10, "y": 5 })),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 10, y: 5 })));
+        assert_eq!(page("udp-redundancy-auto", serde_json::json!({ "enabled": true, "echo": "127.0.0.1:9" })),
+            Some(Command::SetUdpRedundancyAuto(Some("127.0.0.1:9".parse().unwrap()))));
+        assert_eq!(page("udp-redundancy-auto", serde_json::json!({ "enabled": false, "echo": "" })),
+            Some(Command::SetUdpRedundancyAuto(None)));
     }
 
     #[test]
@@ -357,13 +377,95 @@ mod tests {
 
     #[test]
     fn udp_redundancy_ipc_parses_and_validates_bounds() {
+        // Valid custom ratio
         assert_eq!(
             from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":5}"#),
             Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 10, y: 5 }))
         );
-        assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#), None, "x=0 rejected");
-        assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":31}"#), None, "y=31 rejected");
-        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1:9"}"#), Some(Command::SetUdpRedundancyAuto(Some("127.0.0.1:9".parse().unwrap()))));
+        // Valid ratio boundary edges (1..=30)
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true,"x":1,"y":1}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 1, y: 1 }))
+        );
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true,"x":30,"y":30}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 30, y: 30 }))
+        );
+        // Default fallbacks for omitted and null fields
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy"}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: false, x: 20, y: 10 }))
+        );
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 20, y: 10 }))
+        );
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":null,"x":null,"y":null}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: false, x: 20, y: 10 }))
+        );
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true,"x":15}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 15, y: 10 }))
+        );
+        assert_eq!(
+            from_json(r#"{"action":"udp-redundancy","enabled":true,"y":5}"#),
+            Some(Command::SetUdpRedundancy(crate::relay::RedundancyConfig { enabled: true, x: 20, y: 5 }))
+        );
+        // Out-of-bounds ratios rejected
+        for body in [
+            r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":5,"y":0}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":31,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":5,"y":31}"#,
+            r#"{"action":"udp-redundancy","enabled":false,"x":0,"y":10}"#,
+        ] {
+            assert_eq!(from_json(body), None, "{body}");
+        }
+        // Malformed / invalid types for ratio and enabled rejected
+        for body in [
+            r#"{"action":"udp-redundancy","enabled":true,"x":-1,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":5,"y":-1}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":4294967296,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":"10","y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":"5"}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":10.5,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":true,"x":true,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":"true","x":10,"y":5}"#,
+            r#"{"action":"udp-redundancy","enabled":1,"x":10,"y":5}"#,
+        ] {
+            assert_eq!(from_json(body), None, "{body}");
+        }
+
+        // Auto redundancy valid parsing
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1:9"}"#),
+            Some(Command::SetUdpRedundancyAuto(Some("127.0.0.1:9".parse().unwrap()))));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"[::1]:9"}"#),
+            Some(Command::SetUdpRedundancyAuto(Some("[::1]:9".parse().unwrap()))));
         assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":false}"#), Some(Command::SetUdpRedundancyAuto(None)));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":false,"echo":"127.0.0.1:9"}"#), Some(Command::SetUdpRedundancyAuto(None)));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":false,"echo":"qualquer-coisa"}"#), Some(Command::SetUdpRedundancyAuto(None)));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto"}"#), Some(Command::SetUdpRedundancyAuto(None)));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":null}"#), Some(Command::SetUdpRedundancyAuto(None)));
+
+        // Auto redundancy invalid or malformed rejected when enabled
+        for body in [
+            r#"{"action":"udp-redundancy-auto","enabled":true}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":null}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":""}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"nao-e-ip"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":":9"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1:99999"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1:-1"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"localhost:9"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":true,"echo":12345}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":"true","echo":"127.0.0.1:9"}"#,
+            r#"{"action":"udp-redundancy-auto","enabled":1,"echo":"127.0.0.1:9"}"#,
+        ] {
+            assert_eq!(from_json(body), None, "{body}");
+        }
+        let oversized = format!(r#"{{"action":"udp-redundancy-auto","enabled":true,"echo":"{}"}}"#, "1".repeat(513));
+        assert_eq!(from_json(&oversized), None, "oversized echo rejected");
     }
 }
