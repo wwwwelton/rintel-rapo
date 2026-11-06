@@ -71,6 +71,7 @@ pub struct State {
     pub interfaces: Vec<crate::routes::Candidate>,
     pub allowed_interfaces: Vec<String>,
     pub redundancy: RedundancyConfig,
+    pub redundancy_auto_echo: String,
 }
 
 struct Connection { id: u64, client: TcpStream, outbound: Option<Outbound>, udp_bound: Option<SocketAddr> }
@@ -220,9 +221,9 @@ pub fn hy2_config(profile: &crate::vpn::Profile) -> Result<Hy2Config, String> {
     Ok(config)
 }
 
-pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, tunnel: Option<Arc<VpnTunnel>>, redundancy: RedundancyConfig, priors: Vec<crate::store::PathStat> }
+pub struct RelayServer { port: u16, run: Option<Run>, error: String, mode: Mode, config: Hy2Config, tunnel: Option<Arc<VpnTunnel>>, redundancy: RedundancyConfig, auto_echo: Option<SocketAddr>, priors: Vec<crate::store::PathStat> }
 impl RelayServer {
-    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), tunnel: None, redundancy: RedundancyConfig::default(), priors: Vec::new() } }
+    pub fn new(port: u16) -> Self { Self { port, run: None, error: String::new(), mode: default_mode(hy2::builtin().is_some()), config: Hy2Config::default(), tunnel: None, redundancy: RedundancyConfig::default(), auto_echo: None, priors: Vec::new() } }
     /// Selects (or clears) the VPN tunnel used from the next `start()` on. While a tunnel is set the relay always
     /// runs in `Hy2` mode: everything goes through the tunnel and there is no direct fallback.
     pub fn set_tunnel(&mut self, tunnel: Option<VpnTunnel>) -> io::Result<()> {
@@ -243,6 +244,13 @@ impl RelayServer {
             *run.shared.redundancy.write().unwrap() = config;
         }
         self.redundancy = config;
+        Ok(())
+    }
+    /// Loopback echo that scores redundancy ratios while the relay runs; `None` turns automatic selection off.
+    pub fn set_auto_echo(&mut self, echo: Option<SocketAddr>) -> Result<(), &'static str> {
+        if echo.is_some_and(|addr| !addr.ip().is_loopback()) { return Err("Eco de redundância deve ser loopback"); }
+        if self.run.as_ref().is_some_and(|run| run.shared.running.load(Ordering::Acquire)) { return Err("Pare o relay para alterar o eco de redundância"); }
+        self.auto_echo = echo;
         Ok(())
     }
     pub fn redundancy(&self) -> RedundancyConfig { self.redundancy }
@@ -321,6 +329,11 @@ impl RelayServer {
                 let _ = thread::Builder::new().name("rapo-hy2-ping".into()).spawn(move || ping_server(shared));
             }
         }
+        if let Some(echo) = self.auto_echo {
+            let auto = Arc::clone(&shared);
+            let base = self.redundancy;
+            let _ = thread::Builder::new().name("rapo-redundancy".into()).spawn(move || auto_redundancy(auto, echo, base));
+        }
         self.run = Some(Run { shared, worker: Some(worker), address });
         self.error.clear();
         Ok(())
@@ -357,7 +370,7 @@ impl RelayServer {
         let Some(run) = &self.run else {
             return State { mode: if self.tunnel.is_some() { Mode::Hy2 } else { self.mode }, hy2_server: self.config.server.clone(), hy2_server_name: self.config.server_name.clone(), tunnel: self.tunnel_label(),
                 hy2_builtin: self.tunnel.is_none() && self.config.server.is_empty() && hy2::builtin().is_some(),
-                udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), redundancy: self.redundancy, ..State::default() };
+                udp_route: self.udp_route().into(), address: format!("127.0.0.1:{}", self.port), error: self.error.clone(), redundancy: self.redundancy, redundancy_auto_echo: self.auto_echo.map(|a| a.to_string()).unwrap_or_default(), ..State::default() };
         };
         let running = run.shared.running.load(Ordering::Acquire) && !run.worker.as_ref().is_some_and(JoinHandle::is_finished);
         // One guard: a second lock inside the State literal would self-deadlock.
@@ -385,7 +398,7 @@ impl RelayServer {
             predictions: run.shared.learning.lock().unwrap().predictions(Instant::now()),
             interfaces: run.shared.interfaces.lock().unwrap().clone(),
             allowed_interfaces: run.shared.allowed_interfaces.read().unwrap().clone(),
-            redundancy: *run.shared.redundancy.read().unwrap(),
+            redundancy: *run.shared.redundancy.read().unwrap(), redundancy_auto_echo: self.auto_echo.map(|a| a.to_string()).unwrap_or_default(),
         }
     }
     /// UDP has no per-flow RTT signal here, so an association keeps one fixed route.
@@ -398,6 +411,28 @@ impl Drop for RelayServer {
         self.stop();
         if let Some(worker) = self.run.as_mut().and_then(|r| r.worker.take()) { let _ = worker.join(); }
     }
+}
+
+const REDUNDANCY_PROBE_COUNT: u32 = 200;
+const REDUNDANCY_PROBE_WAIT: Duration = Duration::from_millis(300);
+const REDUNDANCY_HOLD: Duration = Duration::from_secs(60);
+
+/// Re-scores every ratio against the local echo each cycle and applies the best one; restores the user's config on exit.
+fn auto_redundancy(shared: Arc<Shared>, echo: SocketAddr, base: RedundancyConfig) {
+    while shared.running.load(Ordering::Acquire) {
+        let probes: Vec<redundancy::Probe> = redundancy::candidates().into_iter()
+            .filter_map(|c| redundancy::probe(echo, c, REDUNDANCY_PROBE_COUNT, REDUNDANCY_PROBE_WAIT).ok())
+            .collect();
+        // Echo down: every candidate scores zero, so keep the current ratio instead of picking one blindly.
+        if probes.iter().any(|p| p.received > 0) {
+            if let Some(best) = redundancy::select(&probes) { *shared.redundancy.write().unwrap() = best; }
+        }
+        let until = Instant::now() + REDUNDANCY_HOLD;
+        while shared.running.load(Ordering::Acquire) && Instant::now() < until {
+            thread::sleep(Duration::from_millis(250));
+        }
+    }
+    *shared.redundancy.write().unwrap() = base;
 }
 
 fn serve(listener: TcpListener, udp: UdpSocket, shared: Arc<Shared>, address: SocketAddr) {

@@ -58,6 +58,7 @@ pub enum Command {
     ActivateVpnProfile(Option<String>),
     RemoveVpnProfile(String),
     SetUdpRedundancy(crate::relay::RedundancyConfig),
+    SetUdpRedundancyAuto(Option<std::net::SocketAddr>),
 }
 
 /// Maps a webview event (`data-action`, `data-dir`, checkbox state) to a command.
@@ -146,6 +147,10 @@ pub fn from_json(body: &str) -> Option<Command> {
             let y = event.get("y").and_then(|v| v.as_u64()).and_then(|v| u32::try_from(v).ok()).unwrap_or(10);
             let config = crate::relay::RedundancyConfig::new(enabled, x, y).ok()?;
             return Some(Command::SetUdpRedundancy(config));
+        }
+        "udp-redundancy-auto" => {
+            let echo = if event.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false) { Some(text("echo")?.parse::<std::net::SocketAddr>().ok()?) } else { None };
+            return Some(Command::SetUdpRedundancyAuto(echo));
         }
         "route-refresh" => return Some(Command::RefreshRoutes),
         "route-apply" => return Some(Command::ApplyRoute { destination: text("destination")?, candidate: text("candidate")? }),
@@ -358,5 +363,7 @@ mod tests {
         );
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#), None, "x=0 rejected");
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":31}"#), None, "y=31 rejected");
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":true,"echo":"127.0.0.1:9"}"#), Some(Command::SetUdpRedundancyAuto(Some("127.0.0.1:9".parse().unwrap()))));
+        assert_eq!(from_json(r#"{"action":"udp-redundancy-auto","enabled":false}"#), Some(Command::SetUdpRedundancyAuto(None)));
     }
 }

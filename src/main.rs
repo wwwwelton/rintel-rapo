@@ -798,6 +798,9 @@ mod app {
                         }
                     }
                 }
+                crate::command::Command::SetUdpRedundancyAuto(echo) => {
+                    let _ = self.relay.set_auto_echo(echo);
+                }
                 crate::command::Command::RefreshRoutes => self.routes.request(crate::routes::Operation::Refresh),
                 crate::command::Command::ApplyRoute { destination, candidate } => self.routes.request(crate::routes::Operation::Apply { destination, candidate }),
                 crate::command::Command::RemoveRoute(destination) => self.routes.request(crate::routes::Operation::Remove(destination)),
