@@ -150,7 +150,12 @@
     color: var(--muted); font: 500 10px/1.6 var(--mono); letter-spacing: .07em; text-transform: uppercase;
   }
   .box-value { color: var(--text); font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
-  .resources-flow { width: 100%; max-width: 960px; height: auto; display: block; margin: 0 auto; color: var(--text); font-family: var(--mono); }
+  .resources-flow { width: 100%; height: auto; display: block; color: var(--text); font-family: var(--mono); }
+  .resources-flow .flow-hub { cursor: pointer; }
+  .resources-flow .flow-hub:hover rect { filter: brightness(1.25); }
+  .resources-flow .flow-hub:focus-visible { outline: none; }
+  .resources-flow .flow-hub:focus-visible rect { stroke-width: 3; }
+  .resources-flow .flow-dest-detail { fill: var(--muted); font-size: 11px; }
   .resources-flow .flow-usage { fill: var(--accent); }
   .resources-flow .flow-node rect, .resources-flow .flow-dest rect { fill: var(--surface); stroke: var(--border); }
   .resources-flow .flow-hub rect { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }

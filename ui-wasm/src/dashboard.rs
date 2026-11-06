@@ -564,10 +564,10 @@ fn model_states(profile: &AppliedProfile) -> Vec<(String, bool)> {
 /// One-line description of what the current profile does for a destination block.
 fn dest_detail(label: &str, profile: &AppliedProfile) -> String {
     match label {
-        "Afinidade de CPU" => format!("{} thread(s) fixadas", profile.pinned_threads),
+        "Afinidade de CPU" => if profile.pinned_threads > 0 { format!("{} thread(s) fixadas", profile.pinned_threads) } else { "sem threads fixadas".into() },
         "Prioridade" => if profile.priority { "prioridade elevada".into() } else { "prioridade normal".into() },
         "Memória / EcoQoS" => if profile.qos { "EcoQoS aplicado".into() } else { "sem EcoQoS".into() },
-        _ => profile.source.clone(),
+        _ => if profile.source.contains("aprendido") { "perfil aprendido".into() } else { profile.source.clone() },
     }
 }
 
@@ -576,7 +576,7 @@ fn render_resources(html: &mut String, view: &Dashboard) {
     let metrics: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
     html.push_str("<section class=\"resources-section\"><h2>RECURSOS DO SISTEMA</h2>");
     // Flow in the reference style: sources (metrics) → central node → destinations (the RAPO actions on them).
-    html.push_str("<svg class=\"resources-flow\" viewBox=\"0 0 960 420\" role=\"img\" aria-label=\"Fluxo de recursos do sistema\">");
+    html.push_str("<svg class=\"resources-flow\" viewBox=\"0 0 960 460\" role=\"img\" aria-label=\"Fluxo de recursos do sistema\">");
     for (index, (label, value)) in metrics.iter().enumerate() {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
         let y = 30.0 + index as f32 * 80.0;
