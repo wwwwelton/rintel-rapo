@@ -61,6 +61,7 @@ pub struct TrainingState {
     pub can_start: bool,
     pub message: String,
     pub cpu_line: Option<String>,
+    pub profiles: Vec<SavedProfile>,
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +93,13 @@ pub struct TargetChoice {
     pub selected: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SavedProfile {
+    pub exe: String,
+    pub fps: f64,
+    pub low_fps: f64,
+}
+
 /// Pre-formatted training panel content. `None` lines are not shown.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TrainingView {
@@ -108,6 +116,7 @@ pub struct TrainingView {
     pub targets: Vec<TargetChoice>,
     pub selected_label: Option<String>,
     pub can_start: bool,
+    pub profiles: Vec<SavedProfile>,
     pub message: String,
 }
 
@@ -160,6 +169,7 @@ pub fn training_view(state: &TrainingState) -> TrainingView {
             .selected_pid
             .and_then(|pid| state.targets.iter().find(|target| target.pid == pid))
             .map(target_label),
+        profiles: state.profiles.clone(),
         can_start: state.can_start,
         message: state.message.clone(),
     }

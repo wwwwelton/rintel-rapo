@@ -102,7 +102,6 @@ mod app {
         training: Option<Training>,
         rapo_game: Option<PathBuf>,
         training_message: String,
-        training_target: usize,
         training_selected: Option<(u32, PathBuf)>,
         learned_profiles: Vec<crate::learning::Profile>,
         runtime_profiles: HashMap<PathBuf, crate::learning::Settings>,
@@ -174,7 +173,6 @@ mod app {
                 training: None,
                 rapo_game: None,
                 training_message: String::new(),
-                training_target: 0,
                 training_selected: None,
                 learned_profiles: Vec::new(),
                 runtime_profiles: HashMap::new(),
@@ -197,8 +195,10 @@ mod app {
             };
             match crate::store::Store::open_default() {
                 Ok(store) => {
-                    let loaded = store.import(&crate::learning::registry_profiles()).and_then(|_| store.best_profiles());
-                    match loaded {
+                    if let Err(error) = crate::learning::registry_profiles().and_then(|profiles| store.import(&profiles).map(|_| ())) {
+                        app.training_message = error;
+                    }
+                    match store.best_profiles() {
                         Ok(profiles) => app.learned_profiles = profiles,
                         Err(error) => app.training_message = error,
                     }
@@ -428,12 +428,7 @@ mod app {
             }
 
             if let Some(target_proc) = active_process.or_else(|| self.running.first()) {
-                let game_pids: Vec<u32> = self
-                    .running
-                    .iter()
-                    .filter(|p| p.directory == target_proc.directory)
-                    .map(|p| p.pid)
-                    .collect();
+                let game_pids = windows::telemetry_pids(&self.running, target_proc);
                 self.telemetry
                     .refresh(&self.cpu.load, Some((target_proc.game.as_str(), &game_pids)));
             } else {
@@ -542,7 +537,7 @@ mod app {
             let running: Vec<_> = self.running.iter().map(|p| {
                 let enabled = self.optimizer.enabled(p.pid);
                 let qos = self.applied_qos.contains_key(&p.pid);
-                let pinned = pin_status.is_some_and(|(pid, _, _)| pid == p.pid);
+                let pinned = self.pinner.as_ref().is_some_and(|pinner| pinner.pinned_count(p.pid) > 0);
                 let paused = self.training.as_ref().filter(|t| t.pid == p.pid && windows::same_executable(&t.exe, &p.exe)).map(|t| t.paused);
                 serde_json::json!({
                     "pid": p.pid, "game": p.game, "exe": p.exe.display().to_string(),
@@ -561,7 +556,7 @@ mod app {
                 if self.runtime_profile(&p.exe).is_none() && !self.auto_games.contains(&p.directory) {
                     configured.priority = self.optimizer.enabled(p.pid);
                 }
-                let learned = self.learned_profiles.iter().any(|saved| windows::same_executable(&saved.exe, &p.exe) && saved.settings == configured);
+                let learned = self.runtime_profile(&p.exe).is_some() && self.learned_profiles.iter().any(|saved| windows::same_executable(&saved.exe, &p.exe) && saved.settings == configured);
                 let source = match paused {
                     Some(true) => "RAPO pausado · candidato preservado, sem ajustes de teste",
                     Some(false) => "RAPO · perfil sob avaliação",
@@ -588,7 +583,9 @@ mod app {
                 ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
                 ("PING DO JOGO (ICMP)", crate::process_ping::game_ping_label(tm.has_target, &tm.process_ping)),
             ];
-            metrics.push(("DESTINOS DO PROCESSO (TCP/UDP)", format!("{} · Não identifica servidor de partida", tm.process_ping.summary)));
+            let heuristic_pids = tm.process_ping.pids.iter().filter(|pid| !self.running.iter().any(|p| p.pid == **pid)).count();
+            metrics.push(("DESTINOS DO PROCESSO (TCP/UDP)", format!("{} · Não identifica servidor de partida{}", tm.process_ping.summary,
+                if heuristic_pids > 0 { " · inclui filhos de mesmo nome sem caminho confirmado" } else { "" })));
             for endpoint in &tm.process_ping.endpoints {
                 metrics.push(("DESTINO OBSERVADO", format!("{} · {}", endpoint.outcome.label(), endpoint.destination)));
                 metrics.push(("ICMP · ROTA OBSERVADA", endpoint.route.as_ref().map_or_else(
@@ -918,6 +915,44 @@ mod app {
                 crate::command::Command::SelectTrainingTarget { pid } => {
                     if let Some(process) = self.running.iter().find(|p| p.pid == pid) {
                         self.training_selected = Some((process.pid, process.exe.clone()));
+                    }
+                }
+                crate::command::Command::ApplyLearnedProfile(exe) => {
+                    if !self.tray.is_optimizer_running() || !self.running.iter().any(|p| windows::same_executable(&p.exe, &exe)) {
+                        self.training_message = "Inicie o otimizador e o jogo antes de aplicar o perfil.".into();
+                    } else if self.training.is_none() {
+                        if let Some(profile) = self.learned_profiles.iter().find(|p| windows::same_executable(&p.exe, &exe)).cloned() {
+                            match self.set_settings(&profile.exe, profile.settings) {
+                                Ok(()) => self.training_message = format!("Perfil selecionado: {}. Os ajustes efetivos aparecem no painel.", profile.exe.display()),
+                                Err(error) => self.training_message = format!("Não foi possível aplicar todo o perfil; confira os ajustes ativos: {error}"),
+                            }
+                            self.refresh();
+                        }
+                    }
+                }
+                crate::command::Command::DeleteLearnedProfile(exe) => {
+                    if self.training.is_none() {
+                        if let Some(profile) = self.learned_profiles.iter().find(|p| windows::same_executable(&p.exe, &exe)).cloned() {
+                            let deleted = self.store.as_ref().map_or(Ok(()), |store| store.delete_best(&profile.exe));
+                            match deleted {
+                                Err(error) => self.training_message = format!("Perfil não excluído: {error}"),
+                                Ok(()) => {
+                                    self.learned_profiles.retain(|p| !windows::same_executable(&p.exe, &profile.exe));
+                                    self.learned_pids.retain(|(_, path)| !windows::same_executable(path, &profile.exe));
+                                    if self.runtime_profile(&profile.exe) == Some(profile.settings) {
+                                        self.runtime_profiles.retain(|path, _| !windows::same_executable(path, &profile.exe));
+                                        for process in self.running.iter().filter(|p| windows::same_executable(&p.exe, &profile.exe)) {
+                                            let auto = self.auto_games.iter().any(|dir| windows::same_executable(dir, &process.directory));
+                                            if self.optimizer.enabled(process.pid) != auto {
+                                                if let Err(error) = self.optimizer.toggle(process) { self.error = error; }
+                                            }
+                                        }
+                                    }
+                                    self.training_message = format!("Perfil excluído: {}. Histórico de medições preservado.", profile.exe.display());
+                                    self.refresh();
+                                }
+                            }
+                        }
                     }
                 }
             }

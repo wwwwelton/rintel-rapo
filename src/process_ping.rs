@@ -98,10 +98,10 @@ pub fn classify_hop_response(
 
     match status {
         IP_SUCCESS => {
-            if responder_ip.is_none_or(|resp| resp == destination_ip) {
-                HopOutcome::Reached { rtt_ms, ttl }
-            } else {
-                HopOutcome::TtlExpired { intermediate_rtt_ms: rtt_ms }
+            match responder_ip {
+                Some(resp) if resp == destination_ip => HopOutcome::Reached { rtt_ms, ttl },
+                Some(_) => HopOutcome::TtlExpired { intermediate_rtt_ms: rtt_ms },
+                None => HopOutcome::Unavailable(IP_SUCCESS),
             }
         }
         IP_TTL_EXPIRED_TRANSIT | IP_TTL_EXPIRED_REASSEM => {
@@ -249,7 +249,7 @@ pub(crate) struct Destination {
 #[cfg(any(windows, test))]
 fn select_destinations(destinations: &mut Vec<Destination>) -> usize {
     destinations.retain(|destination| !destination.remote.ip().is_loopback());
-    // One probe per IP/scope, not per TCP port or connection; ordering is deterministic.
+    // One probe per remote socket address; ordering is deterministic.
     destinations.sort_unstable_by_key(|destination| (destination.remote, destination.local));
     destinations.dedup_by_key(|destination| destination.remote);
     let omitted = destinations.len().saturating_sub(MAX_DESTINATIONS);
@@ -262,12 +262,12 @@ fn collect(pids: &[u32]) -> ProcessPing {
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV6};
     use windows_sys::Win32::{NetworkManagement::IpHelper::*, Networking::WinSock::{AF_INET, AF_INET6}};
     let mut destinations = Vec::new();
-    let mut udp_measured: std::collections::HashMap<SocketAddr, u32> = std::collections::HashMap::new();
+    let relay_destinations = get_observed_udp_destinations();
     let mut errors = Vec::new();
 
     let v4 = unsafe {
         visit_tcp_rows::<MIB_TCPROW_OWNER_PID>(AF_INET as u32, |row| {
-            if row.dwState != 1 && row.dwState != 2 && pids.contains(&row.dwOwningPid) {
+            if row.dwState == 5 && pids.contains(&row.dwOwningPid) {
                 let remote = Ipv4Addr::from(row.dwRemoteAddr.to_ne_bytes());
                 if !remote.is_unspecified() && !remote.is_multicast() && remote != Ipv4Addr::BROADCAST {
                     let remote_port = u16::from_be(row.dwRemotePort as u16);
@@ -282,7 +282,7 @@ fn collect(pids: &[u32]) -> ProcessPing {
     };
     let v6 = unsafe {
         visit_tcp_rows::<MIB_TCP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
-            if row.dwState != 1 && row.dwState != 2 && pids.contains(&row.dwOwningPid) {
+            if row.dwState == 5 && pids.contains(&row.dwOwningPid) {
                 let remote = Ipv6Addr::from(row.ucRemoteAddr);
                 if !remote.is_unspecified() && !remote.is_multicast() {
                     let remote_port = u16::from_be(row.dwRemotePort as u16);
@@ -299,41 +299,39 @@ fn collect(pids: &[u32]) -> ProcessPing {
         if let Err(code) = result { errors.push(format!("{family} indisponível (Windows {code})")); }
     }
 
-    for (udp_dst, rtt_opt) in get_observed_udp_destinations() {
-        if let Some(rtt) = rtt_opt {
-            udp_measured.insert(udp_dst, rtt);
-        }
-        let local = if udp_dst.is_ipv4() {
-            SocketAddr::from(([0, 0, 0, 0], 0))
-        } else {
-            SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 0))
-        };
-        destinations.push(Destination { remote: udp_dst, local });
-    }
 
     let mut udp_sockets = 0usize;
-    let _ = unsafe {
+    let udp_v4 = unsafe {
         visit_udp_rows::<MIB_UDPROW_OWNER_PID>(AF_INET as u32, |row| {
             if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
         })
     };
-    let _ = unsafe {
+    let udp_v6 = unsafe {
         visit_udp_rows::<MIB_UDP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
             if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
         })
     };
+    for (family, result) in [("IPv4 UDP", udp_v4), ("IPv6 UDP", udp_v6)] {
+        if let Err(code) = result { errors.push(format!("{family} indisponível (Windows {code})")); }
+    }
 
     let omitted = select_destinations(&mut destinations);
     let mut summary = if destinations.is_empty() {
         if udp_sockets > 0 {
-            format!("{udp_sockets} socket(s) UDP aberto(s); aguardando datagrama/conexão do jogo para medir RTT")
+            format!("{udp_sockets} socket(s) UDP aberto(s); a tabela UDP não informa destinos remotos")
         } else {
-            "Nenhuma conexão TCP ou destino UDP ativo observado para os PIDs selecionados".into()
+            "Nenhuma conexão TCP estabelecida observada para os PIDs selecionados".into()
         }
     } else {
-        format!("{} destino(s) observado(s); até {MAX_DESTINATIONS} sondas, {TIMEOUT_MS} ms cada; intervalo 3 s", destinations.len() + omitted)
+        format!("{} destino(s) TCP observado(s); até {MAX_DESTINATIONS} sondas, timeout direto {TIMEOUT_MS} ms; intervalo 3 s após coleta", destinations.len() + omitted)
     };
     if omitted > 0 { summary.push_str(&format!("; {omitted} destino(s) não sondado(s)")); }
+    if !relay_destinations.is_empty() {
+        summary.push_str("; destinos UDP observados pelo relay, sem vínculo comprovado com o processo ou medição de RTT:");
+        for (remote, _) in relay_destinations.iter().take(MAX_DESTINATIONS) {
+            summary.push_str(&format!(" {remote}"));
+        }
+    }
     for error in errors { summary.push_str(&format!("; {error}")); }
     let endpoints = destinations.into_iter().map(|destination| {
         let address = match destination.remote {
@@ -344,18 +342,6 @@ fn collect(pids: &[u32]) -> ProcessPing {
             SocketAddr::V6(addr) if addr.scope_id() != 0 => format!("{}%{}", addr.ip(), addr.scope_id()),
             SocketAddr::V6(addr) => addr.ip().to_string(),
         };
-        if let Some(&ms) = udp_measured.get(&destination.remote) {
-            let before = crate::routes::native::observe(destination.remote).ok();
-            let after = crate::routes::native::observe(destination.remote).ok();
-            let route = before.and_then(|(route, _)| after.filter(|(other, _)| *other == route).map(|_| route));
-            return EndpointPing {
-                destination: address,
-                outcome: EchoOutcome::ReplyUdp { ms, port: destination.remote.port() },
-                route,
-                hops: None,
-                trace: None,
-            };
-        }
         let before = crate::routes::native::observe(destination.remote).ok();
         let probe = Destination { local: before.as_ref().map_or(destination.local, |(_, source)| *source), ..destination };
         let (outcome, hops) = trace_destination(probe);
@@ -500,7 +486,7 @@ unsafe fn send_probe(
         let segs = response.Address.sin6_addr;
         let mut octets = [0u8; 16];
         for (i, seg) in segs.iter().enumerate() {
-            let b = seg.to_be_bytes();
+            let b = seg.to_ne_bytes();
             octets[i * 2] = b[0];
             octets[i * 2 + 1] = b[1];
         }
@@ -608,9 +594,8 @@ pub(crate) fn round_trip_ms(ip: std::net::Ipv4Addr) -> Option<u32> {
 }
 
 
-/// Headline "game ping": the lowest ICMP reply among the IPs the game process holds TCP connections to.
-/// It is the closest thing Windows exposes to the game's latency, but it is not proof of the match server
-/// (UDP flows are invisible in the TCP table and ICMP may be filtered), so every non-measurement says why.
+/// Lowest measured RTT among observed process destinations, not proof of the match server.
+/// TCP and ICMP probes can differ from game traffic and may receive no response.
 /// Returns `"<headline> · <detail>"`, the shape the dashboard splits into value and caption.
 pub fn game_ping_label(has_target: bool, ping: &ProcessPing) -> String {
     if !has_target { return "sem jogo · Nenhum jogo Steam em execução; nada a medir".into(); }
@@ -636,7 +621,7 @@ pub fn game_ping_label(has_target: bool, ping: &ProcessPing) -> String {
             e.outcome.label()
         },
     );
-    format!("{value} · Destino do jogo {ip} · {} de {} responderam; não prova ser o servidor da partida", replies.len(), ping.endpoints.len())
+    format!("{value} · Destino observado {ip} · {} de {} responderam; não prova ser o servidor da partida", replies.len(), ping.endpoints.len())
 }
 
 #[cfg(test)]
@@ -684,6 +669,7 @@ mod tests {
             endpoint("10.0.0.4", EchoOutcome::Unavailable(5)),
         ]));
         assert!(mixed.starts_with("12 ms (traceback: 7 saltos) · ") && mixed.contains("10.0.0.3") && mixed.contains("2 de 4 responderam"), "{mixed}");
+        assert!(mixed.contains("Destino observado") && mixed.contains("não prova ser o servidor da partida"), "{mixed}");
         assert!(game_ping_label(true, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Reply(0))])).starts_with("<1 ms · "), "sub-millisecond is not rounded to a fake number");
         let silent = game_ping_label(true, &sample(vec![endpoint("10.0.0.1", EchoOutcome::Timeout)]));
         assert!(silent.starts_with("sem resposta · ") && !silent.contains(" ms ·"), "timeouts never become a number: {silent}");
@@ -736,11 +722,11 @@ mod tests {
         assert!(reached.is_destination_reached());
         assert_eq!(reached.destination_rtt(), Some(15));
 
-        // Status 0 + no explicit responder => assumed destination Reached
+        // No responder address cannot establish that the destination replied.
         let implicit = classify_hop_response(0, 8, 3, None, dest_v4);
-        assert_eq!(implicit, HopOutcome::Reached { rtt_ms: 8, ttl: 3 });
-        assert!(implicit.is_destination_reached());
-        assert_eq!(implicit.destination_rtt(), Some(8));
+        assert_eq!(implicit, HopOutcome::Unavailable(0));
+        assert!(!implicit.is_destination_reached());
+        assert_eq!(implicit.destination_rtt(), None);
 
         // Status 0 + mismatched responder (intermediate router) => TtlExpired, never destination ping
         let mismatched = classify_hop_response(0, 4, 2, Some(other_v4), dest_v4);

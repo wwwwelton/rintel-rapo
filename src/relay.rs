@@ -432,7 +432,7 @@ impl RelayServer {
     }
     /// UDP has no per-flow RTT signal here, so an association keeps one fixed route.
     fn udp_route(&self) -> &'static str {
-        match self.mode { Mode::Direct | Mode::NeuralAuto => "direct", Mode::Local => "local", Mode::Hy2 => "hy2" }
+        if self.tunnel.is_some() { "hy2" } else { match self.mode { Mode::Direct | Mode::NeuralAuto => "direct", Mode::Local => "local", Mode::Hy2 => "hy2" } }
     }
 }
 impl Drop for RelayServer {
@@ -548,7 +548,8 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
     // Only bounds how long shutdown waits; incoming datagrams wake the loop immediately.
     let _ = socket.set_read_timeout(Some(Duration::from_millis(250)));
     let reply_socket = match socket.try_clone() { Ok(s) => Arc::new(s), Err(_) => return };
-    struct Flow { out: Arc<UdpSocket>, client: Arc<Mutex<SocketAddr>>, raw: Arc<AtomicBool>, sent_at: Arc<Mutex<Instant>>, last_seen: Instant }
+    enum Socket { Direct(UdpSocket), Tunnel(hy2::UdpSession) }
+    struct Flow { out: Arc<Socket>, client: Arc<Mutex<SocketAddr>>, raw: Arc<AtomicBool>, alive: Arc<AtomicBool>, last_seen: Instant }
     let mut flows: HashMap<SocketAddr, Flow> = HashMap::new();
     let mut buf = [0u8; 65535];
 
@@ -580,17 +581,35 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
         };
 
         let now = Instant::now();
+        if flows.get(&dst).is_some_and(|flow| !flow.alive.load(Ordering::Acquire)) {
+            flows.remove(&dst);
+            shared.udp_destinations.fetch_sub(1, Ordering::Relaxed);
+        }
         let is_new = !flows.contains_key(&dst);
         crate::process_ping::record_udp_destination(dst, None);
         if is_new {
-            let Ok(out) = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) else { continue };
-            let _ = out.set_read_timeout(Some(Duration::from_secs(1)));
+            let out = if shared.mode == Mode::Hy2 {
+                match shared.hy2.try_lock().ok().and_then(|client| client.clone()).ok_or_else(|| io::Error::new(io::ErrorKind::WouldBlock, "Túnel ainda não conectado")).and_then(|client| client.udp()) {
+                    Ok(session) => {
+                        let _ = session.set_read_timeout(Some(Duration::from_secs(1)));
+                        Socket::Tunnel(session)
+                    }
+                    Err(error) => {
+                        *shared.error.lock().unwrap() = format!("UDP WFP pelo túnel: {error}");
+                        continue;
+                    }
+                }
+            } else {
+                let Ok(socket) = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) else { continue };
+                let _ = socket.set_read_timeout(Some(Duration::from_secs(1)));
+                Socket::Direct(socket)
+            };
             let out = Arc::new(out);
             let client = Arc::new(Mutex::new(src));
             let raw = Arc::new(AtomicBool::new(raw_reply));
-            let sent_at = Arc::new(Mutex::new(now));
+            let alive = Arc::new(AtomicBool::new(true));
             shared.udp_destinations.fetch_add(1, Ordering::Relaxed);
-            let (reader, back, to, is_raw, stamp, state) = (Arc::clone(&out), Arc::clone(&reply_socket), Arc::clone(&client), Arc::clone(&raw), Arc::clone(&sent_at), Arc::clone(&shared));
+            let (reader, back, to, is_raw, state, live) = (Arc::clone(&out), Arc::clone(&reply_socket), Arc::clone(&client), Arc::clone(&raw), Arc::clone(&shared), Arc::clone(&alive));
             let spawned = thread::Builder::new().name("rapo-wfp-udp-rx".into()).spawn(move || {
                 let mut reply = [0u8; 65535];
                 reply[..4].copy_from_slice(&[0x23, 0xa4, 0xfa, 0x39]);
@@ -599,28 +618,38 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
                 reply[10..14].copy_from_slice(&[0; 4]);
                 // Strong count 1 means the flow was dropped and only this thread still holds the socket.
                 while state.running.load(Ordering::Acquire) && Arc::strong_count(&reader) > 1 {
-                    let Ok((rn, _)) = reader.recv_from(&mut reply[14..]) else { continue };
-                    let rtt = Instant::now().saturating_duration_since(*stamp.lock().unwrap());
-                    let rtt_ms = rtt.as_millis() as u32;
-                    crate::process_ping::record_udp_destination(dst, Some(rtt_ms.max(1)));
-                    state.learning.lock().unwrap().observe(dst, &system_egress(dst), rtt, true, Instant::now());
+                    let received = match &*reader {
+                        Socket::Direct(socket) => socket.recv_from(&mut reply[14..]).map(|(n, from)| (n, from == dst)),
+                        Socket::Tunnel(session) => session.recv_from(&mut reply[14..]).map(|(n, from)| (n, from.parse::<SocketAddr>().ok() == Some(dst))),
+                    };
+                    let rn = match received {
+                        Ok((rn, true)) => rn,
+                        Ok((_, false)) => continue,
+                        Err(error) if matches!(error.kind(), io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::Interrupted) => continue,
+                        Err(error) => { *state.error.lock().unwrap() = format!("UDP WFP: {error}"); break; }
+                    };
+                    crate::process_ping::record_udp_destination(dst, None);
                     let payload = if is_raw.load(Ordering::Relaxed) { &reply[14..14 + rn] } else { &reply[..14 + rn] };
                     let _ = back.send_to(payload, *to.lock().unwrap());
                     state.bytes_rx.fetch_add(rn as u64, Ordering::Relaxed);
                 }
+                live.store(false, Ordering::Release);
             });
             if spawned.is_err() { shared.udp_destinations.fetch_sub(1, Ordering::Relaxed); continue; }
-            flows.insert(dst, Flow { out, client, raw, sent_at, last_seen: now });
+            flows.insert(dst, Flow { out, client, raw, alive, last_seen: now });
         }
         let Some(flow) = flows.get_mut(&dst) else { continue };
         *flow.client.lock().unwrap() = src;
         flow.raw.store(raw_reply, Ordering::Relaxed);
-        *flow.sent_at.lock().unwrap() = now;
         flow.last_seen = now;
         let red_cfg = *shared.redundancy.read().unwrap();
         let times = shared.redundancy_engine.duplicates_for_next(&red_cfg);
         for copy_idx in 0..times {
-            if let Ok(sent) = flow.out.send_to(&buf[14..n], dst) {
+            let sent = match &*flow.out {
+                Socket::Direct(socket) => socket.send_to(&buf[14..n], dst),
+                Socket::Tunnel(session) => session.send_to(&buf[14..n], &dst.to_string()),
+            };
+            if let Ok(sent) = sent {
                 if copy_idx == 0 { shared.bytes_tx.fetch_add(sent as u64, Ordering::Relaxed); }
             }
         }

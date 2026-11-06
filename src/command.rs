@@ -31,6 +31,8 @@ pub enum Command {
     StopTraining,
     /// Chooses the process the next session targets, looked up by pid when applied.
     SelectTrainingTarget { pid: u32 },
+    ApplyLearnedProfile(PathBuf),
+    DeleteLearnedProfile(PathBuf),
     RefreshRoutes,
     ApplyRoute { destination: String, candidate: String },
     RemoveRoute(String),
@@ -82,6 +84,8 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "auto" => Some(Command::SetAuto { directory: directory()?, on: checked? }),
         "rapo" => Some(Command::SetRapo(if checked? { directory() } else { None })),
         "apo-profile" => Some(Command::ApplyAion2Profile { directory: directory()? }),
+        "profile-apply" => Some(Command::ApplyLearnedProfile(directory()?)),
+        "profile-delete" => Some(Command::DeleteLearnedProfile(directory()?)),
         "network-priority" => Some(Command::SetNetworkPriority(checked?)),
         "relay" => Some(Command::SetRelay(checked?)),
         "wfp" => Some(Command::SetWfp(checked?)),
@@ -242,6 +246,9 @@ mod tests {
         assert_eq!(from_training_event("select_training_target", Some(7)), Some(Command::SelectTrainingTarget { pid: 7 }));
         assert_eq!(from_training_event("select_training_target", None), None);
         assert_eq!(from_training_event("qos", None), None);
+        assert_eq!(from_ui_event("profile-apply", Some("C:/g.exe"), None), Some(Command::ApplyLearnedProfile("C:/g.exe".into())));
+        assert_eq!(from_ui_event("profile-delete", Some("C:/g.exe"), None), Some(Command::DeleteLearnedProfile("C:/g.exe".into())));
+        assert_eq!(from_ui_event("profile-delete", None, None), None);
     }
 
     #[test]

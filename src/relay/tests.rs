@@ -501,6 +501,41 @@ fn wfp_udp_replies_reach_the_sender_and_stop_releases_the_flow_threads() {
     thread::sleep(Duration::from_millis(1500)); // reader threads wake on their 1 s read timeout and see `running == false`
     assert!(thread_count() <= before, "UDP reader threads must not outlive the relay");
 }
+
+#[test]
+fn wfp_udp_uses_the_wireguard_tunnel_without_direct_fallback() {
+    let fixture = hy2::fixture::start();
+    let mut server = RelayServer::new(0);
+    server.set_tunnel(Some(VpnTunnel::Wireguard(wireguard::Tunnel::from_profile(&fixture.wireguard_profile()).unwrap()))).unwrap();
+    server.configure(Mode::Direct, Hy2Config::default()).unwrap();
+    assert_eq!(server.state().udp_route, "hy2");
+    server.start().unwrap();
+    assert_eq!(server.state().udp_route, "hy2");
+    until(|| server.state().hy2_connected);
+    let target: SocketAddr = fixture.endpoints.wg_udp_echo.parse().unwrap();
+    let game = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    game.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    let relay: SocketAddr = server.state().address.parse().unwrap();
+    let packet = |destination: SocketAddr| {
+        let IpAddr::V4(ip) = destination.ip() else { panic!("fixture must use IPv4") };
+        let mut packet = vec![0x23, 0xa4, 0xfa, 0x39];
+        packet.extend_from_slice(&ip.octets());
+        packet.extend_from_slice(&destination.port().to_le_bytes());
+        packet.extend_from_slice(&[0; 4]);
+        packet.extend_from_slice(b"vpn");
+        packet
+    };
+    game.send_to(&packet(target), relay).unwrap();
+    let mut reply = [0; 64];
+    let (length, _) = game.recv_from(&mut reply).unwrap();
+    assert_eq!(&reply[14..length], b"vpn");
+    let outside = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    outside.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
+    game.send_to(&packet(outside.local_addr().unwrap()), relay).unwrap();
+    assert!(outside.recv_from(&mut reply).is_err(), "VPN traffic must not use the direct route");
+    server.stop();
+    until(|| { server.poll(); !server.state().stopping });
+}
 #[cfg(target_os = "linux")]
 fn thread_count() -> usize { std::fs::read_dir("/proc/self/task").unwrap().count() }
 #[cfg(not(target_os = "linux"))]

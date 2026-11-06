@@ -284,6 +284,38 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
     }
 }
 
+/// Adds same-image children of a verified game process only for read-only telemetry.
+pub(crate) fn telemetry_pids(running: &[Running], target: &Running) -> Vec<u32> {
+    let mut pids: Vec<u32> = running.iter().filter(|p| same_executable(&p.directory, &target.directory)).map(|p| p.pid).collect();
+    let Some(name) = target.exe.file_name() else { return pids };
+    let expected: Vec<u16> = name.encode_wide().collect();
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn CompareStringOrdinal(a: *const u16, a_len: i32, b: *const u16, b_len: i32, ignore_case: i32) -> i32;
+    }
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE { return pids; }
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        if Process32FirstW(snapshot, &mut entry) != 0 {
+            loop {
+                let parent = running.iter().any(|p| p.pid == entry.th32ParentProcessID && same_executable(&p.exe, &target.exe));
+                let len = entry.szExeFile.iter().position(|&c| c == 0).unwrap_or(entry.szExeFile.len());
+                if parent && !pids.contains(&entry.th32ProcessID)
+                    && CompareStringOrdinal(entry.szExeFile.as_ptr(), len as i32, expected.as_ptr(), expected.len() as i32, 1) == 2
+                    && process_path(entry.th32ProcessID).is_none_or(|path| same_executable(&path, &target.exe))
+                {
+                    pids.push(entry.th32ProcessID);
+                }
+                if Process32NextW(snapshot, &mut entry) == 0 { break; }
+            }
+        }
+        CloseHandle(snapshot);
+    }
+    pids
+}
+
 /// One `(pid, exe)` per distinct executable of the game that owns `pid`. Games such as AION2 run several
 /// executables (`AION2.exe` twice, `EpicWebHelper.exe`) whose pids change on every launch, so exempting
 /// "the" pid would miss siblings. The target pid wins for its own executable; empty if `pid` is gone.
@@ -487,6 +519,26 @@ impl Drop for Optimizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn telemetry_includes_direct_child_with_same_image() {
+        let exe = std::env::current_exe().unwrap();
+        let target = Running { pid: std::process::id(), game: "probe".into(), directory: exe.parent().unwrap().to_path_buf(), exe: exe.clone() };
+        let mut child = std::process::Command::new(exe).args(["--ignored", "--exact", "windows::tests::telemetry_child_wait"])
+            .spawn().unwrap();
+        let child_pid = child.id();
+        let found = telemetry_pids(std::slice::from_ref(&target), &target).contains(&child_pid);
+        let unrelated = Running { pid: 0, ..target.clone() };
+        let wrongly_included = telemetry_pids(std::slice::from_ref(&unrelated), &unrelated).contains(&child_pid);
+        let _ = child.kill();
+        let _ = child.wait();
+        assert!(found, "a direct child with the same executable must contribute telemetry");
+        assert!(!wrongly_included, "same-name processes without the verified parent must not be attributed");
+    }
+
+    #[test]
+    #[ignore = "helper process for telemetry_includes_direct_child_with_same_image"]
+    fn telemetry_child_wait() { std::thread::sleep(std::time::Duration::from_secs(5)); }
     #[test]
     fn game_match_respects_directory_boundary() {
         let games = vec![Game {
