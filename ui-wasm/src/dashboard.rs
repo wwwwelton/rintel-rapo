@@ -46,25 +46,14 @@ pub struct EngineIni {
     pub active: bool,
     pub applied: bool,
     pub options: Vec<EngineIniOption>,
-    pub override_fps: Option<String>,
     pub error: String,
 }
 
 #[derive(Deserialize)]
 pub struct EngineIniOption {
     pub key: String,
-    pub value: String,
     pub label: String,
     pub enabled: bool,
-    #[serde(default)]
-    pub superseded: bool,
-    /// The user may type another number between `min` and `max`.
-    #[serde(default)]
-    pub editable: bool,
-    #[serde(default)]
-    pub min: u32,
-    #[serde(default)]
-    pub max: u32,
 }
 
 #[derive(Default, Deserialize)]
@@ -217,19 +206,10 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
         if ini.applied { "Ajustes do RAPO ativos no arquivo agora" } else { "Arquivo sem linhas do RAPO" }, escape(&ini.path)).unwrap();
     for option in &ini.options {
         let key = escape(&option.key);
-        // An editable option shows its value in a box pre-filled with the saved value; the rest print `key=value`.
-        let line = if option.editable {
-            let unit = if option.key == "t.MaxFPS" { "FPS (0 = sem limite)".into() } else { format!("MB (entre {} e {})", option.min, option.max) };
-            format!("<code>{key}=</code><input type=\"number\" inputmode=\"numeric\" class=\"engine-ini-value\" data-action=\"engine-ini-value\" data-key=\"{key}\" min=\"{}\" max=\"{}\" step=\"1\" value=\"{}\" aria-label=\"{key}\"> {unit}", option.min, option.max, escape(&option.value))
-        } else { format!("<code>{key}={}</code>", escape(&option.value)) };
-        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{} · {line}{}</span></label>",
-            if option.enabled { " checked" } else { "" }, escape(&option.label),
-            if option.superseded { " · <strong>não gravado: o Reflex já controla a fila de frames</strong>" } else { "" }).unwrap();
+        write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{}</span></label>",
+            if option.enabled { " checked" } else { "" }, escape(&option.label)).unwrap();
     }
-    html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Começa em OFF e sem opções marcadas. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente as linhas do RAPO, sem apagar o perfil. Motion blur e profundidade de campo desligados alteram o visual; resolução, DLSS, VSync e texturas continuam no menu do jogo. <code>t.OverrideFPS</code> não é oferecido: ele fixa o tempo de frame e acelera ou desacelera a simulação, comportamento parecido com speedhack num jogo online.</p></details>");
-    if let Some(line) = &ini.override_fps {
-        write!(html, "<p class=\"alert\" role=\"alert\">Encontrado no Engine.ini fora do RAPO: <code>{}</code>. Ele não é um limitador de FPS; remova-o manualmente se não foi intencional.</p>", escape(line)).unwrap();
-    }
+    html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Escolha um preset (1 a 5), que é exclusivo, e marque os extras que quiser. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente o bloco do RAPO e as linhas idênticas a ele, sem apagar a seleção.</p></details>");
     if !ini.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&ini.error)).unwrap(); }
     html.push_str("</section>");
 }
@@ -587,9 +567,9 @@ mod tests {
                 mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
             wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, options: vec![
-                EngineIniOption { key: "t.MaxFPS".into(), value: "120".into(), label: "FPS".into(), enabled: true, superseded: true, editable: false, min: 0, max: 0 },
-                EngineIniOption { key: "r.MotionBlurQuality".into(), value: "0".into(), label: "Blur".into(), enabled: false, superseded: false, editable: false, min: 0, max: 0 }],
-                override_fps: Some("t.OverrideFPS=<30>".into()), error: String::new() },
+                EngineIniOption { key: "very-low".into(), label: "1- Very Low".into(), enabled: true },
+                EngineIniOption { key: "additions".into(), label: "Additions".into(), enabled: false }],
+            error: String::new() },
             vpn: Default::default(),
         };
         view.routes = Routes {
@@ -616,10 +596,9 @@ mod tests {
         assert!(html.contains("&lt;script&gt;hy2&lt;/script&gt;:443") && html.contains("&lt;img src=udp&gt;"));
         assert!(html.contains("<fieldset id=\"relay-transport\" disabled>"), "transport settings are locked while the relay runs");
         assert!(html.contains("<option value=\"hy2\" selected>") && html.contains("Transporte · HY2"));
-        assert!(html.contains("C:\\&lt;x&gt;") && html.contains("t.OverrideFPS=&lt;30&gt;"), "Engine.ini path and foreign lines are untrusted");
-        assert!(html.contains("data-key=\"t.MaxFPS\" checked>") && html.contains("data-key=\"r.MotionBlurQuality\"><span>"), "each option shows its own state");
+        assert!(html.contains("C:\\&lt;x&gt;"), "Engine.ini path is untrusted");
+        assert!(html.contains("data-key=\"very-low\" checked>") && html.contains("data-key=\"additions\"><span>"), "each option shows its own state");
         assert!(html.contains("data-action=\"engine-ini-active\" checked>") && html.contains("ON · opções marcadas"), "the On/Off switch reflects the saved state");
-        assert_eq!(html.matches("não gravado: o Reflex").count(), 1, "only superseded options carry the note");
         assert!(html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"><div class=\"core-bar-fill core-low\" style=\"width: 18.2%\">"), "usage metrics get a 0–100% bar");
         assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }

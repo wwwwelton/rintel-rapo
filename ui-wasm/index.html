@@ -332,13 +332,6 @@
       const payload = { action, dir: el.dataset.dir ?? null, checked: el.checked ?? null, pid: el.dataset.pid ? Number(el.dataset.pid) : null };
       const field = (id) => document.getElementById(id);
       if (el.dataset.key) payload.key = el.dataset.key;
-      if (action === 'engine-ini-value') {
-        payload.value = el.value.trim();
-        const n = Number(payload.value);
-        if (!/^\d+$/.test(payload.value) || n < Number(el.min) || n > Number(el.max)) {
-          error.textContent = `${el.dataset.key}: informe um número inteiro entre ${el.min} e ${el.max}.`; return;
-        }
-      }
       if (action === 'vpn-activate' || action === 'vpn-remove') payload.name = el.dataset.name;
       if (action === 'vpn-save') {
         const protocol = field('vpn-protocol').value;

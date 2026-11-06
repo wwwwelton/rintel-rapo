@@ -25,29 +25,7 @@ window.INITIAL_STATE = {
    {id:"wireguard",label:"WireGuard",fields:["address","dns","mtu","public_key","endpoint","allowed_ips","keepalive"],secrets:["private_key","preshared_key"],importable:true},
    {id:"openvpn",label:"OpenVPN",fields:["remote","port","proto","cipher","auth","ca","cert","key_direction"],secrets:["key","username","password","tls_auth","tls_crypt","tls_crypt_v2"],importable:true}]},
   engine_ini:{path:"C:\\Users\\Jogador\\AppData\\Local\\AION2\\Saved_Steam\\Config\\Windows\\Engine.ini",active:false,applied:false,options:[
-   ["t.MaxFPS","120","Limite de FPS (editável; padrão 120; 0 = sem limite)"],
-   ["t.Streamline.Reflex.Enable","1","Ativar NVIDIA Reflex"],
-   ["t.Streamline.Reflex.Mode","1","Reflex em modo baixa latência (fila de renderização vazia)"],
-   ["r.GTSyncType","1","Sem fila de frames: game thread espera a apresentação (RHI)"],
-   ["r.OneFrameThreadLag","0","Sem frame extra da render thread (menos latência; pode reduzir FPS)"],
-   ["r.VSync","0","Desativar VSync (r.VSync=0)"],
-   ["r.FinishCurrentFrame","0","Não forçar sincronização de cada frame na CPU (mais FPS; r.FinishCurrentFrame=0)"],
-   ["r.RHICmdBypass","0","Usar thread RHI dedicada em paralelo (r.RHICmdBypass=0)"],
-   ["r.ShaderPipelineCache.Enabled","1","Ativar cache de pipeline de shaders (reduz engasgos)"],
-   ["r.CreateShadersOnLoad","1","Compilar shaders no carregamento (evita stutter em combate)"],
-   ["r.Streaming.PoolSize","6144","Pool de streaming de texturas em MB (editável; padrão 6144 = 6 GB)"],
-   ["r.Streaming.LimitPoolSizeToVRAM","1","Limitar pool de texturas à VRAM física disponível"],
-   ["r.Streaming.MaxTempMemoryAllowed","512","Memória temporária de streaming em 512 MB"],
-   ["r.Streaming.NumStaticComponentsProcessedPerFrame","64","Processar 64 componentes estáticos por frame no streaming"],
-   ["sg.ShadowQuality","2","Qualidade de sombras: Médio (sg.ShadowQuality=2)"],
-   ["sg.EffectsQuality","2","Qualidade de efeitos: Médio (sg.EffectsQuality=2)"],
-   ["sg.ReflectionQuality","1","Qualidade de reflexos: Baixo (sg.ReflectionQuality=1)"],
-   ["sg.PostProcessQuality","1","Qualidade de pós-processamento: Baixo (sg.PostProcessQuality=1)"],
-   ["sg.FoliageQuality","2","Qualidade de vegetação: Médio (sg.FoliageQuality=2)"],
-   ["r.MotionBlurQuality","0","Desligar motion blur (mais FPS; muda o visual)"],
-   ["r.DepthOfFieldQuality","0","Desligar profundidade de campo (mais FPS; muda o visual)"],
-   ["r.SceneColorFringeQuality","0","Desligar aberração cromática (imagem mais nítida; muda o visual)"],
-   ["r.FilmGrain","0","Desligar granulação de filme (imagem mais limpa; muda o visual)"],
-   ["r.LensFlareQuality","0","Desligar lens flare (menos brilho na tela; muda o visual)"]
-  ].map(([key,value,label])=>({key,value,label,enabled:false,superseded:false,editable:key==="t.MaxFPS"||key==="r.Streaming.PoolSize",min:key==="r.Streaming.PoolSize"?256:0,max:key==="r.Streaming.PoolSize"?32768:4294967295})),override_fps:null,error:""}}};
+   ["very-low","1- Very Low"],["default","2- Default"],["normal","3- Normal"],["high","4- High"],["very-high","5- Very High"],
+   ["additions","Additions (SystemSettings + DLSS/XESS/FSR)"],["reduce-stutters","Reduce Stutters"]
+  ].map(([key,label])=>({key,label,enabled:false})),error:""}}};
 window.INITIAL_STATE.dashboard.relay.redundancy = {enabled:false,x:20,y:10};

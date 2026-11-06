@@ -135,40 +135,17 @@ O painel geral exibe o FPS/frame pacing da própria interface quando há um proc
 
 Versões anteriores podiam alterar os valores globais do Windows `NetworkThrottlingIndex` e `SystemResponsiveness`. Esta versão **não os modifica nem os restaura automaticamente**: se você usou a opção antiga, inspecione sua configuração de sistema antes de ajustá-la manualmente, para não apagar personalizações suas ou de outros programas.
 
-### Engine.ini do AION 2 (perfil opcional com ON/OFF)
+### Engine.ini do AION 2 (presets e extras com ON/OFF)
 
-O painel **ENGINE.INI DO AION 2** grava variáveis em `%LOCALAPPDATA%\AION2\Saved_Steam\Config\Windows\Engine.ini`, num bloco `; RAPO BEGIN` … `; RAPO END` dentro de `[SystemSettings]`. Elas foram pensadas para RTX 5070 12 GB em 4K, com foco em menor input lag, sem fila de frames e mais FPS. **Começa em OFF e sem opções marcadas.** As opções marcadas e o ON/OFF ficam salvos em `HKEY_CURRENT_USER\Software\RintelRAPO\EngineIni` e voltam ao abrir o RAPO; só com ON as opções marcadas vão para o arquivo.
+O painel **ENGINE.INI DO AION 2** grava as opções no fim de `%LOCALAPPDATA%\AION2\Saved_Steam\Config\Windows\Engine.ini` (em geral `C:\Users\<usuário>\AppData\Local\AION2\Saved_Steam\Config\Windows\Engine.ini`), dentro de um bloco `; RAPO BEGIN` … `; RAPO END`. **Começa em OFF e sem opções marcadas.** A seleção e o ON/OFF ficam salvos em `HKEY_CURRENT_USER\Software\RintelRAPO\EngineIni` e voltam ao abrir o RAPO.
 
-| Opção | Linha | Efeito |
-|---|---|---|
-| Limite de FPS (editável) | `t.MaxFPS=120` | Caixa pré-preenchida com `120`; altere o valor para limitar os FPS ou use `0` para remover o teto. O valor fica salvo junto ao perfil; com a opção marcada e ON, substitui a linha anterior no arquivo |
-| Ativar NVIDIA Reflex | `t.Streamline.Reflex.Enable=1` | Ativa o plugin Reflex presente no jogo |
-| Reflex em baixa latência | `t.Streamline.Reflex.Mode=1` | Mantém a fila de renderização vazia |
-| Sem fila de frames | `r.GTSyncType=1` | A game thread espera a thread RHI (apresentação) |
-| Sem frame extra da render thread | `r.OneFrameThreadLag=0` | Remove um frame de atraso; pode reduzir FPS |
-| Desativar VSync | `r.VSync=0` | Desativa sincronização vertical |
-| Não forçar sync de cada frame na CPU | `r.FinishCurrentFrame=0` | Permite paralelismo normal entre CPU e GPU |
-| Thread RHI dedicada em paralelo | `r.RHICmdBypass=0` | Mantém submissão RHI em thread própria |
-| Cache de pipeline de shaders | `r.ShaderPipelineCache.Enabled=1` | Reduz engasgos de compilação de shaders |
-| Compilar shaders no carregamento | `r.CreateShadersOnLoad=1` | Evita stutter durante o combate |
-| Pool de streaming de texturas (MB, editável) | `r.Streaming.PoolSize=6144` | Caixa pré-preenchida com `6144`; o usuário pode trocar o número (256 a 32768 MB). O valor fica salvo em `HKEY_CURRENT_USER\Software\RintelRAPO\EngineIni\Values` e, com o perfil ON, a linha é regravada na hora. A linha antiga é removida do arquivo, inclusive cópias soltas deixadas pelo jogo |
-| Limitar pool à VRAM disponível | `r.Streaming.LimitPoolSizeToVRAM=1` | Impede que o pool exceda a memória física da GPU |
-| Memória temporária de streaming | `r.Streaming.MaxTempMemoryAllowed=512` | Limita buffer temporário de streaming em 512 MB |
-| Componentes estáticos por frame | `r.Streaming.NumStaticComponentsProcessedPerFrame=64` | Processa 64 componentes por frame no streaming |
-| Qualidade de sombras (Médio) | `sg.ShadowQuality=2` | Reduz custo de sombras dinâmicas |
-| Qualidade de efeitos (Médio) | `sg.EffectsQuality=2` | Equilibra partículas e efeitos |
-| Qualidade de reflexos (Baixo) | `sg.ReflectionQuality=1` | Reduz custo de SSR/reflexos |
-| Qualidade de pós-processamento (Baixo) | `sg.PostProcessQuality=1` | Reduz passes pesados de pós-processamento |
-| Qualidade de vegetação (Médio) | `sg.FoliageQuality=2` | Reduz densidade/custo de folhagem |
-| Desligar motion blur | `r.MotionBlurQuality=0` | Mais FPS; muda o visual |
-| Desligar profundidade de campo | `r.DepthOfFieldQuality=0` | Mais FPS; muda o visual |
-| Desligar aberração cromática | `r.SceneColorFringeQuality=0` | Imagem mais nítida; muda o visual |
-| Desligar granulação de filme | `r.FilmGrain=0` | Imagem mais limpa; muda o visual |
-| Desligar lens flare | `r.LensFlareQuality=0` | Menos brilho na tela; muda o visual |
+- **Presets** (radio exclusivo): `1- Very Low`, `2- Default`, `3- Normal`, `4- High`, `5- Very High`, vindos do pacote Astral Vision. Só um preset fica ativo por vez.
+- **Additions** e **Reduce Stutters**: toggles independentes, combináveis com qualquer preset. Additions inclui `[SystemSettings]` (gamma, cores, partículas e frame-rate smoothing) e as seções de DLSS, XESS e FSR de `FSR, DLSS, XESS.txt`.
 
-O jogo lê o arquivo ao iniciar: ligue o perfil antes de abrir o AION 2. Com ON, marcar ou desmarcar uma opção atualiza o arquivo na hora. OFF ou fechar o RAPO (janela ou bandeja) remove o bloco, sem apagar o perfil salvo, e o restante do arquivo volta byte a byte. A gravação usa arquivo temporário + renomeação. Se o jogo reescrever o arquivo sem os comentários, a remoção apaga apenas as linhas exatas que o RAPO gravou. Um bloco deixado por encerramento forçado é substituído pelo perfil salvo na próxima abertura, ou removido se o perfil estiver em OFF. Somente o AION 2 é afetado; o efeito real depende de o build do jogo respeitar essas variáveis.
+Com ON, marcar ou desmarcar uma opção reescreve o bloco na hora. OFF ou fechar o RAPO (janela ou bandeja) remove o bloco e as linhas idênticas a elas, e o restante do arquivo volta ao que era. A gravação usa arquivo temporário + renomeação. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. Como o jogo pode reescrever o Engine.ini sem os marcadores, a limpeza também apaga as linhas exatas das opções gravadas pelo RAPO. Um bloco deixado por encerramento forçado é substituído pela seleção salva na próxima abertura, ou removido se o perfil estiver em OFF. Somente o AION 2 é afetado; o efeito real depende de o build do jogo respeitar essas variáveis.
 
-Resolução, DLSS/FSR, VSync e pool de texturas continuam no menu do jogo; DLSS em 4K é o maior ganho de FPS disponível, mas fica a cargo do jogo. `t.OverrideFPS` **não é oferecido**: ele não limita FPS, fixa o tempo de cada frame e acelera ou desacelera a simulação no cliente, comportamento semelhante a speedhack num jogo online com anti-cheat. Se o RAPO encontrar essa linha no arquivo, mostra um alerta para removê-la manualmente. FPS e latência não alteram o dano calculado pelo servidor; ajudam apenas na resposta aos comandos.
+Resolução, DLSS/FSR, VSync e texturas continuam no menu do jogo. Não há limite de FPS editável: `t.OverrideFPS` **não é oferecido**, pois fixa o tempo de cada frame e acelera ou desacelera a simulação no cliente, comportamento semelhante a speedhack num jogo online com anti-cheat. Se o RAPO encontrar essa linha fora do bloco, mostra um alerta para removê-la manualmente.
+
 
 ## Compilar e executar
 

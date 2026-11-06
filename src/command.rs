@@ -46,12 +46,10 @@ pub enum Command {
     SetRelayInterfaces(Vec<String>),
     ConfigureRelay { mode: crate::relay::Mode, config: crate::relay::Hy2Config },
     SetWfp(bool),
-    /// Enables or disables one `engine_ini::ENTRIES` option in AION 2's Engine.ini.
+    /// Enables or disables one `engine_ini::OPTIONS` entry (preset or extra) in AION 2's Engine.ini.
     SetEngineIniOption { index: usize, on: bool },
     /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
     SetEngineIniActive(bool),
-    /// Sets the number of an editable Engine.ini option; the host validates the range.
-    SetEngineIniValue { index: usize, value: u32 },
     /// Creates or updates a VPN profile. A secret left empty keeps the stored value, so the page never needs it back.
     SaveVpnProfile { protocol: crate::vpn::Protocol, name: String, fields: std::collections::BTreeMap<String, String>, secrets: std::collections::BTreeMap<String, String> },
     /// Imports the text of a wg-quick `.conf` or `.ovpn` file chosen in the page; the host never reads a path from the page.
@@ -121,15 +119,8 @@ pub fn from_json(body: &str) -> Option<Command> {
         }
         "engine-ini" => {
             let key = event.get("key")?.as_str()?;
-            let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
+            let index = crate::engine_ini::OPTIONS.iter().position(|a| a.key == key)?;
             return Some(Command::SetEngineIniOption { index, on: checked? });
-        }
-        "engine-ini-value" => {
-            let key = event.get("key")?.as_str()?;
-            let index = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == key)?;
-            // The page sends the box's text; only plain digits are a number (no sign, space, exponent or decimals).
-            let digits = event.get("value")?.as_str().filter(|s| !s.is_empty() && s.len() <= 10 && s.bytes().all(|b| b.is_ascii_digit()))?;
-            return Some(Command::SetEngineIniValue { index, value: digits.parse().ok()? });
         }
         "vpn-save" => {
             let protocol = crate::vpn::Protocol::parse(event.get("protocol")?.as_str()?)?;
@@ -238,7 +229,7 @@ mod tests {
         assert_eq!(from_json(r#"{"action":"windowed","checked":false}"#), Some(Command::SetWindowed(false)));
         assert_eq!(from_json(r#"{"action":"search","text":"AION 2"}"#), Some(Command::SetSearch("AION 2".into())));
         assert_eq!(from_json("not JSON"), None);
-        assert_eq!(from_json(r#"{"action":"engine-ini","key":"t.MaxFPS","checked":true}"#), Some(Command::SetEngineIniOption { index: 0, on: true }));
+        assert_eq!(from_json(r#"{"action":"engine-ini","key":"very-low","checked":true}"#), Some(Command::SetEngineIniOption { index: 0, on: true }));
         for body in [r#"{"action":"engine-ini","key":"t.OverrideFPS","checked":true}"#, r#"{"action":"engine-ini","key":"t.MaxFPS"}"#] {
             assert_eq!(from_json(body), None, "{body}");
         }
@@ -318,7 +309,7 @@ mod tests {
         assert_eq!(page("apo-profile", serde_json::json!({ "dir": dir })), Some(Command::ApplyAion2Profile { directory: dir.into() }));
         assert_eq!(page("toggle-process", serde_json::json!({ "pid": 54732 })), Some(Command::ToggleProcess { pid: 54732 }));
         assert_eq!(page("select_training_target", serde_json::json!({ "pid": 58152 })), Some(Command::SelectTrainingTarget { pid: 58152 }));
-        assert_eq!(page("engine-ini", serde_json::json!({ "checked": true, "key": "t.MaxFPS" })), Some(Command::SetEngineIniOption { index: 0, on: true }));
+        assert_eq!(page("engine-ini", serde_json::json!({ "checked": true, "key": "very-low" })), Some(Command::SetEngineIniOption { index: 0, on: true }));
         assert_eq!(page("relay-interfaces", serde_json::json!({ "checked": false, "candidates": ["c2"] })), Some(Command::SetRelayInterfaces(vec!["c2".into()])));
         assert_eq!(page("route-apply", serde_json::json!({ "destination": "203.0.113.9", "candidate": "c1" })), Some(Command::ApplyRoute { destination: "203.0.113.9".into(), candidate: "c1".into() }));
         assert_eq!(route("route-remove"), Some(Command::RemoveRoute("203.0.113.9".into())), "the remove button names the route by data-destination");
@@ -367,22 +358,5 @@ mod tests {
         );
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":0,"y":5}"#), None, "x=0 rejected");
         assert_eq!(from_json(r#"{"action":"udp-redundancy","enabled":true,"x":10,"y":31}"#), None, "y=31 rejected");
-    }
-
-    #[test]
-    fn engine_ini_value_ipc_accepts_only_plain_digits_for_a_known_key() {
-        let pool = crate::engine_ini::ENTRIES.iter().position(|(k, _, _)| *k == "r.Streaming.PoolSize").unwrap();
-        assert_eq!(from_json(r#"{"action":"engine-ini-value","dir":null,"checked":false,"pid":null,"key":"r.Streaming.PoolSize","value":"8192"}"#),
-            Some(Command::SetEngineIniValue { index: pool, value: 8192 }), "the exact payload the page sends: the box text, never a number type");
-        for body in [
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":8192}"#,
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":""}"#,
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"-1"}"#,
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"1e3"}"#,
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":" 8192"}"#,
-            r#"{"action":"engine-ini-value","key":"r.Streaming.PoolSize","value":"99999999999"}"#,
-            r#"{"action":"engine-ini-value","key":"t.OverrideFPS","value":"30"}"#,
-            r#"{"action":"engine-ini-value","value":"8192"}"#,
-        ] { assert_eq!(from_json(body), None, "{body}"); }
     }
 }

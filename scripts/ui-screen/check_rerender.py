@@ -144,18 +144,6 @@ try:
     off = ev("document.querySelector('input[data-action=relay]').checked")
     check('a host-driven switch follows the host', on is True and off is False, (on, off))
 
-    # 6. An untouched, unfocused box takes the host's new value; a touched one keeps what the user typed.
-    pool = "document.querySelector('input[data-action=engine-ini-value][data-key=\"r.Streaming.PoolSize\"]')"
-    if ev(f"!!{pool}"):
-        ev(f"{pool}.blur()")
-        ev("window.pushState((s) => { s.dashboard.engine_ini.options.find((x) => x.key === 'r.Streaming.PoolSize').value = '8192'; })")
-        check('an untouched box shows the new host value', ev(f"{pool}.value") == '8192', ev(f"{pool}.value"))
-        ev(f"{pool}.value = '7000'; {pool}.dispatchEvent(new Event('input', {{ bubbles: true }}))")
-        ev("window.pushState((s) => { s.dashboard.engine_ini.options.find((x) => x.key === 'r.Streaming.PoolSize').value = '9000'; })")
-        check('a box being edited keeps the typed value', ev(f"{pool}.value") == '7000', ev(f"{pool}.value"))
-    else:
-        print('SKIP texture-pool box checks: the fixture has no editable Engine.ini option')
-
     # 7. A validation message is not wiped by the next snapshot.
     ev("document.getElementById('ui-error').textContent = 'Informe um número'")
     ev("window.pushState()")
