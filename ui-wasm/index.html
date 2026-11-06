@@ -150,7 +150,8 @@
     color: var(--muted); font: 500 10px/1.6 var(--mono); letter-spacing: .07em; text-transform: uppercase;
   }
   .box-value { color: var(--text); font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
-  .resources-flow { width: 100%; height: auto; color: var(--text); font-family: var(--mono); }
+  .resources-flow { width: 100%; max-width: 960px; height: auto; display: block; margin: 0 auto; color: var(--text); font-family: var(--mono); }
+  .resources-flow .flow-usage { fill: var(--accent); }
   .resources-flow .flow-node rect, .resources-flow .flow-dest rect { fill: var(--surface); stroke: var(--border); }
   .resources-flow .flow-hub rect { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
   .resources-flow .flow-label { fill: var(--muted); font-size: 12px; }
