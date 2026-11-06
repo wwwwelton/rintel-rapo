@@ -427,7 +427,8 @@
       }
       window.ipc.postMessage(JSON.stringify(payload));
     };
-    document.addEventListener('click', (e) => { const b = e.target.closest('button[data-action]'); if (b && !b.disabled) send(b); });
+    document.addEventListener('click', (e) => { const b = e.target.closest('button[data-action], g.flow-hub[data-action]'); if (b && !b.disabled) send(b); });
+    document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('g.flow-hub[data-action]')) { e.preventDefault(); send(e.target); } });
     document.addEventListener('change', (e) => {
       if (e.target.matches('input[data-action]')) send(e.target);
       if (e.target.id === 'vpn-protocol') showVpnForm();

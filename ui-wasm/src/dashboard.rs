@@ -148,6 +148,8 @@ pub struct PowerPlanState {
 pub struct AppliedProfile {
     pub pid: u32,
     pub game: String,
+    #[serde(default)]
+    pub exe: String,
     pub source: String,
     pub configured: ProfileSettings,
     pub priority: bool,
@@ -559,6 +561,16 @@ fn model_states(profile: &AppliedProfile) -> Vec<(String, bool)> {
     ]
 }
 
+/// One-line description of what the current profile does for a destination block.
+fn dest_detail(label: &str, profile: &AppliedProfile) -> String {
+    match label {
+        "Afinidade de CPU" => format!("{} thread(s) fixadas", profile.pinned_threads),
+        "Prioridade" => if profile.priority { "prioridade elevada".into() } else { "prioridade normal".into() },
+        "Memória / EcoQoS" => if profile.qos { "EcoQoS aplicado".into() } else { "sem EcoQoS".into() },
+        _ => profile.source.clone(),
+    }
+}
+
 /// Resources tab: CPU, GPU, memory, disk and network from the same telemetry the Visão geral tab shows.
 fn render_resources(html: &mut String, view: &Dashboard) {
     let metrics: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
@@ -581,13 +593,19 @@ fn render_resources(html: &mut String, view: &Dashboard) {
         None => ("flow-hub flow-hub-off", "SEM MODELO"),
     };
     let (first, second) = hub_text.split_once(' ').unwrap_or((hub_text, ""));
-    write!(html, "<g class=\"{hub_class}\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"54\" text-anchor=\"middle\" class=\"flow-hub-label\">{first}</text><text x=\"60\" y=\"72\" text-anchor=\"middle\" class=\"flow-hub-label\">{second}</text></g>").unwrap();
+    let (action, dir) = match view.profile.as_ref() {
+        Some(profile) if !profile.exe.is_empty() => ("profile-apply", escape(&profile.exe)),
+        _ => ("start_training", String::new()),
+    };
+    let dir_attr = if dir.is_empty() { String::new() } else { format!(" data-dir=\"{dir}\"") };
+    write!(html, "<g class=\"{hub_class}\" role=\"button\" tabindex=\"0\" data-action=\"{action}\"{dir_attr} transform=\"translate(420 150)\"><title>{}</title><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"54\" text-anchor=\"middle\" class=\"flow-hub-label\">{first}</text><text x=\"60\" y=\"72\" text-anchor=\"middle\" class=\"flow-hub-label\">{second}</text></g>", if action == "profile-apply" { "Aplicar o modelo a este jogo" } else { "Iniciar treinamento" }).unwrap();
     let states = view.profile.as_ref().map(model_states).unwrap_or_default();
     for (index, (label, on)) in states.iter().enumerate() {
         let y = 30.0 + index as f32 * 80.0;
         let class = if *on { "flow-state flow-on" } else { "flow-state flow-off" };
         write!(html, "<path class=\"flow-link flow-out {class}\" d=\"M540 210 C 620 210, 640 {y:.0}, 720 {y:.0}\"/>").unwrap();
-        write!(html, "<g class=\"flow-dest {class}\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"25\">{}: {}</text></g>", y - 20.0, escape(label), if *on { "ligado" } else { "desligado" }).unwrap();
+        let detail = view.profile.as_ref().map(|p| dest_detail(label, p)).unwrap_or_default();
+        write!(html, "<g class=\"flow-dest {class}\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"17\">{}: {}</text><text class=\"flow-dest-detail\" x=\"12\" y=\"32\">{}</text></g>", y - 20.0, escape(label), if *on { "ligado" } else { "desligado" }, escape(&detail)).unwrap();
     }
     html.push_str("</svg>");
     html.push_str("</section>");
@@ -855,7 +873,7 @@ mod tests {
     fn resources_flow_colors_model_states_and_trained_hub() {
         let mut view = dashboard(serde_json::json!({}));
         view.profile = Some(AppliedProfile {
-            pid: 1, game: "g".into(), source: "RAPO · perfil aprendido salvo".into(),
+            pid: 1, game: "g".into(), exe: "C:/Games/g.exe".into(), source: "RAPO · perfil aprendido salvo".into(),
             configured: ProfileSettings { priority: false, pin: true, qos: false, threads: 4, min_percent: 5, cores: 4, smt: true, p_only: false, park_cores: true },
             priority: false, pinned_threads: 0, qos: false,
         });
@@ -863,6 +881,21 @@ mod tests {
         assert!(html.contains("flow-hub-trained"), "a saved learned profile turns the hub blue");
         assert_eq!(html.matches("flow-dest flow-state flow-on").count(), 3, "HT, core parking and affinity are on: green");
         assert_eq!(html.matches("flow-dest flow-state flow-off").count(), 3, "P-only, priority and QoS are off: red");
+    }
+    #[test]
+    fn hub_applies_the_profile_or_starts_training_when_there_is_none() {
+        let mut view = dashboard(serde_json::json!({}));
+        view.profile = Some(AppliedProfile {
+            pid: 1, game: "g".into(), exe: "C:/Games/g.exe".into(), source: "RAPO · perfil aprendido salvo".into(),
+            configured: ProfileSettings { priority: false, pin: true, qos: false, threads: 4, min_percent: 5, cores: 4, smt: true, p_only: false, park_cores: true },
+            priority: false, pinned_threads: 2, qos: false,
+        });
+        let html = render(&view);
+        assert!(html.contains("data-action=\"profile-apply\" data-dir=\"C:/Games/g.exe\""), "the hub applies the learned profile to its game");
+        assert!(html.contains("2 thread(s) fixadas"), "the affinity block shows the pinned thread count");
+        let empty = render(&dashboard(serde_json::json!({})));
+        assert!(empty.contains("data-action=\"start_training\""), "with no model the hub starts training");
+        assert!(!empty.contains("profile-apply"), "no profile means no apply action");
     }
     #[test]
     fn telemetry_figures_are_large_and_sentences_are_not() {

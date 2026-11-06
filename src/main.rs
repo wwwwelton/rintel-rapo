@@ -566,7 +566,7 @@ mod app {
                     None => "Windows · sem perfil de ajuste",
                 };
                 serde_json::json!({
-                    "pid": p.pid, "game": p.game, "source": source, "configured": configured,
+                    "pid": p.pid, "game": p.game, "exe": p.exe.display().to_string(), "source": source, "configured": configured,
                     "priority": self.optimizer.boosted(p.pid),
                     "pinned_threads": self.pinner.as_ref().map_or(0, |pin| pin.pinned_count(p.pid)),
                     "qos": self.applied_qos.contains_key(&p.pid)
