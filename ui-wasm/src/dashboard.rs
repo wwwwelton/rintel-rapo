@@ -580,7 +580,8 @@ fn render_resources(html: &mut String, view: &Dashboard) {
         Some(_) => ("flow-hub flow-hub-on", "MODELO ATIVO"),
         None => ("flow-hub flow-hub-off", "SEM MODELO"),
     };
-    write!(html, "<g class=\"{hub_class}\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"62\" text-anchor=\"middle\" class=\"flow-hub-label\">{hub_text}</text></g>").unwrap();
+    let (first, second) = hub_text.split_once(' ').unwrap_or((hub_text, ""));
+    write!(html, "<g class=\"{hub_class}\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"54\" text-anchor=\"middle\" class=\"flow-hub-label\">{first}</text><text x=\"60\" y=\"72\" text-anchor=\"middle\" class=\"flow-hub-label\">{second}</text></g>").unwrap();
     let states = view.profile.as_ref().map(model_states).unwrap_or_default();
     for (index, (label, on)) in states.iter().enumerate() {
         let y = 30.0 + index as f32 * 80.0;

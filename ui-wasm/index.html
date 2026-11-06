@@ -17,6 +17,9 @@
     --muted: #a2adb9;
     --accent: #65e5d1;
     --warning: #f0cf89;
+    --on: #3ddc84;
+    --off: #ff5c6c;
+    --trained: #4da3ff;
     --danger: #ff9b9f;
     --mono: "Cascadia Code", Consolas, "SFMono-Regular", monospace;
     font: 14px/1.6 "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -155,16 +158,18 @@
   .resources-flow .flow-hub-label { fill: var(--accent); font-size: 13px; letter-spacing: .08em; }
   .resources-flow .flow-dest text { fill: var(--text); font-size: 13px; }
   .resources-flow .flow-link { fill: none; stroke: var(--accent); stroke-width: 2; opacity: .55; }
-  .resources-flow .flow-on rect { stroke: var(--success); }
-  .resources-flow .flow-on .flow-value, .resources-flow .flow-on text { fill: var(--success); }
-  .resources-flow .flow-off rect { stroke: var(--error); }
-  .resources-flow .flow-off text { fill: var(--error); }
-  .resources-flow .flow-link.flow-on { stroke: var(--success); }
-  .resources-flow .flow-link.flow-off { stroke: var(--error); }
-  .resources-flow .flow-hub-on rect { stroke: var(--success); }
-  .resources-flow .flow-hub-off rect { stroke: var(--error); }
-  .resources-flow .flow-hub-trained rect { stroke: var(--accent); stroke-width: 3; }
-  .resources-flow .flow-hub-trained .flow-hub-label { fill: var(--accent); }
+  .resources-flow .flow-on rect { stroke: var(--on); }
+  .resources-flow .flow-on .flow-value, .resources-flow .flow-on text { fill: var(--on); }
+  .resources-flow .flow-off rect { stroke: var(--off); }
+  .resources-flow .flow-off text { fill: var(--off); }
+  .resources-flow .flow-link.flow-on { stroke: var(--on); opacity: .85; }
+  .resources-flow .flow-link.flow-off { stroke: var(--off); opacity: .85; }
+  .resources-flow .flow-hub-on rect { stroke: var(--on); }
+  .resources-flow .flow-hub-on .flow-hub-label { fill: var(--on); }
+  .resources-flow .flow-hub-off rect { stroke: var(--off); }
+  .resources-flow .flow-hub-off .flow-hub-label { fill: var(--off); }
+  .resources-flow .flow-hub-trained rect { stroke: var(--trained); stroke-width: 3; }
+  .resources-flow .flow-hub-trained .flow-hub-label { fill: var(--trained); }
   .box-value-text { font-size: 15px; font-weight: 600; line-height: 1.5; letter-spacing: 0; }
   .box-sub, .net-card-sub, .parameter small { color: var(--muted); font-size: 12px; line-height: 1.65; }
   .net-card-value { color: var(--text); font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
