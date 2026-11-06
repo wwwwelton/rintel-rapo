@@ -70,7 +70,7 @@ mod app {
 /// Live FPS (ETW present rate, ~2s window) when available; otherwise the training session's best score.
 fn game_fps_label(live: Option<f64>, training: Option<f64>) -> String {
     match (live, training) {
-        (Some(fps), _) => format!("{fps:.1} FPS · ao vivo"),
+        (Some(fps), _) => format!("{fps:.1} FPS"),
         (None, Some(fps)) => format!("{fps:.1} FPS · melhor medição do treino"),
         (None, None) => "sem medição · inicie um treino".to_string(),
     }
@@ -79,7 +79,7 @@ fn game_fps_label(live: Option<f64>, training: Option<f64>) -> String {
 /// Frame time: live average present interval when available, else derived from training FPS.
 fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
     match (live, training.filter(|fps| *fps > 0.0)) {
-        (Some(ms), _) => format!("{ms:.2} ms · ao vivo"),
+        (Some(ms), _) => format!("{ms:.2} ms"),
         (None, Some(fps)) => format!("{:.2} ms · derivado do FPS medido", 1000.0 / fps),
         (None, None) => "sem medição".to_string(),
     }
@@ -545,7 +545,18 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
 
 
     impl App {
+        /// FPS and frame time only, pushed every 100 ms; the full state stays at 1 Hz.
+        pub fn live_fps_state(&self) -> serde_json::Value {
+            let live = self.live.as_ref().and_then(|(_, m)| m.latest());
+            let training_fps = self.training.as_ref().and_then(|t| t.search.best().map(|(_, s)| s.fps));
+            serde_json::json!({
+                "fps": game_fps_label(live.map(|s| s.fps), training_fps),
+                "frame_time": game_frame_time_label(live.map(|s| s.frame_time_ms), training_fps),
+            })
+        }
+
         /// `include_strings` is true only for the initial page state; the page caches them.
+
         pub fn webview_state(&self, include_strings: bool) -> serde_json::Value {
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
             let tm = &self.telemetry.metrics;

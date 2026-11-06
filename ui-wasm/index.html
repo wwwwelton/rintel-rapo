@@ -586,6 +586,15 @@
         if (renderFailed) { error.textContent = ''; renderFailed = false; }
       } catch (e) { renderFailed = true; error.textContent = `Falha ao renderizar a interface: ${e}`; }
     };
+    window.rapoLive = (live) => {
+      const node = [...document.querySelectorAll('.resources-flow .flow-node')]
+        .find((g) => g.querySelector('.flow-label')?.textContent === 'FPS DO JOGO');
+      if (!node) return;
+      const value = node.querySelector('.flow-value');
+      const detail = node.querySelector('.flow-dest-detail');
+      if (value) value.textContent = live.fps;
+      if (detail) detail.textContent = live.frame_time;
+    };
     window.rapoUpdate(window.INITIAL_STATE);
   } catch (e) { error.textContent = `Falha ao carregar a interface wasm: ${e}`; }
 </script>

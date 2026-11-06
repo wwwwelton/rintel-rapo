@@ -44,9 +44,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         }).build(&window)?;
     let mut next_tick = Instant::now();
     let mut next_render = Instant::now();
+    let mut next_live = Instant::now();
     let mut icon_active = None;
     event_loop.run(move |event, _, flow| {
-        *flow = ControlFlow::WaitUntil(next_tick.min(next_render));
+        *flow = ControlFlow::WaitUntil(next_tick.min(next_render).min(next_live));
         match event {
             Event::LoopDestroyed => { drop(app.take()); }
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *flow = ControlFlow::Exit,
@@ -61,8 +62,15 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                     state.tick();
                     next_tick = state.next_refresh();
                 }
-                // Hidden or minimized: skip rendering; the restore event wakes the loop and renders at once.
                 let visible = window.is_visible() && !window.is_minimized();
+                // Hidden or minimized: skip rendering; the restore event wakes the loop and renders at once.
+                if visible && now >= next_live {
+                    let live = state.live_fps_state();
+                    if let Err(error) = webview.evaluate_script(&format!("window.rapoLive?.({live});")) {
+                        eprintln!("WebView live update: {error}");
+                    }
+                    next_live = now + Duration::from_millis(100);
+                }
                 if visible && now >= next_render {
                     let snapshot = state.webview_state(false);
                     let active = snapshot["header"]["optimizer_running"].as_bool().unwrap_or(false);
