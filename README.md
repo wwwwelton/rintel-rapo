@@ -7,6 +7,8 @@
 
 Aplicativo para **Windows 11 x64** para detectar jogos Steam em execução e aplicar, **por opção do usuário**, ajustes de prioridade e afinidade. Não é o Intel Application Optimization (APO), não contém código do APO e não altera firmware, clock ou cache L1/L2/L3.
 
+![Interface do Rintel RAPO no Windows 11](ui-screen.png)
+
 ## Funcionalidade e limites
 
 - **Auto Prioridade:** eleva a classe do processo para acima do normal enquanto o jogo está em foco; restaura a classe original ao parar. O modo «Manter ajustes em segundo plano» também o faz fora de foco e pode prejudicar outros aplicativos.

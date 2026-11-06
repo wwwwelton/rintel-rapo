@@ -26,6 +26,9 @@ $repoRoot = "C:\dev\rapo-src"
 Copy-Item -LiteralPath (Join-Path $repoRoot "native\hy2\THIRD_PARTY_NOTICES.txt") -Destination (Join-Path $dir "THIRD_PARTY_NOTICES.txt") -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "ui-screen.svg") -Destination (Join-Path $dir "ui-screen.svg") -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "ui-screen.json") -Destination (Join-Path $dir "ui-screen.json") -Force
+if (Test-Path -LiteralPath (Join-Path $repoRoot "ui-screen.png")) {
+    Copy-Item -LiteralPath (Join-Path $repoRoot "ui-screen.png") -Destination (Join-Path $dir "ui-screen.png") -Force
+}
 
 # Copia o executável compilado e certificado se existirem
 $exeSrc = "C:\dev\rapo-build\target\release\rintel-rapo.exe"

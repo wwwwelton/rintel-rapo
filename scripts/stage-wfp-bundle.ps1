@@ -37,6 +37,7 @@ Copy-Item -LiteralPath (Join-Path $sourceDir 'NOTICE.md') -Destination (Join-Pat
 Copy-Item -LiteralPath (Join-Path $repoRoot 'native\hy2\THIRD_PARTY_NOTICES.txt') -Destination (Join-Path $outRoot 'THIRD_PARTY_NOTICES.txt') -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'ui-screen.svg') -Destination (Join-Path $outRoot 'ui-screen.svg') -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'ui-screen.json') -Destination (Join-Path $outRoot 'ui-screen.json') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'ui-screen.png') -Destination (Join-Path $outRoot 'ui-screen.png') -Force
 
 $exePath = Join-Path $outRoot 'rintel-rapo.exe'
 if (Test-Path -LiteralPath $exePath) {
@@ -53,7 +54,8 @@ if (Test-Path -LiteralPath $exePath) {
         'NOTICE.md',
         'THIRD_PARTY_NOTICES.txt',
         'ui-screen.svg',
-        'ui-screen.json'
+        'ui-screen.json',
+        'ui-screen.png'
     ) | ForEach-Object { Join-Path $outRoot $_ } | Where-Object { Test-Path -LiteralPath $_ }
     Compress-Archive -Path $itemsToZip -DestinationPath $zipPath -CompressionLevel Optimal -Force
     $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLower()

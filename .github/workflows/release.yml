@@ -127,7 +127,8 @@ jobs:
             "native/hy2/THIRD_PARTY_NOTICES.txt",
             "ui-screen.svg",
             "ui-screen.json",
-            "vendor/wfp/NOTICE.md"
+            "vendor/wfp/NOTICE.md",
+            "ui-screen.png",
           ) | ForEach-Object {
             if (Test-Path $_) {
               $item = Get-Item $_
@@ -160,3 +161,4 @@ jobs:
             ui-screen.svg
             ui-screen.json
             vendor/wfp/NOTICE.md
+            ui-screen.png
