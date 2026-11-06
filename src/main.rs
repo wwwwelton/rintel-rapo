@@ -887,6 +887,12 @@ mod app {
                 }
                 crate::command::Command::SetEngineIniOption { index, on } => self.engine_ini.set(index, on),
                 crate::command::Command::SetEngineIniActive(on) => self.engine_ini.set_active(on),
+                crate::command::Command::BackupEngineIni => {
+                    if let Err(e) = self.engine_ini.backup() { self.training_message = e; }
+                }
+                crate::command::Command::RestoreEngineIni => {
+                    if let Err(e) = self.engine_ini.restore() { self.training_message = e; }
+                }
                 crate::command::Command::SetWindowed(on) => self.windowed_mode = on,
                 crate::command::Command::ToggleProcess { pid } => {
                     let Some(process) = self.running.iter().find(|p| p.pid == pid).cloned() else {

@@ -50,6 +50,8 @@ pub enum Command {
     SetEngineIniOption { index: usize, on: bool },
     /// On/Off switch of the saved Engine.ini profile; Off removes RAPO's lines from the file.
     SetEngineIniActive(bool),
+    BackupEngineIni,
+    RestoreEngineIni,
     /// Creates or updates a VPN profile. A secret left empty keeps the stored value, so the page never needs it back.
     SaveVpnProfile { protocol: crate::vpn::Protocol, name: String, fields: std::collections::BTreeMap<String, String>, secrets: std::collections::BTreeMap<String, String> },
     /// Imports the text of a wg-quick `.conf` or `.ovpn` file chosen in the page; the host never reads a path from the page.
@@ -84,6 +86,8 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "relay" => Some(Command::SetRelay(checked?)),
         "wfp" => Some(Command::SetWfp(checked?)),
         "engine-ini-active" => Some(Command::SetEngineIniActive(checked?)),
+        "engine-ini-backup" => Some(Command::BackupEngineIni),
+        "engine-ini-restore" => Some(Command::RestoreEngineIni),
         _ => None,
     }
 }
@@ -131,6 +135,8 @@ pub fn from_json(body: &str) -> Option<Command> {
             let index = crate::engine_ini::OPTIONS.iter().position(|a| a.key == key)?;
             return Some(Command::SetEngineIniOption { index, on: checked? });
         }
+        "engine-ini-backup" => return Some(Command::BackupEngineIni),
+        "engine-ini-restore" => return Some(Command::RestoreEngineIni),
         "vpn-save" => {
             let protocol = crate::vpn::Protocol::parse(event.get("protocol")?.as_str()?)?;
             let map = |key| -> Option<std::collections::BTreeMap<String, String>> {
@@ -318,6 +324,7 @@ mod tests {
             ("auto-yield", Command::SetAutoYield(true)), ("windowed", Command::SetWindowed(true)),
             ("minimize-tray", Command::SetMinimizeToTray(true)), ("network-priority", Command::SetNetworkPriority(true)),
             ("relay", Command::SetRelay(true)), ("wfp", Command::SetWfp(true)), ("engine-ini-active", Command::SetEngineIniActive(true)),
+            ("engine-ini-backup", Command::BackupEngineIni), ("engine-ini-restore", Command::RestoreEngineIni),
         ] { assert_eq!(page(action, serde_json::json!({ "checked": true })), Some(expected), "{action}"); }
         for (action, on) in [("qos", true), ("pcores", false), ("auto", true)] {
             let expected = match action { "qos" => Command::SetQos { directory: dir.into(), on }, "pcores" => Command::SetPin { directory: dir.into(), on }, _ => Command::SetAuto { directory: dir.into(), on } };

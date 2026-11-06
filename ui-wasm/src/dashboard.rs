@@ -45,6 +45,8 @@ pub struct EngineIni {
     pub path: String,
     pub active: bool,
     pub applied: bool,
+    #[serde(default)]
+    pub has_backup: bool,
     pub options: Vec<EngineIniOption>,
     pub error: String,
 }
@@ -215,7 +217,18 @@ fn render_engine_ini(html: &mut String, ini: &EngineIni) {
         write!(html, "<label class=\"network-choice\"><input type=\"checkbox\" data-action=\"engine-ini\" data-key=\"{key}\"{}><span>{}</span></label>",
             if option.enabled { " checked" } else { "" }, escape(&option.label)).unwrap();
     }
-    html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Escolha um preset (1 a 5), que é exclusivo, e marque os extras que quiser. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. OFF ou fechar o RAPO removem somente o bloco do RAPO e as linhas idênticas a ele, sem apagar a seleção.</p></details>");
+    let (bak_label, bak_disabled) = if ini.has_backup {
+        ("Restaurar backup do Engine.ini", "")
+    } else {
+        ("Restaurar backup (nenhum backup salvo)", " disabled")
+    };
+    let bak_status = if ini.has_backup {
+        "Backup salvo no disco (.rapo-bak)"
+    } else {
+        "Nenhum backup salvo ainda"
+    };
+    write!(html, "<fieldset class=\"engine-ini-backup-fs\"><legend>Backup e restauração do Engine.ini</legend><p class=\"net-card-sub\">{bak_status}</p><button type=\"button\" data-action=\"engine-ini-backup\">Criar backup do Engine.ini</button><button type=\"button\" data-action=\"engine-ini-restore\"{bak_disabled}>{bak_label}</button></fieldset>").unwrap();
+    html.push_str("<details class=\"how-it-works\"><summary>Como funciona</summary><p>Escolha um preset (1 a 5), que é exclusivo, e marque os extras que quiser. A seleção e o ON/OFF ficam salvos e voltam ao abrir o RAPO. O jogo lê o arquivo ao iniciar: ligue antes de abrir o AION 2. Desativar (OFF), fechar o RAPO ou restaurar o backup removem as linhas e todos os cabeçalhos adicionados pelo RAPO ([/Script/Engine.Engine], [ConsoleVariables], [SystemSettings], [/Script/Engine.StreamingSettings], [/Script/Engine.GarbageCollectionSettings], [Core.Log]), restaurando o arquivo sem tags residuais.</p></details>");
     if !ini.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&ini.error)).unwrap(); }
     html.push_str("</section>");
 }
@@ -598,7 +611,7 @@ mod tests {
                 interfaces: vec![RouteCandidate { id: "relay\"<&>".into(), interface: "<img src=relay>".into(), index: 2, gateway: "192.0.2.1".into(), ipv6: false }],
                 mode: "hy2".into(), hy2_server: "<script>hy2</script>:443".into(), udp_route: "<img src=udp>".into(),
                 ..Relay::default() },
-            wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, options: vec![
+            wfp: Wfp::default(), engine_ini: EngineIni { path: "C:\\<x>".into(), active: true, applied: true, has_backup: false, options: vec![
                 EngineIniOption { key: "very-low".into(), label: "1- Very Low".into(), enabled: true },
                 EngineIniOption { key: "additions".into(), label: "Additions".into(), enabled: false }],
             error: String::new() },
@@ -631,6 +644,8 @@ mod tests {
         assert!(html.contains("C:\\&lt;x&gt;"), "Engine.ini path is untrusted");
         assert!(html.contains("data-key=\"very-low\" checked>") && html.contains("data-key=\"additions\"><span>"), "each option shows its own state");
         assert!(html.contains("data-action=\"engine-ini-active\" checked>") && html.contains("ON · opções marcadas"), "the On/Off switch reflects the saved state");
+        assert!(html.contains("data-action=\"engine-ini-backup\""));
+        assert!(html.contains("data-action=\"engine-ini-restore\""));
         assert!(html.contains("aria-valuenow=\"18\" aria-label=\"USO DE CPU TOTAL\"><div class=\"core-bar-fill core-low\" style=\"width: 18.2%\">"), "usage metrics get a 0–100% bar");
         assert_eq!(html.matches("role=\"meter\"").count(), 1, "metrics without a natural maximum (e.g. an IPv6 zone `%2`) get no bar");
     }

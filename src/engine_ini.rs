@@ -42,6 +42,7 @@ pub struct State {
     pub active: bool,
     /// True while the file holds the RAPO block.
     pub applied: bool,
+    pub has_backup: bool,
     pub options: Vec<Option_>,
     pub error: String,
 }
@@ -117,11 +118,63 @@ impl EngineIni {
         }
     }
 
+    pub fn backup_path(&self) -> Option<PathBuf> {
+        self.path.as_ref().map(|p| p.with_extension("ini.rapo-bak"))
+    }
+
+    pub fn backup(&mut self) -> Result<(), String> {
+        let Some(path) = &self.path else { return Err("Caminho do Engine.ini não localizado".into()); };
+        let Some(bak) = self.backup_path() else { return Err("Caminho do backup inválido".into()); };
+        if !path.exists() {
+            let err = "Engine.ini não encontrado para criar backup".to_string();
+            self.error = err.clone();
+            return Err(err);
+        }
+        fs::copy(path, &bak).map_err(|e| {
+            let err = format!("Criar backup: {e}");
+            self.error = err.clone();
+            err
+        })?;
+        self.error.clear();
+        Ok(())
+    }
+
+    pub fn restore(&mut self) -> Result<(), String> {
+        let Some(path) = &self.path else { return Err("Caminho do Engine.ini não localizado".into()); };
+        let Some(bak) = self.backup_path() else { return Err("Caminho do backup inválido".into()); };
+        if !bak.exists() {
+            let err = "Nenhum backup encontrado para restaurar".to_string();
+            self.error = err.clone();
+            return Err(err);
+        }
+        let text = fs::read_to_string(&bak).map_err(|e| {
+            let err = format!("Ler backup: {e}");
+            self.error = err.clone();
+            err
+        })?;
+        let cleaned = clean_rapo_artifacts(&text);
+        write_replacing(path, &cleaned).map_err(|e| {
+            let err = format!("Restaurar Engine.ini: {e}");
+            self.error = err.clone();
+            err
+        })?;
+        self.active = false;
+        self.applied = false;
+        self.save();
+        self.error.clear();
+        Ok(())
+    }
+
+    pub fn set_error(&mut self, err: String) {
+        self.error = err;
+    }
+
     pub fn state(&self) -> State {
         State {
             path: self.path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
             active: self.active,
             applied: self.applied,
+            has_backup: self.backup_path().is_some_and(|p| p.exists()),
             options: OPTIONS.iter().zip(self.selected).map(|(asset, enabled)| Option_ { key: asset.key.into(), label: asset.label.into(), enabled }).collect(),
             error: self.error.clone(),
         }
@@ -141,7 +194,7 @@ fn rewrite(path: &Path, block: &[&str]) -> Result<bool, String> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Err("Engine.ini não encontrado; abra o AION 2 uma vez para criá-lo".into()),
         Err(error) => return Err(format!("Ler Engine.ini: {error}")),
     };
-    let base = remove_pairs(&remove_block(&text));
+    let base = clean_rapo_artifacts(&text);
     let new = if block.is_empty() { base } else { apply_block(&base, block) };
     if new != text { write_replacing(path, &new).map_err(|error| format!("Gravar Engine.ini: {error}"))?; }
     Ok(new.contains(BEGIN))
@@ -233,15 +286,52 @@ fn remove_block(text: &str) -> String {
     out
 }
 
+fn rapo_headers() -> &'static HashSet<String> {
+    static HEADERS: OnceLock<HashSet<String>> = OnceLock::new();
+    HEADERS.get_or_init(|| {
+        let mut set: HashSet<String> = OPTIONS.iter()
+            .flat_map(|asset| asset.text.lines())
+            .filter(|line| is_header(line))
+            .map(|line| line.trim().to_ascii_lowercase())
+            .collect();
+        for h in [
+            "[/Script/Engine.Engine]",
+            "[ConsoleVariables]",
+            "[SystemSettings]",
+            "[/Script/Engine.StreamingSettings]",
+            "[/Script/Engine.GarbageCollectionSettings]",
+            "[Core.Log]",
+            "[/Script/Engine.RendererSettings]",
+            "[Core.System]",
+        ] {
+            set.insert(h.to_ascii_lowercase());
+        }
+        set
+    })
+}
+
 /// `key=value` pairs of every option, normalized. The game rewrites Engine.ini on exit without RAPO's markers,
 /// so these lines are removed wherever they are.
 fn rapo_pairs() -> &'static HashSet<String> {
     static PAIRS: OnceLock<HashSet<String>> = OnceLock::new();
     PAIRS.get_or_init(|| {
-        OPTIONS.iter().flat_map(|asset| asset.text.lines())
+        let mut set: HashSet<String> = OPTIONS.iter().flat_map(|asset| asset.text.lines())
             .filter(|line| !line.trim_start().starts_with(';') && !is_header(line))
-            .filter_map(|line| line.split_once('=').map(|(k, v)| format!("{}={}", k.trim(), v.trim())))
-            .collect()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                trimmed.split_once('=').map(|(k, v)| format!("{}={}", k.trim().trim_start_matches('+'), v.trim()))
+            })
+            .collect();
+        for pair in [
+            "gc.TimeBetweenPurgingPendingKillObjects=60",
+            "t.OverrideFPS=1",
+            "t.MaxFPS=0",
+        ] {
+            if let Some((k, v)) = pair.split_once('=') {
+                set.insert(format!("{}={}", k.trim().trim_start_matches('+'), v.trim()));
+            }
+        }
+        set
     })
 }
 
@@ -251,8 +341,50 @@ fn remove_pairs(text: &str) -> String {
         let trimmed = line.trim();
         if trimmed.starts_with(';') || is_header(trimmed) { return true; }
         let Some((k, v)) = trimmed.split_once('=') else { return true };
-        !pairs.contains(&format!("{}={}", k.trim(), v.trim()))
+        let norm_k = k.trim().trim_start_matches('+');
+        !pairs.contains(&format!("{}={}", norm_k, v.trim()))
     }).collect()
+}
+
+fn remove_empty_rapo_headers(text: &str) -> String {
+    let headers = rapo_headers();
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim();
+        if is_header(trimmed) && headers.contains(&trimmed.to_ascii_lowercase()) {
+            let mut has_content = false;
+            let mut j = i + 1;
+            while j < lines.len() {
+                let next = lines[j].trim();
+                if is_header(next) { break; }
+                if !next.is_empty() && !next.starts_with(';') {
+                    has_content = true;
+                    break;
+                }
+                j += 1;
+            }
+            if !has_content {
+                i = j;
+                continue;
+            }
+        }
+        out.push_str(lines[i]);
+        i += 1;
+    }
+    let trimmed = out.trim_end();
+    if trimmed.is_empty() {
+        String::new()
+    } else {
+        format!("{}{}", trimmed, eol(&out))
+    }
+}
+
+fn clean_rapo_artifacts(text: &str) -> String {
+    let unblocked = remove_block(text);
+    let unpaired = remove_pairs(&unblocked);
+    remove_empty_rapo_headers(&unpaired)
 }
 
 #[cfg(test)]
@@ -325,5 +457,54 @@ mod tests {
         let selected = [true, false, false, false, false, true, true];
         assert_eq!(keys(&selected), "very-low;additions;reduce-stutters");
         assert_eq!(super::flags(&keys(&selected)), selected);
+    }
+    #[test]
+    fn off_and_clean_removes_unreal_headers_added_by_rapo_when_empty() {
+        let dirty = "\
+[/Script/Engine.Engine]
+r.AOGlobalDFResolution=0
+[ConsoleVariables]
+r.AOGlobalDFResolution=0
+[SystemSettings]
+Keep=1
+niagara.CreateShadersOnLoad=1
+[/Script/Engine.StreamingSettings]
+s.AsyncLoadingTimeLimit=4
+[/Script/Engine.GarbageCollectionSettings]
+gc.MultithreadedDestructionEnabled=1
+[Core.Log]
+LogLinker=All Off
+";
+        let cleaned = clean_rapo_artifacts(dirty);
+        assert!(!cleaned.contains("[/Script/Engine.Engine]"), "header removed when empty");
+        assert!(!cleaned.contains("[ConsoleVariables]"), "header removed when empty");
+        assert!(!cleaned.contains("[/Script/Engine.StreamingSettings]"), "header removed when empty");
+        assert!(!cleaned.contains("[/Script/Engine.GarbageCollectionSettings]"), "header removed when empty");
+        assert!(!cleaned.contains("[Core.Log]"), "header removed when empty");
+        assert!(cleaned.contains("[SystemSettings]\nKeep=1"), "user key kept under header");
+    }
+
+    #[test]
+    fn backup_and_restore_cycle_recovers_original_file_and_cleans_tags() {
+        let original = "[SystemSettings]\r\nUserCustom=99\r\n";
+        let path = file("bak_cycle", original);
+        let mut ini = EngineIni::at(Some(path.clone()));
+        assert!(!ini.state().has_backup);
+        ini.backup().unwrap();
+        assert!(ini.state().has_backup);
+        // Aplica preset
+        ini.set(0, true);
+        ini.set(6, true);
+        ini.set_active(true);
+        assert!(fs::read_to_string(&path).unwrap().contains("UserCustom=99"));
+        assert!(fs::read_to_string(&path).unwrap().contains(BEGIN));
+        // Restaura
+        ini.restore().unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), original);
+        assert!(!ini.state().applied);
+        assert!(!ini.state().active);
+        if let Some(bak) = ini.backup_path() { let _ = fs::remove_file(bak); }
+        drop(ini);
+        fs::remove_file(path).unwrap();
     }
 }
