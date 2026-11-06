@@ -136,14 +136,14 @@ jobs:
               throw "Required release artifact is missing: $_"
             }
           }
-          Write-Host "`nTagging release: v0.2.${{ github.run_number }}" -ForegroundColor Yellow
+          Write-Host "`nTagging release: ${{ github.ref_name }}" -ForegroundColor Yellow
 
       - name: 3. Release (Manual publication after Windows validation)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.${{ github.run_number }}
+          tag_name: ${{ github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: "Rintel RAPO v0.2.${{ github.run_number }} (${{ github.sha }})"
+          name: "Rintel RAPO ${{ github.ref_name }} (${{ github.sha }})"
           generate_release_notes: true
           make_latest: "true"
           fail_on_unmatched_files: true
