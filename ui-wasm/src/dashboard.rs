@@ -546,6 +546,19 @@ fn is_resource_metric(label: &str) -> bool {
     label.starts_with("USO DE") || label.contains("DISCO") || label.contains("LEITURA DE DISCO") || label.contains("I/O DE LEITURA") || label.contains("REDE TOTAL")
 }
 
+/// Model resources in use: (label, on). Shown as green when on, red when off.
+fn model_states(profile: &AppliedProfile) -> Vec<(String, bool)> {
+    let s = &profile.configured;
+    vec![
+        ("HT / SMT".to_string(), s.smt),
+        ("Core parking".to_string(), s.park_cores),
+        ("Só núcleos P".to_string(), s.p_only),
+        ("Afinidade de CPU".to_string(), s.pin),
+        ("Prioridade".to_string(), s.priority),
+        ("Memória / EcoQoS".to_string(), s.qos),
+    ]
+}
+
 /// Resources tab: CPU, GPU, memory, disk and network from the same telemetry the Visão geral tab shows.
 fn render_resources(html: &mut String, view: &Dashboard) {
     let metrics: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
@@ -562,11 +575,18 @@ fn render_resources(html: &mut String, view: &Dashboard) {
             write!(html, "<title>{}</title>", escape(sub)).unwrap();
         }
     }
-    html.push_str("<g class=\"flow-hub\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"62\" text-anchor=\"middle\" class=\"flow-hub-label\">RECURSOS</text></g>");
-    for (index, (label, _)) in metrics.iter().enumerate() {
+    let (hub_class, hub_text) = match view.profile.as_ref() {
+        Some(profile) if profile.source.contains("aprendido salvo") => ("flow-hub flow-hub-trained", "MODELO TREINADO"),
+        Some(_) => ("flow-hub flow-hub-on", "MODELO ATIVO"),
+        None => ("flow-hub flow-hub-off", "SEM MODELO"),
+    };
+    write!(html, "<g class=\"{hub_class}\" transform=\"translate(420 150)\"><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"62\" text-anchor=\"middle\" class=\"flow-hub-label\">{hub_text}</text></g>").unwrap();
+    let states = view.profile.as_ref().map(model_states).unwrap_or_default();
+    for (index, (label, on)) in states.iter().enumerate() {
         let y = 30.0 + index as f32 * 80.0;
-        write!(html, "<path class=\"flow-link flow-out\" d=\"M540 210 C 620 210, 640 {y:.0}, 720 {y:.0}\"/>").unwrap();
-        write!(html, "<g class=\"flow-dest\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"25\">{}</text></g>", y - 20.0, escape(label)).unwrap();
+        let class = if *on { "flow-state flow-on" } else { "flow-state flow-off" };
+        write!(html, "<path class=\"flow-link flow-out {class}\" d=\"M540 210 C 620 210, 640 {y:.0}, 720 {y:.0}\"/>").unwrap();
+        write!(html, "<g class=\"flow-dest {class}\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"25\">{}: {}</text></g>", y - 20.0, escape(label), if *on { "ligado" } else { "desligado" }).unwrap();
     }
     html.push_str("</svg>");
     html.push_str("</section>");
@@ -829,6 +849,19 @@ mod tests {
         }
         let telemetry = html.split("TELEMETRIA DO PROGRAMA").nth(1).unwrap().split("USO POR NÚCLEO").next().unwrap();
         assert!(!telemetry.contains("USO DE CPU TOTAL") && !telemetry.contains("REDE TOTAL"), "resource metrics are not duplicated in Visão geral");
+    }
+    #[test]
+    fn resources_flow_colors_model_states_and_trained_hub() {
+        let mut view = dashboard(serde_json::json!({}));
+        view.profile = Some(AppliedProfile {
+            pid: 1, game: "g".into(), source: "RAPO · perfil aprendido salvo".into(),
+            configured: ProfileSettings { priority: false, pin: true, qos: false, threads: 4, min_percent: 5, cores: 4, smt: true, p_only: false, park_cores: true },
+            priority: false, pinned_threads: 0, qos: false,
+        });
+        let html = render(&view);
+        assert!(html.contains("flow-hub-trained"), "a saved learned profile turns the hub blue");
+        assert_eq!(html.matches("flow-dest flow-state flow-on").count(), 3, "HT, core parking and affinity are on: green");
+        assert_eq!(html.matches("flow-dest flow-state flow-off").count(), 3, "P-only, priority and QoS are off: red");
     }
     #[test]
     fn telemetry_figures_are_large_and_sentences_are_not() {
