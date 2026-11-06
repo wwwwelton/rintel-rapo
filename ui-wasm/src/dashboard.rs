@@ -84,6 +84,8 @@ pub struct Relay {
     pub interfaces: Vec<RouteCandidate>,
     pub allowed_interfaces: Vec<String>,
     pub mode: String,
+    #[serde(default)]
+    pub tunnel: String,
     pub hy2_server: String,
     pub hy2_server_name: String,
     #[serde(default)]
@@ -242,6 +244,14 @@ fn hy2_server_label(relay: &Relay) -> String {
 
 /// One-line HY2 state: off, connecting, on and working (QUIC session open) with ping and traffic, or the last connect error.
 fn hy2_status(relay: &Relay) -> String {
+    if !relay.tunnel.is_empty() {
+        let name = escape(&relay.tunnel);
+        let (class, status) = if !relay.running { ("hy2-off", "relay parado") }
+            else if relay.hy2_connected { ("hy2-on", "sessão do túnel ativa") }
+            else if !relay.hy2_error.is_empty() { return format!("<span class=\"hy2-status hy2-error\" role=\"status\">{name} · erro: {}</span>", escape(&relay.hy2_error)); }
+            else { ("hy2-pending", "conectando") };
+        return format!("<span class=\"hy2-status {class}\" role=\"status\">{name} · {status}</span>");
+    }
     let server = hy2_server_label(relay);
     let (class, text) = if !matches!(relay.mode.as_str(), "hy2" | "neural_auto") {
         let mode = RELAY_MODES.iter().find(|(id, _)| *id == relay.mode).map_or("desconhecido", |(_, label)| label);
@@ -395,10 +405,11 @@ pub fn render_summary(view: &Dashboard) -> String {
         let primary = value.split_once(" · ").map_or(value.as_str(), |(first, _)| first);
         write!(html, "<div class=\"summary-item\"><span class=\"summary-label\">{name}</span><strong class=\"summary-value\">{}</strong></div>", escape(primary)).unwrap();
     }
-    let (class, text) = if view.relay.running && view.relay.hy2_connected { ("summary-ok", "HY2 ativo".to_string()) }
+    let (class, text) = if view.relay.running && view.relay.hy2_connected && !view.relay.tunnel.is_empty() { ("summary-ok", format!("{} ativo", view.relay.tunnel)) }
+        else if view.relay.running && view.relay.hy2_connected { ("summary-ok", "HY2 ativo".to_string()) }
         else if view.relay.running { ("summary-warn", "Relay ativo".to_string()) }
         else { ("summary-off", "Relay parado".to_string()) };
-    write!(html, "<div class=\"summary-item\"><span class=\"summary-label\">Relay</span><strong class=\"summary-value {class}\">{text}</strong></div>").unwrap();
+    write!(html, "<div class=\"summary-item\"><span class=\"summary-label\">Relay</span><strong class=\"summary-value {class}\">{}</strong></div>", escape(&text)).unwrap();
     if !view.target.is_empty() {
         write!(html, "<div class=\"summary-item summary-target\"><span class=\"summary-label\">Alvo</span><strong class=\"summary-value\">{}</strong></div>", escape(&view.target)).unwrap();
     }
@@ -509,6 +520,8 @@ pub fn render(view: &Dashboard) -> String {
         html.push_str("<section class=\"profile-summary profile-standby\"><h2>PERFIL EM USO</h2><p>Nenhum jogo detectado; nenhum perfil aplicado pelo RAPO.</p></section>");
     }
     render_properties(&mut html, view);
+    html.push_str("</div><div class=\"tab-pane\" data-tab=\"resources\" hidden>");
+    render_resources(&mut html, view);
     html.push_str("</div><div class=\"tab-pane\" data-tab=\"system\" hidden>");
     html.push_str("<section class=\"power-plan\"><h2>PLANO DE ENERGIA ATIVO NO WINDOWS</h2>");
     match &view.power_plan.plan {
@@ -528,9 +541,27 @@ pub fn render(view: &Dashboard) -> String {
     html
 }
 
+/// Metrics shown in the Resources tab instead of the Visão geral telemetry grid.
+fn is_resource_metric(label: &str) -> bool {
+    label.starts_with("USO DE") || label.contains("DISCO") || label.contains("LEITURA DE DISCO") || label.contains("I/O DE LEITURA") || label.contains("REDE TOTAL")
+}
+
+/// Resources tab: CPU, GPU, memory, disk and network from the same telemetry the Visão geral tab shows.
+fn render_resources(html: &mut String, view: &Dashboard) {
+    html.push_str("<section class=\"resources-section\"><h2>RECURSOS DO SISTEMA</h2><div class=\"resources-grid\">");
+    for (label, value) in view.metrics.iter().filter(|(l, _)| is_resource_metric(l)) {
+        let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
+        write!(html, "<div class=\"resource-card\"><span class=\"box-label\">{}</span><strong class=\"box-value\">{}</strong>", escape(label), escape(primary)).unwrap();
+        if !sub.is_empty() { write!(html, "<span class=\"box-sub\">{}</span>", escape(sub)).unwrap(); }
+        if label.starts_with("USO DE") { if let Some(percent) = first_percent(value) { usage_bar(html, percent, label); } }
+        html.push_str("</div>");
+    }
+    html.push_str("</div></section>");
+}
+
 fn render_telemetry(html: &mut String, view: &Dashboard) {
     write!(html, "<section class=\"telemetry-section\"><h2>TELEMETRIA DO PROGRAMA / JOGO: {}</h2><div class=\"telemetry-grid\">", escape(&view.target)).unwrap();
-    for (label, value) in &view.metrics {
+    for (label, value) in view.metrics.iter().filter(|(l, _)| !is_resource_metric(l)) {
         let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
         // A figure ("34.5%", "2300.0 KB/s") is shown large; a sentence ("4 IP(s) TCP observado(s); …") is not a figure.
         let class = if primary.chars().count() <= 14 { "box-value" } else { "box-value box-value-text" };
@@ -663,6 +694,14 @@ mod tests {
         let remote = hy2_status(&Relay { hy2_server: "vps.example:443".into(), ..relay("hy2", true, true, "") });
         assert!(remote.contains("vps.example:443") && !remote.contains("embutido"));
     }
+
+    #[test]
+    fn wireguard_status_does_not_claim_a_hysteria_session() {
+        let relay = Relay { mode: "hy2".into(), tunnel: "WireGuard".into(), running: true, hy2_connected: true, ..Relay::default() };
+        let status = hy2_status(&relay);
+        assert!(status.contains("WireGuard") && status.contains("sessão do túnel ativa"));
+        assert!(!status.contains("Hysteria") && !status.contains("QUIC"));
+    }
     #[test]
     fn integrated_hy2_status_shows_ping_connections_and_traffic() {
         let base = Relay { mode: "hy2".into(), running: true, hy2_connected: true, hy2_builtin: true, active_connections: 3, bytes_tx: 2048, bytes_rx: 4096, ..Relay::default() };
@@ -717,8 +756,9 @@ mod tests {
         // Text before the first marker is empty; each later chunk is one pane's content.
         let marker = "<div class=\"tab-pane\" data-tab=\"";
         let panes: Vec<(&str, &str)> = html.split(marker).skip(1).map(|chunk| chunk.split_once('"').unwrap()).collect();
-        assert_eq!(panes.iter().map(|(name, _)| *name).collect::<Vec<_>>(), ["overview", "network", "profile", "system"]);
+        assert_eq!(panes.iter().map(|(name, _)| *name).collect::<Vec<_>>(), ["overview", "network", "profile", "resources", "system"]);
         assert!(panes[0].1.starts_with('>') && panes[1..].iter().all(|(_, rest)| rest.starts_with(" hidden>")), "only the overview pane starts visible");
+        assert!(html.contains("RECURSOS DO SISTEMA"), "resources tab section exists");
         for (name, needle) in [("overview", "TELEMETRIA DO PROGRAMA"), ("network", "OTIMIZAÇÃO DE REDE"), ("profile", "OPÇÕES E DIRETRIZES"), ("system", "PLANO DE ENERGIA")] {
             let hits: Vec<_> = panes.iter().filter(|(_, content)| content.contains(needle)).map(|(n, _)| *n).collect();
             assert_eq!(hits, [name], "{needle} must appear in the {name} pane only");
@@ -767,10 +807,21 @@ mod tests {
         assert!(render(&dashboard(serde_json::json!({}))).contains("Sem jogo alvo detectado"), "no target keeps the honest no-game text");
     }
     #[test]
+    fn resources_pane_shows_cpu_gpu_memory_disk_and_network_only_once() {
+        let html = render(&dashboard(serde_json::json!({"metrics":[["USO DE CPU TOTAL","34.5% · Sistema 9%"],["USO DE GPU","7.0% · Engines PDH"],
+            ["USO DE MEMÓRIA","12.1 GB · 48.0% da RAM"],["LEITURA DE DISCO (SISTEMA)","2.10 MB/s · Total 4.00 GB"],["REDE TOTAL (SISTEMA)","2300.0 KB/s · x"]]})));
+        let resources = html.split("data-tab=\"resources\"").nth(1).unwrap().split("data-tab=\"system\"").next().unwrap();
+        for label in ["USO DE CPU TOTAL", "USO DE GPU", "USO DE MEMÓRIA", "LEITURA DE DISCO (SISTEMA)", "REDE TOTAL (SISTEMA)"] {
+            assert!(resources.contains(label), "{label} appears in the Resources tab");
+        }
+        let telemetry = html.split("TELEMETRIA DO PROGRAMA").nth(1).unwrap().split("USO POR NÚCLEO").next().unwrap();
+        assert!(!telemetry.contains("USO DE CPU TOTAL") && !telemetry.contains("REDE TOTAL"), "resource metrics are not duplicated in Visão geral");
+    }
+    #[test]
     fn telemetry_figures_are_large_and_sentences_are_not() {
         let html = render(&dashboard(serde_json::json!({"metrics":[["USO DE CPU TOTAL","34.5% · Sistema 9%"],["REDE TOTAL (SISTEMA)","2300.0 KB/s · x"],
             ["ICMP · IPs TCP DO PROCESSO","4 IP(s) TCP observado(s); até 4 sondas, 250 ms cada · Não identifica servidor"]]})));
-        assert_eq!(html.matches("<strong class=\"box-value\">").count(), 2, "short figures keep the big style");
+        assert_eq!(html.matches("<strong class=\"box-value\">").count(), 2, "short figures keep the big style in the Resources tab");
         assert_eq!(html.matches("<strong class=\"box-value box-value-text\">4 IP(s) TCP").count(), 1, "a sentence does not use the big-number style");
     }
     #[test]

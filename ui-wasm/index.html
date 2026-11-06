@@ -308,6 +308,7 @@
   <button type="button" role="tab" id="tab-overview" data-tab-target="overview" aria-controls="pane-overview">Visão geral</button>
   <button type="button" role="tab" id="tab-network" data-tab-target="network" aria-controls="pane-network">Rede</button>
   <button type="button" role="tab" id="tab-profile" data-tab-target="profile" aria-controls="pane-profile">Perfil</button>
+  <button type="button" role="tab" id="tab-resources" data-tab-target="resources" aria-controls="pane-resources">Recursos</button>
   <button type="button" role="tab" id="tab-system" data-tab-target="system" aria-controls="pane-system">Sistema</button>
   <button type="button" role="tab" id="tab-games" data-tab-target="games" aria-controls="pane-games">Jogos</button>
 </nav>
@@ -425,7 +426,7 @@
     };
     const previous = new Map();
     // Tab routing: #dashboard is re-rendered with innerHTML, which drops `hidden`, so the active tab is re-applied after every render.
-    const TABS = ['overview', 'network', 'profile', 'system', 'games'];
+    const TABS = ['overview', 'network', 'profile', 'resources', 'system', 'games'];
     let activeTab = TABS.includes(sessionStorage.getItem('rapo-tab')) ? sessionStorage.getItem('rapo-tab') : 'overview';
     const applyTab = () => {
       document.querySelectorAll('.tab-pane[data-tab]').forEach(pane => { pane.hidden = pane.dataset.tab !== activeTab; });
