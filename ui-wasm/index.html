@@ -150,18 +150,20 @@
     color: var(--muted); font: 500 10px/1.6 var(--mono); letter-spacing: .07em; text-transform: uppercase;
   }
   .box-value { color: var(--text); font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
-  .resources-flow { width: 100%; height: auto; display: block; color: var(--text); font-family: var(--mono); }
+  .resources-section { display: flex; flex-direction: column; }
+  .resources-flow { width: 100%; height: calc(100vh - 300px); min-height: 520px; display: block; color: var(--text); font-family: var(--mono); }
   .resources-flow .flow-hub { cursor: pointer; }
-  .resources-flow .flow-hub:hover rect { filter: brightness(1.25); }
+  .resources-flow .flow-hub:hover circle { filter: brightness(1.15); }
   .resources-flow .flow-hub:focus-visible { outline: none; }
-  .resources-flow .flow-hub:focus-visible rect { stroke-width: 3; }
+  .resources-flow .flow-hub:focus-visible circle { stroke-width: 4; }
   .resources-flow .flow-dest-detail { fill: var(--muted); font-size: 11px; }
   .resources-flow .flow-usage { fill: var(--accent); }
   .resources-flow .flow-node rect, .resources-flow .flow-dest rect { fill: var(--surface); stroke: var(--border); }
-  .resources-flow .flow-hub rect { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+  .resources-flow .flow-hub circle { fill: var(--accent); stroke: #fff; stroke-width: 3; }
   .resources-flow .flow-label { fill: var(--muted); font-size: 12px; }
   .resources-flow .flow-value { fill: var(--text); font-size: 18px; font-weight: 600; }
-  .resources-flow .flow-hub-label { fill: var(--accent); font-size: 13px; letter-spacing: .08em; }
+  .resources-flow .flow-hub-label { fill: var(--accent); font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+  .resources-flow .flow-hub-hint { fill: var(--muted); font-size: 10px; }
   .resources-flow .flow-dest text { fill: var(--text); font-size: 13px; }
   .resources-flow .flow-link { fill: none; stroke: var(--accent); stroke-width: 2; opacity: .55; }
   .resources-flow .flow-on rect { stroke: var(--on); }
@@ -170,12 +172,10 @@
   .resources-flow .flow-off text { fill: var(--off); }
   .resources-flow .flow-link.flow-on { stroke: var(--on); opacity: .85; }
   .resources-flow .flow-link.flow-off { stroke: var(--off); opacity: .85; }
-  .resources-flow .flow-hub-on rect { stroke: var(--on); }
-  .resources-flow .flow-hub-on .flow-hub-label { fill: var(--on); }
-  .resources-flow .flow-hub-off rect { stroke: var(--off); }
-  .resources-flow .flow-hub-off .flow-hub-label { fill: var(--off); }
-  .resources-flow .flow-hub-trained rect { stroke: var(--trained); stroke-width: 3; }
-  .resources-flow .flow-hub-trained .flow-hub-label { fill: var(--trained); }
+  .resources-flow .flow-hub-on circle { fill: var(--on); }
+  .resources-flow .flow-hub-off circle { fill: var(--off); }
+  .resources-flow .flow-hub-trained circle { fill: var(--trained); }
+  .resources-flow .flow-hub .flow-hub-label, .resources-flow .flow-hub-hint { fill: var(--panel); font-weight: 700; }
   .box-value-text { font-size: 15px; font-weight: 600; line-height: 1.5; letter-spacing: 0; }
   .box-sub, .net-card-sub, .parameter small { color: var(--muted); font-size: 12px; line-height: 1.65; }
   .net-card-value { color: var(--text); font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }

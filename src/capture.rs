@@ -94,7 +94,7 @@ impl Samples {
 }
 
 #[cfg(windows)]
-pub use integrated::Capture;
+pub use integrated::{live, Capture};
 #[cfg(any(windows, test))]
 mod integrated {
     use super::Score;
@@ -177,6 +177,120 @@ mod integrated {
                 return Err("Perda de eventos/buffers ETW; medição descartada e perfil anterior preservado".into());
             }
             Ok(())
+        }
+    }
+
+    /// Continuous FPS and frame time for one game PID, reusing `Session`.
+    #[cfg(windows)]
+    pub mod live {
+        use super::{check, Session};
+        use crate::capture::NativeFrame;
+        use std::{
+            collections::HashMap,
+            sync::{
+                atomic::{AtomicBool, Ordering},
+                Arc, Mutex,
+            },
+            thread,
+            time::Duration,
+        };
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct LiveStats {
+            pub fps: f64,
+            pub frame_time_ms: f64,
+        }
+
+        pub struct Monitor {
+            cancel: Arc<AtomicBool>,
+            latest: Arc<Mutex<Option<LiveStats>>>,
+        }
+
+        impl Monitor {
+            pub fn start(pid: u32) -> Self {
+                let cancel = Arc::new(AtomicBool::new(false));
+                let latest = Arc::new(Mutex::new(None));
+                let (c, l) = (cancel.clone(), latest.clone());
+                // Detached worker owns ETW cleanup via Session::drop; Monitor::drop only signals it.
+                thread::Builder::new()
+                    .name("rapo-live-etw".into())
+                    .spawn(move || {
+                        while !c.load(Ordering::Acquire) {
+                            let _ = run(pid, &c, &l);
+                            *l.lock().unwrap() = None;
+                            // Back off so a missing game does not spin ETW logger creation.
+                            thread::sleep(Duration::from_secs(2));
+                        }
+                    })
+                    .ok();
+                Self { cancel, latest }
+            }
+
+            pub fn latest(&self) -> Option<LiveStats> {
+                *self.latest.lock().unwrap()
+            }
+        }
+
+        impl Drop for Monitor {
+            fn drop(&mut self) {
+                self.cancel.store(true, Ordering::Release);
+            }
+        }
+
+        /// One ETW session for `pid`; returns when the game exits, the session fails, or cancel is set.
+        fn run(pid: u32, cancel: &AtomicBool, latest: &Mutex<Option<LiveStats>>) -> Result<(), String> {
+            let (mut frequency, mut origin, mut error) = (0u64, 0u64, 0u32);
+            let pointer = unsafe {
+                super::rapo_capture_start(pid, &mut frequency, &mut origin, &mut error, super::cancelled, (cancel as *const AtomicBool).cast())
+            };
+            if pointer.is_null() {
+                return Err(check(if error == 0 { 31 } else { error }).unwrap_err());
+            }
+            let session = Session(pointer);
+            let mut frames = [NativeFrame::default(); 1024];
+            let mut window: Vec<(u64, u64)> = Vec::with_capacity(4096);
+            let span = frequency.saturating_mul(2);
+            while !cancel.load(Ordering::Acquire) {
+                let mut count = 0;
+                check(unsafe { super::rapo_capture_read(session.0, frames.as_mut_ptr(), frames.len() as u32, &mut count) })?;
+                for frame in frames.get(..count as usize).unwrap_or(&[]) {
+                    if frame.lost == 0 && frame.timestamp >= origin {
+                        window.push((frame.timestamp, frame.swap_chain));
+                    }
+                }
+                if let Some(&(newest, _)) = window.last() {
+                    let keep = window.partition_point(|&(t, _)| t < newest.saturating_sub(span));
+                    window.drain(..keep);
+                }
+                if let Some(stats) = stats_from(&window, frequency) {
+                    *latest.lock().unwrap() = Some(stats);
+                }
+                thread::sleep(Duration::from_millis(100));
+            }
+            Ok(())
+        }
+
+        /// FPS and frame time from the swapchain with the most presents in the window.
+        fn stats_from(window: &[(u64, u64)], frequency: u64) -> Option<LiveStats> {
+            if frequency == 0 || window.len() < 8 {
+                return None;
+            }
+            let mut counts: HashMap<u64, usize> = HashMap::new();
+            for &(_, chain) in window {
+                *counts.entry(chain).or_insert(0) += 1;
+            }
+            let chain = counts.into_iter().max_by_key(|&(_, n)| n)?.0;
+            let times: Vec<u64> = window.iter().filter(|&&(_, c)| c == chain).map(|&(t, _)| t).collect();
+            let gaps = times.len().checked_sub(1).filter(|&g| g >= 7)?;
+            let span = times.last()? - times[0];
+            if span == 0 {
+                return None;
+            }
+            let seconds = span as f64 / frequency as f64;
+            Some(LiveStats {
+                fps: gaps as f64 / seconds,
+                frame_time_ms: 1000.0 * seconds / gaps as f64,
+            })
         }
     }
     #[cfg(windows)]

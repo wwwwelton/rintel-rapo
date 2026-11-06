@@ -545,7 +545,7 @@ pub fn render(view: &Dashboard) -> String {
 
 /// Metrics shown in the Resources tab instead of the Visão geral telemetry grid.
 fn is_resource_metric(label: &str) -> bool {
-    label.starts_with("USO DE") || label.contains("DISCO") || label.contains("LEITURA DE DISCO") || label.contains("I/O DE LEITURA") || label.contains("REDE TOTAL")
+    label.starts_with("USO DE") || label.contains("DISCO") || label.contains("LEITURA DE DISCO") || label.contains("I/O DE LEITURA") || label.contains("REDE TOTAL") || label == "FPS DO JOGO" || label == "FRAME TIME"
 }
 
 /// Model resources in use: (label, on). Shown as green when on, red when off.
@@ -573,15 +573,23 @@ fn dest_detail(label: &str, profile: &AppliedProfile) -> String {
 
 /// Resources tab: CPU, GPU, memory, disk and network from the same telemetry the Visão geral tab shows.
 fn render_resources(html: &mut String, view: &Dashboard) {
-    let metrics: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
+    let raw: Vec<&(String, String)> = view.metrics.iter().filter(|(l, _)| is_resource_metric(l)).collect();
+    // FPS and frame time share one box: FPS is the value, frame time the detail line.
+    let fps = raw.iter().find(|(l, _)| l == "FPS DO JOGO").map(|(_, v)| v.clone());
+    let frame = raw.iter().find(|(l, _)| l == "FRAME TIME").map(|(_, v)| v.clone());
+    let mut metrics: Vec<(String, String)> = raw.iter().filter(|(l, _)| l != "FPS DO JOGO" && l != "FRAME TIME").map(|&(l, v)| (l.clone(), v.clone())).collect();
+    if let Some(fps) = fps {
+        metrics.push(("FPS DO JOGO".to_string(), match frame { Some(f) => format!("{fps}\u{1}{f}"), None => fps }));
+    }
     html.push_str("<section class=\"resources-section\"><h2>RECURSOS DO SISTEMA</h2>");
     // Flow in the reference style: sources (metrics) → central node → destinations (the RAPO actions on them).
-    html.push_str("<svg class=\"resources-flow\" viewBox=\"0 0 960 460\" role=\"img\" aria-label=\"Fluxo de recursos do sistema\">");
+    html.push_str("<svg class=\"resources-flow\" viewBox=\"0 0 960 600\" preserveAspectRatio=\"xMidYMid meet\" role=\"img\" aria-label=\"Fluxo de recursos do sistema\">");
     for (index, (label, value)) in metrics.iter().enumerate() {
-        let (primary, sub) = value.split_once(" · ").unwrap_or((value.as_str(), ""));
+        let (primary, detail) = value.split_once('\u{1}').unwrap_or((value.as_str(), ""));
+        let (primary, sub) = primary.split_once(" · ").unwrap_or((primary, ""));
         let y = 30.0 + index as f32 * 80.0;
-        write!(html, "<path class=\"flow-link\" d=\"M220 {y:.0} C 330 {y:.0}, 340 210, 420 210\"/>").unwrap();
-        write!(html, "<g class=\"flow-node\" transform=\"translate(20 {:.0})\"><rect width=\"200\" height=\"64\" rx=\"8\"/><text class=\"flow-label\" x=\"12\" y=\"24\">{}</text><text class=\"flow-value\" x=\"12\" y=\"48\">{}</text></g>", y - 32.0, escape(label), escape(primary)).unwrap();
+        write!(html, "<path class=\"flow-link\" d=\"M200 {y:.0} C 300 {y:.0}, 320 300, 400 300\"/>").unwrap();
+        write!(html, "<g class=\"flow-node\" transform=\"translate(0 {:.0})\"><rect width=\"200\" height=\"64\" rx=\"8\"/><text class=\"flow-label\" x=\"12\" y=\"24\">{}</text><text class=\"flow-value\" x=\"12\" y=\"44\">{}</text>{}</g>", y - 32.0, escape(label), escape(primary), if detail.is_empty() { String::new() } else { format!("<text class=\"flow-dest-detail\" x=\"12\" y=\"58\">{}</text>", escape(detail)) }).unwrap();
         if label.starts_with("USO DE") { if let Some(percent) = first_percent(value) { write!(html, "<rect class=\"flow-usage\" role=\"meter\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"{percent:.0}\" aria-label=\"{}\" x=\"12\" y=\"56\" width=\"{:.0}\" height=\"3\"/>", escape(label), 176.0 * percent.clamp(0.0, 100.0) / 100.0).unwrap(); } }
         if !sub.is_empty() {
             write!(html, "<title>{}</title>", escape(sub)).unwrap();
@@ -598,14 +606,15 @@ fn render_resources(html: &mut String, view: &Dashboard) {
         _ => ("start_training", String::new()),
     };
     let dir_attr = if dir.is_empty() { String::new() } else { format!(" data-dir=\"{dir}\"") };
-    write!(html, "<g class=\"{hub_class}\" role=\"button\" tabindex=\"0\" data-action=\"{action}\"{dir_attr} transform=\"translate(420 150)\"><title>{}</title><rect width=\"120\" height=\"120\" rx=\"60\"/><text x=\"60\" y=\"54\" text-anchor=\"middle\" class=\"flow-hub-label\">{first}</text><text x=\"60\" y=\"72\" text-anchor=\"middle\" class=\"flow-hub-label\">{second}</text></g>", if action == "profile-apply" { "Aplicar o modelo a este jogo" } else { "Iniciar treinamento" }).unwrap();
+    let hint = if action == "profile-apply" { "<text x=\"80\" y=\"118\" text-anchor=\"middle\" class=\"flow-hub-hint\">clique para aplicar</text>" } else { "" };
+    write!(html, "<g class=\"{hub_class}\" role=\"button\" tabindex=\"0\" data-action=\"{action}\"{dir_attr} transform=\"translate(400 220)\"><title>{}</title><circle cx=\"80\" cy=\"80\" r=\"80\"/><text x=\"80\" y=\"74\" text-anchor=\"middle\" class=\"flow-hub-label\">{first}</text><text x=\"80\" y=\"94\" text-anchor=\"middle\" class=\"flow-hub-label\">{second}</text>{hint}</g>", if action == "profile-apply" { "Aplicar o modelo a este jogo" } else { "Iniciar treinamento" }).unwrap();
     let states = view.profile.as_ref().map(model_states).unwrap_or_default();
     for (index, (label, on)) in states.iter().enumerate() {
         let y = 30.0 + index as f32 * 80.0;
         let class = if *on { "flow-state flow-on" } else { "flow-state flow-off" };
-        write!(html, "<path class=\"flow-link flow-out {class}\" d=\"M540 210 C 620 210, 640 {y:.0}, 720 {y:.0}\"/>").unwrap();
+        write!(html, "<path class=\"flow-link flow-out {class}\" d=\"M560 300 C 620 300, 640 {y:.0}, 760 {y:.0}\"/>").unwrap();
         let detail = view.profile.as_ref().map(|p| dest_detail(label, p)).unwrap_or_default();
-        write!(html, "<g class=\"flow-dest {class}\" transform=\"translate(720 {:.0})\"><rect width=\"220\" height=\"40\" rx=\"6\"/><text x=\"12\" y=\"17\">{}: {}</text><text class=\"flow-dest-detail\" x=\"12\" y=\"32\">{}</text></g>", y - 20.0, escape(label), if *on { "ligado" } else { "desligado" }, escape(&detail)).unwrap();
+        write!(html, "<g class=\"flow-dest {class}\" transform=\"translate(760 {:.0})\"><rect width=\"200\" height=\"64\" rx=\"8\"/><text x=\"12\" y=\"24\">{}</text><text class=\"flow-dest-detail\" x=\"12\" y=\"42\">{}</text><text class=\"flow-dest-detail\" x=\"12\" y=\"56\">{}</text></g>", y - 32.0, escape(label), if *on { "ligado" } else { "desligado" }, escape(&detail)).unwrap();
     }
     html.push_str("</svg>");
     html.push_str("</section>");

@@ -67,6 +67,24 @@ mod app {
         },
         time::{Duration, Instant},
     };
+/// Live FPS (ETW present rate, ~2s window) when available; otherwise the training session's best score.
+fn game_fps_label(live: Option<f64>, training: Option<f64>) -> String {
+    match (live, training) {
+        (Some(fps), _) => format!("{fps:.1} FPS · ao vivo"),
+        (None, Some(fps)) => format!("{fps:.1} FPS · melhor medição do treino"),
+        (None, None) => "sem medição · inicie um treino".to_string(),
+    }
+}
+
+/// Frame time: live average present interval when available, else derived from training FPS.
+fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
+    match (live, training.filter(|fps| *fps > 0.0)) {
+        (Some(ms), _) => format!("{ms:.2} ms · ao vivo"),
+        (None, Some(fps)) => format!("{:.2} ms · derivado do FPS medido", 1000.0 / fps),
+        (None, None) => "sem medição".to_string(),
+    }
+}
+
     use windows_sys::Win32::{
         Foundation::CloseHandle,
         System::Threading::{
@@ -100,6 +118,7 @@ mod app {
         telemetry: TelemetryCollector,
         tray: TrayController,
         training: Option<Training>,
+        live: Option<(u32, crate::capture::live::Monitor)>,
         rapo_game: Option<PathBuf>,
         training_message: String,
         training_selected: Option<(u32, PathBuf)>,
@@ -150,6 +169,7 @@ mod app {
                 games: Vec::new(),
                 game_search_names: Vec::new(),
                 running: Vec::new(),
+                live: None,
                 optimizer: Optimizer::new(),
                 auto_games: HashSet::new(),
                 pin_games: HashSet::new(),
@@ -575,12 +595,16 @@ mod app {
             let rows = crate::snapshot::game_rows(&self.games, &self.auto_games, &self.pin_games, &self.qos_games, self.rapo_game.as_deref(), self.training.is_none());
             let rows: Vec<_> = rows.into_iter().zip(&self.game_search_names).filter(|(_, name)| crate::view::library_matches(&self.search, name)).map(|(row, _)| row).collect();
             let header = crate::ui_model::header_model(self.tray.is_optimizer_running(), &self.dtt_report.status, self.running.len());
-            let mut metrics = vec![
+            let live_stats = self.live.as_ref().and_then(|(_, m)| m.latest());
+            let training_fps = self.training.as_ref().and_then(|t| t.search.best().map(|(_, s)| s.fps));
+             let mut metrics = vec![
                 ("USO DE CPU TOTAL", format!("{:.1}% · Sistema {:.1}%", tm.cpu_usage_pct, tm.sys_cpu_pct)),
                 ("USO DE GPU", format!("{:.1}% · Engines PDH (estimativa)", tm.gpu_usage_pct)),
                 ("USO DE MEMÓRIA", format!("{} · {:.1}% da RAM", crate::view::memory_label(tm.mem_used_mb), tm.mem_usage_pct)),
                 (if tm.has_target { "I/O DE LEITURA (PROCESSO)" } else { "LEITURA DE DISCO (SISTEMA)" }, format!("{:.2} MB/s · Total {:.2} GB (inclui cache no processo)", tm.disk_read_mbs, tm.disk_total_read_gb)),
                 ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
+                ("FPS DO JOGO", game_fps_label(live_stats.map(|s| s.fps), training_fps)),
+                ("FRAME TIME", game_frame_time_label(live_stats.map(|s| s.frame_time_ms), training_fps)),
                 ("PING DO JOGO (ICMP)", crate::process_ping::game_ping_label(tm.has_target, &tm.process_ping)),
             ];
             let heuristic_pids = tm.process_ping.pids.iter().filter(|pid| !self.running.iter().any(|p| p.pid == **pid)).count();
@@ -683,6 +707,11 @@ mod app {
         pub fn tick(&mut self) {
             if self.last_refresh.elapsed() >= Duration::from_secs(1) {
                 self.refresh();
+            }
+            let tm = &self.telemetry.metrics;
+            let target_pid = self.training.as_ref().map(|t| t.pid).or(tm.has_target.then_some(tm.target_pid));
+            if self.live.as_ref().map(|(pid, _)| *pid) != target_pid {
+                self.live = target_pid.map(|pid| (pid, crate::capture::live::Monitor::start(pid)));
             }
             self.routes.poll(&self.telemetry.metrics.process_ping);
             self.relay.poll();
