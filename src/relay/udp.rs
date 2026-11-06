@@ -71,6 +71,7 @@ pub(super) fn associate(mut control: TcpStream, shared: &Shared, id: u64, source
                         Ok(destination) => destination,
                         Err(_) => continue,
                     };
+                    crate::process_ping::record_udp_destination(destination.address, None);
                     destinations.entries.push(destination);
                     destinations.count.fetch_add(1, Ordering::Relaxed);
                     destinations.entries.len() - 1
@@ -100,6 +101,7 @@ pub(super) fn associate(mut control: TcpStream, shared: &Shared, id: u64, source
                 Ok((count, from)) => {
                     if let Ok(from) = from.parse::<SocketAddr>() {
                         if destinations.entries.iter().any(|d| d.address == from) {
+                            crate::process_ping::record_udp_destination(from, None);
                             send_reply(&socket, pinned, from, &returned[..count], &mut wrapped, shared, &mut control)?;
                         }
                     }
@@ -111,6 +113,7 @@ pub(super) fn associate(mut control: TcpStream, shared: &Shared, id: u64, source
             for destination in &destinations.entries {
                 match destination.socket.as_ref().unwrap().recv_from(&mut returned) {
                     Ok((count, from)) if from == destination.address => {
+                        crate::process_ping::record_udp_destination(from, None);
                         send_reply(&socket, pinned, from, &returned[..count], &mut wrapped, shared, &mut control)?;
                     }
                     Ok(_) => (),

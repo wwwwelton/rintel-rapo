@@ -8,6 +8,8 @@ const SAMPLE_INTERVAL: Duration = Duration::from_secs(3);
 pub enum EchoOutcome {
     Reply(u32),
     ReplyTrace { ms: u32, hops: u8 },
+    ReplyTcp { ms: u32, port: u16 },
+    ReplyUdp { ms: u32, port: u16 },
     Timeout,
     Unavailable(u32),
     TtlExpired(u32),
@@ -20,6 +22,10 @@ impl EchoOutcome {
             Self::Reply(ms) => format!("{ms} ms"),
             Self::ReplyTrace { ms: 0, hops } => format!("<1 ms (traceback: {hops} saltos)"),
             Self::ReplyTrace { ms, hops } => format!("{ms} ms (traceback: {hops} saltos)"),
+            Self::ReplyTcp { ms: 0, port } => format!("<1 ms (TCP porta {port})"),
+            Self::ReplyTcp { ms, port } => format!("{ms} ms (TCP porta {port})"),
+            Self::ReplyUdp { ms: 0, port } => format!("<1 ms (UDP porta {port})"),
+            Self::ReplyUdp { ms, port } => format!("{ms} ms (UDP porta {port})"),
             Self::Timeout => format!("Timeout ({TIMEOUT_MS} ms; ICMP pode estar bloqueado)"),
             Self::Unavailable(code) => format!("Indisponível (Windows/IP {code})"),
             Self::TtlExpired(ms) => format!("TTL expirado ({ms} ms)"),
@@ -28,7 +34,7 @@ impl EchoOutcome {
 
     pub fn round_trip_ms(&self) -> Option<u32> {
         match self {
-            Self::Reply(ms) | Self::ReplyTrace { ms, .. } => Some(*ms),
+            Self::Reply(ms) | Self::ReplyTrace { ms, .. } | Self::ReplyTcp { ms, .. } | Self::ReplyUdp { ms, .. } => Some(*ms),
             _ => None,
         }
     }
@@ -217,6 +223,23 @@ pub(crate) fn round_trip_ms(_: std::net::Ipv4Addr) -> Option<u32> {
     None
 }
 
+static OBSERVED_UDP: std::sync::Mutex<Option<std::collections::HashMap<std::net::SocketAddr, (Option<u32>, Instant)>>> = std::sync::Mutex::new(None);
+
+pub fn record_udp_destination(endpoint: std::net::SocketAddr, rtt_ms: Option<u32>) {
+    if endpoint.ip().is_loopback() || endpoint.ip().is_unspecified() { return; }
+    let mut guard = OBSERVED_UDP.lock().unwrap();
+    let map = guard.get_or_insert_with(std::collections::HashMap::new);
+    map.insert(endpoint, (rtt_ms, Instant::now()));
+}
+
+pub fn get_observed_udp_destinations() -> Vec<(std::net::SocketAddr, Option<u32>)> {
+    let mut guard = OBSERVED_UDP.lock().unwrap();
+    let Some(map) = guard.as_mut() else { return Vec::new(); };
+    let now = Instant::now();
+    map.retain(|_, (_, seen)| now.saturating_duration_since(*seen) <= Duration::from_secs(60));
+    map.iter().map(|(addr, (rtt, _))| (*addr, *rtt)).collect()
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Destination {
     pub(crate) remote: std::net::SocketAddr,
@@ -239,15 +262,19 @@ fn collect(pids: &[u32]) -> ProcessPing {
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV6};
     use windows_sys::Win32::{NetworkManagement::IpHelper::*, Networking::WinSock::{AF_INET, AF_INET6}};
     let mut destinations = Vec::new();
+    let mut udp_measured: std::collections::HashMap<SocketAddr, u32> = std::collections::HashMap::new();
     let mut errors = Vec::new();
+
     let v4 = unsafe {
         visit_tcp_rows::<MIB_TCPROW_OWNER_PID>(AF_INET as u32, |row| {
-            if row.dwState == MIB_TCP_STATE_ESTAB as u32 && pids.contains(&row.dwOwningPid) {
+            if row.dwState != 1 && row.dwState != 2 && pids.contains(&row.dwOwningPid) {
                 let remote = Ipv4Addr::from(row.dwRemoteAddr.to_ne_bytes());
                 if !remote.is_unspecified() && !remote.is_multicast() && remote != Ipv4Addr::BROADCAST {
+                    let remote_port = u16::from_be(row.dwRemotePort as u16);
+                    let local_port = u16::from_be(row.dwLocalPort as u16);
                     destinations.push(Destination {
-                        remote: SocketAddr::from((remote, 0)),
-                        local: SocketAddr::from((Ipv4Addr::from(row.dwLocalAddr.to_ne_bytes()), 0)),
+                        remote: SocketAddr::from((remote, remote_port)),
+                        local: SocketAddr::from((Ipv4Addr::from(row.dwLocalAddr.to_ne_bytes()), local_port)),
                     });
                 }
             }
@@ -255,34 +282,80 @@ fn collect(pids: &[u32]) -> ProcessPing {
     };
     let v6 = unsafe {
         visit_tcp_rows::<MIB_TCP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
-            if row.dwState == MIB_TCP_STATE_ESTAB as u32 && pids.contains(&row.dwOwningPid) {
+            if row.dwState != 1 && row.dwState != 2 && pids.contains(&row.dwOwningPid) {
                 let remote = Ipv6Addr::from(row.ucRemoteAddr);
                 if !remote.is_unspecified() && !remote.is_multicast() {
+                    let remote_port = u16::from_be(row.dwRemotePort as u16);
+                    let local_port = u16::from_be(row.dwLocalPort as u16);
                     destinations.push(Destination {
-                        remote: SocketAddr::V6(SocketAddrV6::new(remote, 0, 0, row.dwRemoteScopeId)),
-                        local: SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::from(row.ucLocalAddr), 0, 0, row.dwLocalScopeId)),
+                        remote: SocketAddr::V6(SocketAddrV6::new(remote, remote_port, 0, row.dwRemoteScopeId)),
+                        local: SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::from(row.ucLocalAddr), local_port, 0, row.dwLocalScopeId)),
                     });
                 }
             }
         })
     };
-    for (family, result) in [("IPv4", v4), ("IPv6", v6)] {
+    for (family, result) in [("IPv4 TCP", v4), ("IPv6 TCP", v6)] {
         if let Err(code) = result { errors.push(format!("{family} indisponível (Windows {code})")); }
     }
+
+    for (udp_dst, rtt_opt) in get_observed_udp_destinations() {
+        if let Some(rtt) = rtt_opt {
+            udp_measured.insert(udp_dst, rtt);
+        }
+        let local = if udp_dst.is_ipv4() {
+            SocketAddr::from(([0, 0, 0, 0], 0))
+        } else {
+            SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 0))
+        };
+        destinations.push(Destination { remote: udp_dst, local });
+    }
+
+    let mut udp_sockets = 0usize;
+    let _ = unsafe {
+        visit_udp_rows::<MIB_UDPROW_OWNER_PID>(AF_INET as u32, |row| {
+            if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
+        })
+    };
+    let _ = unsafe {
+        visit_udp_rows::<MIB_UDP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
+            if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
+        })
+    };
+
     let omitted = select_destinations(&mut destinations);
     let mut summary = if destinations.is_empty() {
-        "Nenhum IP TCP estabelecido observado para os PIDs selecionados".into()
+        if udp_sockets > 0 {
+            format!("{udp_sockets} socket(s) UDP aberto(s); aguardando datagrama/conexão do jogo para medir RTT")
+        } else {
+            "Nenhuma conexão TCP ou destino UDP ativo observado para os PIDs selecionados".into()
+        }
     } else {
-        format!("{} IP(s) TCP observado(s); até {MAX_DESTINATIONS} sondas, {TIMEOUT_MS} ms cada; intervalo 3 s", destinations.len() + omitted)
+        format!("{} destino(s) observado(s); até {MAX_DESTINATIONS} sondas, {TIMEOUT_MS} ms cada; intervalo 3 s", destinations.len() + omitted)
     };
-    if omitted > 0 { summary.push_str(&format!("; {omitted} IP(s) não sondado(s)")); }
+    if omitted > 0 { summary.push_str(&format!("; {omitted} destino(s) não sondado(s)")); }
     for error in errors { summary.push_str(&format!("; {error}")); }
     let endpoints = destinations.into_iter().map(|destination| {
         let address = match destination.remote {
+            SocketAddr::V4(addr) if addr.port() > 0 => format!("{}:{}", addr.ip(), addr.port()),
             SocketAddr::V4(addr) => addr.ip().to_string(),
+            SocketAddr::V6(addr) if addr.port() > 0 && addr.scope_id() != 0 => format!("[{}%{}]:{}", addr.ip(), addr.scope_id(), addr.port()),
+            SocketAddr::V6(addr) if addr.port() > 0 => format!("[{}]:{}", addr.ip(), addr.port()),
             SocketAddr::V6(addr) if addr.scope_id() != 0 => format!("{}%{}", addr.ip(), addr.scope_id()),
             SocketAddr::V6(addr) => addr.ip().to_string(),
         };
+        if let Some(&ms) = udp_measured.get(&destination.remote) {
+            let before = crate::routes::native::observe(destination.remote).ok();
+            let after = crate::routes::native::observe(destination.remote).ok();
+            let route = before.and_then(|(route, _)| after.filter(|(other, _)| *other == route).map(|_| route));
+            return EndpointPing {
+                destination: address,
+                outcome: EchoOutcome::ReplyUdp { ms, port: destination.remote.port() },
+                route,
+                hops: None,
+                trace: None,
+            };
+        }
         let before = crate::routes::native::observe(destination.remote).ok();
         let probe = Destination { local: before.as_ref().map_or(destination.local, |(_, source)| *source), ..destination };
         let (outcome, hops) = trace_destination(probe);
@@ -291,6 +364,33 @@ fn collect(pids: &[u32]) -> ProcessPing {
         EndpointPing { destination: address, outcome, route, hops, trace: None }
     }).collect();
     ProcessPing { summary, endpoints, ..ProcessPing::default() }
+}
+
+#[cfg(windows)]
+unsafe fn visit_udp_rows<T: Copy>(family: u32, mut visit: impl FnMut(T)) -> Result<(), u32> {
+    use windows_sys::Win32::{Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_INVALID_DATA}, NetworkManagement::IpHelper::*};
+    let mut size = 0;
+    let mut status = GetExtendedUdpTable(std::ptr::null_mut(), &mut size, 0, family, UDP_TABLE_OWNER_PID, 0);
+    for _ in 0..3 {
+        if status != ERROR_INSUFFICIENT_BUFFER { return Err(status); }
+        if size < 4 || size > 16 * 1024 * 1024 { return Err(ERROR_INVALID_DATA); }
+        let mut buffer = vec![0u32; (size as usize + 3) / 4];
+        let capacity = buffer.len() * 4;
+        size = capacity as u32;
+        status = GetExtendedUdpTable(buffer.as_mut_ptr().cast(), &mut size, 0, family, UDP_TABLE_OWNER_PID, 0);
+        if status == ERROR_INSUFFICIENT_BUFFER { continue; }
+        if status != 0 { return Err(status); }
+        if size as usize > capacity || size < 4 { return Err(ERROR_INVALID_DATA); }
+        let count = buffer[0] as usize;
+        let row_size = std::mem::size_of::<T>();
+        if count > (size as usize - 4) / row_size { return Err(ERROR_INVALID_DATA); }
+        for index in 0..count {
+            let row = buffer.as_ptr().cast::<u8>().add(4 + index * row_size).cast::<T>().read_unaligned();
+            visit(row);
+        }
+        return Ok(());
+    }
+    Err(status)
 }
 
 // T must be the OWNER_PID row corresponding to family. Windows can grow the table between calls.
@@ -411,6 +511,21 @@ unsafe fn send_probe(
 
 /// Bounded traceroute stepping TTL up to MAX_TRACE_HOPS using native Windows ICMP.
 /// Invariant: reports final destination RTT only, never intermediate router RTT as final ping.
+#[cfg(any(windows, test))]
+fn tcp_ping(remote: std::net::SocketAddr) -> Option<u32> {
+    if remote.port() == 0 || remote.ip().is_loopback() || remote.ip().is_unspecified() {
+        return None;
+    }
+    let start = Instant::now();
+    match std::net::TcpStream::connect_timeout(&remote, Duration::from_millis(TIMEOUT_MS as u64)) {
+        Ok(_) => Some((start.elapsed().as_millis() as u32).max(1)),
+        Err(e) if e.kind() == std::io::ErrorKind::ConnectionRefused => {
+            Some((start.elapsed().as_millis() as u32).max(1))
+        }
+        _ => None,
+    }
+}
+
 #[cfg(windows)]
 pub(crate) fn trace_destination(destination: Destination) -> (EchoOutcome, Option<u8>) {
     use windows_sys::Win32::{
@@ -429,17 +544,15 @@ pub(crate) fn trace_destination(destination: Destination) -> (EchoOutcome, Optio
         let direct = send_probe(handle, destination, None, TIMEOUT_MS);
         let direct_ms = match direct {
             HopOutcome::Reached { rtt_ms, .. } => rtt_ms,
-            HopOutcome::Timeout => {
+            fallback => {
                 IcmpCloseHandle(handle);
-                return (EchoOutcome::Timeout, None);
-            }
-            HopOutcome::Unavailable(code) => {
-                IcmpCloseHandle(handle);
-                return (EchoOutcome::Unavailable(code), None);
-            }
-            HopOutcome::TtlExpired { .. } => {
-                IcmpCloseHandle(handle);
-                return (EchoOutcome::Timeout, None);
+                if let Some(tcp_ms) = tcp_ping(destination.remote) {
+                    return (EchoOutcome::ReplyTcp { ms: tcp_ms, port: destination.remote.port() }, None);
+                }
+                match fallback {
+                    HopOutcome::Unavailable(code) => return (EchoOutcome::Unavailable(code), None),
+                    _ => return (EchoOutcome::Timeout, None),
+                }
             }
         };
 
@@ -506,9 +619,9 @@ pub fn game_ping_label(has_target: bool, ping: &ProcessPing) -> String {
         .collect();
     let Some(&(ms, ip)) = replies.iter().min_by_key(|(ms, _)| *ms) else {
         return if ping.endpoints.is_empty() {
-            "sem medição · O jogo não tem conexão TCP estabelecida; UDP não expõe destino na tabela do Windows".into()
+            format!("sem medição · {}", ping.summary)
         } else {
-            "sem resposta · Os IPs TCP do jogo não responderam ao ICMP (podem bloquear ping)".into()
+            "sem resposta · Destinos não responderam às sondas de ping/RTT (podem bloquear ICMP/TCP)".into()
         };
     };
     let endpoint = ping.endpoints.iter().find(|e| e.destination == ip);
@@ -523,7 +636,7 @@ pub fn game_ping_label(has_target: bool, ping: &ProcessPing) -> String {
             e.outcome.label()
         },
     );
-    format!("{value} · Traceback/ICMP ao IP TCP do jogo {ip} · {} de {} responderam; não prova ser o servidor da partida", replies.len(), ping.endpoints.len())
+    format!("{value} · Destino do jogo {ip} · {} de {} responderam; não prova ser o servidor da partida", replies.len(), ping.endpoints.len())
 }
 
 #[cfg(test)]

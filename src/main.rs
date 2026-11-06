@@ -588,9 +588,9 @@ mod app {
                 ("REDE TOTAL (SISTEMA)", format!("{:.1} KB/s · Recebidos + enviados", tm.net_usage_kbs)),
                 ("PING DO JOGO (ICMP)", crate::process_ping::game_ping_label(tm.has_target, &tm.process_ping)),
             ];
-            metrics.push(("ICMP · IPs TCP DO PROCESSO", format!("{} · Não identifica servidor de partida; UDP não expõe destino na tabela Windows", tm.process_ping.summary)));
+            metrics.push(("DESTINOS DO PROCESSO (TCP/UDP)", format!("{} · Não identifica servidor de partida", tm.process_ping.summary)));
             for endpoint in &tm.process_ping.endpoints {
-                metrics.push(("ICMP · DESTINO OBSERVADO", format!("{} · {}", endpoint.outcome.label(), endpoint.destination)));
+                metrics.push(("DESTINO OBSERVADO", format!("{} · {}", endpoint.outcome.label(), endpoint.destination)));
                 metrics.push(("ICMP · ROTA OBSERVADA", endpoint.route.as_ref().map_or_else(
                     || format!("{} · rota/origem não confirmada ao redor da sonda; não usar no aprendizado", endpoint.destination),
                     |route| format!("{} · if {} · gateway {} · origem {} · amostra {}", endpoint.destination, route.interface, route.gateway, route.source, tm.process_ping.sample_id))));

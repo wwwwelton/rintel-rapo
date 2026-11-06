@@ -364,10 +364,14 @@ fn render_network(html: &mut String, view: &Dashboard) {
     for history in &routes.history { write!(html, "<li>{}</li>", escape(history)).unwrap(); }
     html.push_str("</ul></section>");
 }
+fn is_ping_reply(s: &str) -> bool {
+    s.starts_with("<1 ms") || (s.chars().next().is_some_and(|c| c.is_ascii_digit()) && s.contains(" ms"))
+}
+
 
 /// Metrics the host always emits, in the order shown in the always-visible strip.
 const SUMMARY_METRICS: [(&str, &str); 5] = [("USO DE CPU TOTAL", "CPU"), ("USO DE GPU", "GPU"), ("USO DE MEMÓRIA", "Memória"),
-    ("REDE TOTAL", "Rede"), ("PING DO JOGO", "Ping do jogo · traceroute / ICMP ao destino")];
+    ("REDE TOTAL", "Rede"), ("PING DO JOGO", "Ping do jogo · RTT ao destino")];
 
 /// Compact always-visible status: a few headline metrics plus relay state, so the common
 /// question ("is it working, how is the load?") needs no scrolling or tab switch.
@@ -436,20 +440,20 @@ pub fn render(view: &Dashboard) -> String {
     // Card 4: game ping. The caption is the host's own explanation, so the caveat can never disagree with the value.
     if let Some((_, value)) = view.metrics.iter().find(|(l, _)| l.starts_with("PING DO JOGO")) {
         let (primary, caption) = value.split_once(" · ").unwrap_or((value, ""));
-        let measured = primary.ends_with(" ms");
-        write!(html, "<div class=\"net-card {}\"><span class=\"net-card-label\">Ping do jogo · traceroute / ICMP ao destino</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">{}</span></div>",
+        let measured = is_ping_reply(primary);
+        write!(html, "<div class=\"net-card {}\"><span class=\"net-card-label\">Ping do jogo · RTT ao destino</span><span class=\"net-card-value\">{}</span><span class=\"net-card-sub\">{}</span></div>",
             if measured { "" } else { "net-card-warn" }, escape(primary), escape(caption)).unwrap();
     }
     // Card 5 wide: ICMP destinations
-    let icmp_entries: Vec<_> = view.metrics.iter().filter(|(l, _)| (l.contains("ICMP") || l.contains("TRACEROUTE")) && l.contains("DESTINO")).collect();
+    let icmp_entries: Vec<_> = view.metrics.iter().filter(|(l, _)| l.contains("DESTINO") && !l.contains("ROTA") && !l.contains("IPs")).collect();
     if !icmp_entries.is_empty() {
-        html.push_str("<div class=\"net-card net-card-wide\"><span class=\"net-card-label\">traceroute / ICMP ao destino · IPs TCP do processo</span><ul class=\"net-history\">");
+        html.push_str("<div class=\"net-card net-card-wide\"><span class=\"net-card-label\">Destinos observados (TCP/UDP) · Traceroute / RTT ao destino</span><ul class=\"net-history\">");
         for (_, value) in &icmp_entries {
             let (rtt, ip) = value.split_once(" · ").unwrap_or((value, ""));
             // The host labels success as "<n> ms" / "<1 ms"; anything else is a timeout or an unavailable probe, never shown in the success color.
-            write!(html, "<li><span>{}</span><span{}>{}</span></li>", escape(ip), if rtt.ends_with(" ms") { "" } else { " class=\"icmp-fail\"" }, escape(rtt)).unwrap();
+            write!(html, "<li><span>{}</span><span{}>{}</span></li>", escape(ip), if is_ping_reply(rtt) { "" } else { " class=\"icmp-fail\"" }, escape(rtt)).unwrap();
         }
-        html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. traceroute / ICMP ao destino pode usar rota diferente do tráfego do jogo.</span></div>");
+        html.push_str("</ul><span class=\"net-disclaimer\">Não identifica servidor de partida. O RTT reflete o tempo de resposta medido até os destinos de rede do jogo.</span></div>");
     }
     render_relay(&mut html, &view.relay, &view.wfp);
     crate::vpn::render(&mut html, &view.vpn);
@@ -719,14 +723,25 @@ mod tests {
         let ping = |value: &str| dashboard(serde_json::json!({"metrics":[["PING DO JOGO (ICMP)", value],["RTT TCP (EXTERNO)","18 ms · TCP até DNS público"]]}));
         let ok = ping("12 ms · ICMP ao IP TCP do jogo 10.0.0.3 · 2 de 4 responderam; não prova ser o servidor da partida");
         let summary = render_summary(&ok);
-        assert!(summary.contains("Ping do jogo") && summary.contains("traceroute / ICMP ao destino") && summary.contains(">12 ms<") && !summary.contains("RTT"), "the strip shows the game ping, not the DNS probe: {summary}");
+        assert!(summary.contains("Ping do jogo") && summary.contains("RTT ao destino") && summary.contains(">12 ms<") && !summary.contains("RTT TCP (EXTERNO)"), "the strip shows the game ping, not the DNS probe: {summary}");
         let page = render(&ok);
-        assert!(page.contains("Ping do jogo · traceroute / ICMP ao destino") && page.contains("não prova ser o servidor da partida"), "the host's caveat is the card caption");
+        assert!(page.contains("Ping do jogo · RTT ao destino") && page.contains("não prova ser o servidor da partida"), "the host's caveat is the card caption");
         assert!(!page.contains("RTT TCP externo") && !page.contains("DNS público; não é ping"), "the external RTT card is gone");
         assert!(page.contains("<div class=\"net-card \"><span class=\"net-card-label\">Ping do jogo"), "a real measurement uses the neutral card");
         let silent = render(&ping("sem resposta · Os IPs TCP do jogo não responderam ao ICMP"));
         assert!(silent.contains("net-card-warn\"><span class=\"net-card-label\">Ping do jogo"), "no reply is shown as a warning, never as a number: {silent}");
         assert!(render_summary(&dashboard(serde_json::json!({}))).find("Ping do jogo").is_none(), "no metric, no invented ping");
+    }
+    #[test]
+    fn game_ping_supports_tcp_and_udp_rtt_and_renders_measured_values() {
+        let tcp_view = dashboard(serde_json::json!({"metrics":[["PING DO JOGO (ICMP)", "24 ms (TCP porta 7777) · Destino do jogo 203.0.113.1:7777 · 1 de 1 responderam"]]}));
+        let tcp_page = render(&tcp_view);
+        assert!(tcp_page.contains("24 ms (TCP porta 7777)"));
+        assert!(tcp_page.contains("<div class=\"net-card \"><span class=\"net-card-label\">Ping do jogo"));
+        let udp_view = dashboard(serde_json::json!({"metrics":[["PING DO JOGO (ICMP)", "18 ms (UDP porta 9000) · Destino do jogo 198.51.100.2:9000 · 1 de 1 responderam"]]}));
+        let udp_page = render(&udp_view);
+        assert!(udp_page.contains("18 ms (UDP porta 9000)"));
+        assert!(udp_page.contains("<div class=\"net-card \"><span class=\"net-card-label\">Ping do jogo"));
     }
     #[test]
     fn qos_target_names_the_game_not_a_pid_and_escapes_it() {

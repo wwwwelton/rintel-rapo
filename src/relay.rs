@@ -581,6 +581,7 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
 
         let now = Instant::now();
         let is_new = !flows.contains_key(&dst);
+        crate::process_ping::record_udp_destination(dst, None);
         if is_new {
             let Ok(out) = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) else { continue };
             let _ = out.set_read_timeout(Some(Duration::from_secs(1)));
@@ -600,6 +601,8 @@ fn serve_wfp_udp(socket: UdpSocket, shared: Arc<Shared>) {
                 while state.running.load(Ordering::Acquire) && Arc::strong_count(&reader) > 1 {
                     let Ok((rn, _)) = reader.recv_from(&mut reply[14..]) else { continue };
                     let rtt = Instant::now().saturating_duration_since(*stamp.lock().unwrap());
+                    let rtt_ms = rtt.as_millis() as u32;
+                    crate::process_ping::record_udp_destination(dst, Some(rtt_ms.max(1)));
                     state.learning.lock().unwrap().observe(dst, &system_egress(dst), rtt, true, Instant::now());
                     let payload = if is_raw.load(Ordering::Relaxed) { &reply[14..14 + rn] } else { &reply[..14 + rn] };
                     let _ = back.send_to(payload, *to.lock().unwrap());
