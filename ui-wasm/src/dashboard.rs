@@ -99,6 +99,8 @@ pub struct Relay {
     pub udp_route: String,
     #[serde(default)]
     pub redundancy: Redundancy,
+    #[serde(default)]
+    pub redundancy_auto_echo: String,
 }
 
 #[derive(Default, Clone, Copy, Deserialize)]
@@ -260,6 +262,10 @@ fn render_relay(html: &mut String, relay: &Relay, wfp: &Wfp) {
         write!(html, "<hr><details><summary>UDPspeeder · Redundância de pacotes UDP ({} · +{overhead}% tráfego)</summary><p class=\"net-card-sub\">Replica pacotes UDP no cliente (razão X:Y) para tolerar perda sem depender de software no servidor.</p><fieldset id=\"udp-redundancy-fs\"><label><input id=\"udp-red-enabled\" type=\"checkbox\" data-action=\"udp-redundancy-toggle\"{}> Ativar redundância UDP (UDPspeeder)</label><label for=\"udp-red-x\">Pacotes originais (X)</label><input id=\"udp-red-x\" type=\"number\" min=\"1\" max=\"30\" value=\"{x}\"><label for=\"udp-red-y\">Pacotes redundantes (Y)</label><input id=\"udp-red-y\" type=\"number\" min=\"1\" max=\"30\" value=\"{y}\"><button type=\"button\" data-action=\"udp-redundancy-save\">Aplicar razão X:Y</button></fieldset></details>",
             if r.enabled { "Ativo" } else { "Desativado" },
             if r.enabled { " checked" } else { "" }).unwrap();
+    }
+    {
+        let r = relay;
+        write!(html, "<fieldset id=\"udp-redundancy-auto-fs\"><legend>Modo automático (sonda por eco local)</legend><label><input id=\"udp-red-auto\" type=\"checkbox\" data-action=\"udp-redundancy-auto-toggle\"{}> Escolher X:Y pelo eco</label><label for=\"udp-red-echo\">Eco UDP em loopback (IP:porta)</label><input id=\"udp-red-echo\" type=\"text\" value=\"{}\"><button type=\"button\" data-action=\"udp-redundancy-auto-save\">Aplicar eco</button></fieldset>", if r.redundancy_auto_echo.is_empty() { "" } else { " checked" }, escape(&r.redundancy_auto_echo)).unwrap();
     }
     // Without a remote server the relay uses the embedded loopback HY2 server, so HY2 is always configured.
     {
