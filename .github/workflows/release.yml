@@ -128,7 +128,7 @@ jobs:
             "ui-screen.svg",
             "ui-screen.json",
             "vendor/wfp/NOTICE.md",
-            "ui-screen.png",
+            "ui-screen.png"
           ) | ForEach-Object {
             if (Test-Path $_) {
               $item = Get-Item $_
