@@ -1,10 +1,17 @@
 name: Build / Test / Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
+
+# One release at a time: rapid pushes queue instead of racing to update the same release.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
   build-test-release:
