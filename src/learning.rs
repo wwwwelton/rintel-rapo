@@ -82,8 +82,13 @@ impl Observation {
         Self { settings, count: 0, mean: Score::default(), consecutive_gains: 0, rejected: false }
     }
 }
+/// Candidates kept in memory. Settings are a small space; the history only needs the recent contenders.
+const MAX_OBSERVATIONS: usize = 48;
+
 pub struct Search {
     observations: Vec<Observation>,
+    /// Candidates ever created, including evicted ones.
+    explored: usize,
     current: usize,
     reference: usize,
     reference_score: Option<Score>,
@@ -106,6 +111,7 @@ impl Search {
     pub fn new(seed: u64, limits: Limits, reference: Settings) -> Self {
         let mut search = Self {
             observations: vec![Observation::new(Settings::default())],
+            explored: 0,
             current: 0, reference: 0, reference_score: None, pending: None,
             completed: 0, pairs: 0, random: seed.max(1), limits,
             model: flow::Flow::new(seed),
@@ -116,6 +122,7 @@ impl Search {
             search.reference = 1;
             search.current = 1;
         }
+        search.explored = search.observations.len();
         search
     }
     fn normalize(&self, mut settings: Settings) -> Settings {
@@ -145,7 +152,7 @@ impl Search {
     }
     pub fn completed(&self) -> usize { self.completed }
     #[cfg(windows)]
-    pub fn explored(&self) -> usize { self.observations.len() }
+    pub fn explored(&self) -> usize { self.explored }
     #[cfg(any(windows, test))]
     pub fn reject_current(&mut self) {
         self.pending = None;
@@ -180,6 +187,32 @@ impl Search {
         }
         // Paired rewards change meaning when the reference changes.
         self.model = flow::Flow::new(self.random);
+    }
+    /// Adds a candidate and makes it current. A full history first drops one entry, see `evict`.
+    fn push_candidate(&mut self, candidate: Settings) {
+        if self.observations.len() >= MAX_OBSERVATIONS {
+            self.evict();
+        }
+        self.observations.push(Observation::new(candidate));
+        self.explored += 1;
+        self.current = self.observations.len() - 1;
+    }
+    /// Drops the least useful entry: a rejected one first, then the one with the fewest paired rewards.
+    /// The default (index 0), the reference and the current candidate are never dropped; indices shift after.
+    fn evict(&mut self) {
+        let victim = self.observations.iter().enumerate()
+            .filter(|(index, _)| *index != 0 && *index != self.reference && *index != self.current)
+            .min_by_key(|(index, o)| (!o.rejected, o.count, *index))
+            .map(|(index, _)| index);
+        let Some(victim) = victim else { return };
+        self.observations.remove(victim);
+        if self.reference > victim { self.reference -= 1; }
+        if self.current > victim { self.current -= 1; }
+        self.pending = match self.pending {
+            Some((index, _)) if index == victim => None,
+            Some((index, score)) if index > victim => Some((index - 1, score)),
+            other => other,
+        };
     }
     fn choose_next(&mut self, promising: Option<usize>) {
         if let Some(index) = promising {
@@ -244,8 +277,7 @@ impl Search {
             }
         }
         if let Some(candidate) = selected {
-            self.observations.push(Observation::new(candidate));
-            self.current = self.observations.len() - 1;
+            self.push_candidate(candidate);
             return;
         }
         self.current = self.observations.iter().enumerate()
@@ -374,6 +406,44 @@ mod tests {
             assert_ne!(search.current(), rejected);
             search.record(Score { fps: 60.0, low_fps: 40.0 }).unwrap();
         }
+    }
+
+    #[test]
+    fn candidate_history_stays_bounded_over_a_long_training() {
+        let limits = Limits { threads: 16, cores: 8, p_cores: 4, smt: true };
+        let mut search = Search::new(7, limits, Settings::default());
+        for window in 0..20_000u32 {
+            // Small, noisy differences: no candidate wins, so every pair keeps creating new ones.
+            let fps = 100.0 + f64::from(window % 7) * 0.5;
+            search.record(Score { fps, low_fps: fps * 0.75 }).unwrap();
+            assert!(search.observations.len() <= MAX_OBSERVATIONS);
+            assert!(search.current < search.observations.len());
+            assert!(search.reference < search.observations.len());
+        }
+        assert!(search.explored() > MAX_OBSERVATIONS, "exploration continues after the history is full");
+    }
+
+    #[test]
+    fn eviction_drops_rejected_then_least_measured_and_keeps_protected_indices() {
+        let mut search = Search::new(9, Limits::default(), Settings::default());
+        // Entry k (k >= 1) gets cores = k, so each entry can be recognised after the indices shift.
+        for k in 1..MAX_OBSERVATIONS {
+            search.observations.push(Observation {
+                count: 3,
+                ..Observation::new(Settings { cores: k as u8, ..Settings::default() })
+            });
+        }
+        search.observations[10].rejected = true;
+        search.observations[20].count = 0;
+        search.reference = 30;
+        search.current = 40;
+        search.evict();
+        assert_eq!(search.observations.len(), MAX_OBSERVATIONS - 1);
+        assert!(search.observations.iter().all(|o| !o.rejected), "the rejected entry goes first");
+        assert!(search.observations.iter().any(|o| o.settings.cores == 20), "a measured-less entry survives while a rejected one exists");
+        assert_eq!(search.observations[search.reference].settings.cores, 30, "reference follows its entry");
+        assert_eq!(search.observations[search.current].settings.cores, 40, "current follows its entry");
+        assert_eq!(search.observations[0].settings, Settings::default());
     }
 
     #[test]
