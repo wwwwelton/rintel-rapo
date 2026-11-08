@@ -131,6 +131,85 @@ mod win_ffi {
 }
 
 #[cfg(windows)]
+#[cfg(windows)]
+type PdhItem = win_ffi::PdhFmtCountervalueItemW;
+
+/// Reads a PDH counter array into `buffer`, validating that the reported items fit inside the bytes written.
+#[cfg(windows)]
+unsafe fn pdh_array(counter: isize, buffer: &mut Vec<u64>) -> Option<&[PdhItem]> {
+    let mut buf_size: u32 = 0;
+    let mut item_count: u32 = 0;
+    let _ = win_ffi::PdhGetFormattedCounterArrayW(
+        counter,
+        win_ffi::PDH_FMT_DOUBLE,
+        &mut buf_size,
+        &mut item_count,
+        std::ptr::null_mut(),
+    );
+    if buf_size == 0 || item_count == 0 {
+        return None;
+    }
+    buffer.resize((buf_size as usize).div_ceil(8), 0);
+    if win_ffi::PdhGetFormattedCounterArrayW(
+        counter,
+        win_ffi::PDH_FMT_DOUBLE,
+        &mut buf_size,
+        &mut item_count,
+        buffer.as_mut_ptr().cast::<u8>(),
+    ) != 0
+    {
+        return None;
+    }
+    let bytes = item_count as usize * std::mem::size_of::<PdhItem>();
+    if bytes > buf_size as usize || bytes > buffer.len() * 8 {
+        return None;
+    }
+    Some(std::slice::from_raw_parts(buffer.as_ptr().cast::<PdhItem>(), item_count as usize))
+}
+
+/// Instance names are capped at 128 units, as before, so a missing terminator cannot run past the buffer.
+#[cfg(windows)]
+unsafe fn instance_name<'a>(ptr: *const u16) -> &'a [u16] {
+    let mut len = 0;
+    while len < 128 && *ptr.add(len) != 0 {
+        len += 1;
+    }
+    std::slice::from_raw_parts(ptr, len)
+}
+
+const PID_PREFIX: [u16; 4] = [b'p' as u16, b'i' as u16, b'd' as u16, b'_' as u16];
+
+/// Parses the PID from a GPU engine instance `pid_<pid>_luid_...` without allocating.
+fn pid_from_instance(name: &[u16]) -> Option<u32> {
+    let rest = name.strip_prefix(&PID_PREFIX[..])?;
+    let digits = &rest[..rest.iter().position(|&c| c == u16::from(b'_'))?];
+    if digits.is_empty() {
+        return None;
+    }
+    digits.iter().try_fold(0u32, |pid, &c| {
+        let digit = c.checked_sub(u16::from(b'0')).filter(|d| *d <= 9)?;
+        pid.checked_mul(10)?.checked_add(u32::from(digit))
+    })
+}
+
+#[cfg(test)]
+mod gpu_instance_tests {
+    use super::pid_from_instance;
+
+    fn utf16(text: &str) -> Vec<u16> { text.encode_utf16().collect() }
+
+    #[test]
+    fn parses_only_whole_pid_fields() {
+        assert_eq!(pid_from_instance(&utf16("pid_1234_luid_0x0_phys_0_eng_0")), Some(1234));
+        assert_eq!(pid_from_instance(&utf16("pid_12_")), Some(12), "12 is not a prefix match for 1234");
+        assert_eq!(pid_from_instance(&utf16("pid_1234")), None, "no terminator, no PID");
+        assert_eq!(pid_from_instance(&utf16("pid__")), None);
+        assert_eq!(pid_from_instance(&utf16("pid_12a_")), None);
+        assert_eq!(pid_from_instance(&utf16("pid_99999999999_")), None, "overflow is rejected");
+        assert_eq!(pid_from_instance(&utf16("luid_pid_5_")), None);
+    }
+}
+
 fn to_wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
@@ -346,6 +425,9 @@ struct Sampler {
     counter_net_recv: isize,
     #[cfg(windows)]
     counter_net_sent: isize,
+    /// Reused by every PDH array read. `u64` storage keeps the pointer-bearing PDH items aligned.
+    #[cfg(windows)]
+    pdh_buffer: Vec<u64>,
 }
 
 impl Sampler {
@@ -387,65 +469,32 @@ impl Sampler {
             counter_net_recv,
             #[cfg(windows)]
             counter_net_sent,
+            #[cfg(windows)]
+            pdh_buffer: Vec::new(),
         }
     }
 
+    /// Sums GPU engine usage. With `target_pids`, only instances named `pid_<pid>_...` for those PIDs count.
     #[cfg(windows)]
-    unsafe fn read_gpu_usage_for_pids(counter: isize, target_pids: &[u32]) -> f32 {
+    unsafe fn read_gpu_usage_for_pids(counter: isize, buffer: &mut Vec<u64>, target_pids: &[u32]) -> f32 {
         if counter == 0 {
             return 0.0;
         }
-        let mut buf_size: u32 = 0;
-        let mut item_count: u32 = 0;
-        let _ = win_ffi::PdhGetFormattedCounterArrayW(
-            counter,
-            win_ffi::PDH_FMT_DOUBLE,
-            &mut buf_size,
-            &mut item_count,
-            std::ptr::null_mut(),
-        );
-        if buf_size == 0 || item_count == 0 {
-            return 0.0;
-        }
-        let mut buffer = vec![0u8; buf_size as usize];
-        if win_ffi::PdhGetFormattedCounterArrayW(
-            counter,
-            win_ffi::PDH_FMT_DOUBLE,
-            &mut buf_size,
-            &mut item_count,
-            buffer.as_mut_ptr(),
-        ) != 0
-        {
-            return 0.0;
-        }
-
-        let items = std::slice::from_raw_parts(
-            buffer.as_ptr().cast::<win_ffi::PdhFmtCountervalueItemW>(),
-            item_count as usize,
-        );
-
-        let prefixes: Vec<String> = target_pids.iter().map(|pid| format!("pid_{pid}_")).collect();
+        let Some(items) = pdh_array(counter, buffer) else { return 0.0 };
         let mut pid_sum = 0.0f64;
         let mut total_sum = 0.0f64;
-
         for item in items {
-            if item.fmt_value.c_status == 0 && item.fmt_value.double_value.is_finite() {
-                let val = item.fmt_value.double_value;
-                total_sum += val;
-
-                if !prefixes.is_empty() && !item.sz_name.is_null() {
-                    let mut len = 0usize;
-                    while *item.sz_name.add(len) != 0 && len < 128 {
-                        len += 1;
-                    }
-                    let name = String::from_utf16_lossy(std::slice::from_raw_parts(item.sz_name, len));
-                    if prefixes.iter().any(|p| name.starts_with(p)) {
-                        pid_sum += val;
-                    }
+            if item.fmt_value.c_status != 0 || !item.fmt_value.double_value.is_finite() {
+                continue;
+            }
+            let val = item.fmt_value.double_value;
+            total_sum += val;
+            if !target_pids.is_empty() && !item.sz_name.is_null() {
+                if pid_from_instance(instance_name(item.sz_name)).is_some_and(|pid| target_pids.contains(&pid)) {
+                    pid_sum += val;
                 }
             }
         }
-
         if target_pids.is_empty() {
             (total_sum as f32).clamp(0.0, 100.0)
         } else {
@@ -454,43 +503,17 @@ impl Sampler {
     }
 
     #[cfg(windows)]
-    unsafe fn read_pdh_array_sum(counter: isize) -> f64 {
+    unsafe fn read_pdh_array_sum(counter: isize, buffer: &mut Vec<u64>) -> f64 {
         if counter == 0 {
             return 0.0;
         }
-        let mut buf_size: u32 = 0;
-        let mut item_count: u32 = 0;
-        let _ = win_ffi::PdhGetFormattedCounterArrayW(
-            counter,
-            win_ffi::PDH_FMT_DOUBLE,
-            &mut buf_size,
-            &mut item_count,
-            std::ptr::null_mut(),
-        );
-        if buf_size == 0 || item_count == 0 {
-            return 0.0;
-        }
-        let mut buffer = vec![0u8; buf_size as usize];
-        if win_ffi::PdhGetFormattedCounterArrayW(
-            counter,
-            win_ffi::PDH_FMT_DOUBLE,
-            &mut buf_size,
-            &mut item_count,
-            buffer.as_mut_ptr(),
-        ) == 0
-        {
-            let items = std::slice::from_raw_parts(
-                buffer.as_ptr().cast::<win_ffi::PdhFmtCountervalueItemW>(),
-                item_count as usize,
-            );
+        pdh_array(counter, buffer).map_or(0.0, |items| {
             items
                 .iter()
                 .filter(|item| item.fmt_value.c_status == 0 && item.fmt_value.double_value.is_finite())
                 .map(|item| item.fmt_value.double_value)
                 .sum()
-        } else {
-            0.0
-        }
+        })
     }
 
     #[cfg(windows)]
@@ -557,12 +580,12 @@ impl Sampler {
                 let _ = win_ffi::PdhCollectQueryData(self.pdh_query);
             }
 
-            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, target_pids);
+            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, &mut self.pdh_buffer, target_pids);
 
             let sys_disk_mbs =
                 (Self::read_pdh_single(self.counter_disk_read) / (1024.0 * 1024.0)).max(0.0) as f32;
-            let sys_net_kbs = ((Self::read_pdh_array_sum(self.counter_net_recv)
-                + Self::read_pdh_array_sum(self.counter_net_sent))
+            let sys_net_kbs = ((Self::read_pdh_array_sum(self.counter_net_recv, &mut self.pdh_buffer)
+                + Self::read_pdh_array_sum(self.counter_net_sent, &mut self.pdh_buffer))
                 / 1024.0)
                 .max(0.0) as f32;
             if !target_pids.is_empty() {
@@ -675,7 +698,7 @@ impl Sampler {
             self.metrics.target_name = "Sistema Global".into();
             self.metrics.has_target = false;
             self.metrics.target_pid = 0;
-            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, &[]);
+            self.metrics.gpu_usage_pct = Self::read_gpu_usage_for_pids(self.counter_gpu, &mut self.pdh_buffer, &[]);
             self.metrics.cpu_usage_pct = sys_cpu;
             let used_bytes = total_phys_bytes.saturating_sub(mem_status.ull_avail_phys);
             self.metrics.mem_used_mb = used_bytes as f32 / (1024.0 * 1024.0);
