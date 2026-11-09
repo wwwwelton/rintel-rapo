@@ -1,8 +1,9 @@
-//! AION2 focus mode: while `AION2.exe` owns the foreground, apply MMCSS "Games" tweaks and High
-//! process priority; undo all of it when focus leaves, on exit, and (via the on-disk backup) after a
-//! crash. The power plan is handled separately by `power.rs`.
+//! AION2 focus mode. The MMCSS "Games" tweaks are applied when RAPO starts and held while it runs,
+//! independent of the game; AION2's process priority is raised only while its window is focused. Everything
+//! is undone when the mode is switched off, on exit and, via on-disk backups, after a crash. The power plan
+//! is handled separately by `power.rs`.
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, io::Write, path::PathBuf};
+use std::{collections::HashMap, io::Write, path::{Path, PathBuf}};
 use windows_sys::Win32::{
     Foundation::CloseHandle,
     System::Threading::{
@@ -25,7 +26,7 @@ enum Val { Dword(u32), Sz(String) }
 /// exist. Keys and names are never read from disk, so a tampered backup cannot redirect the writes.
 type Saved = Vec<Option<Val>>;
 
-/// MMCSS values applied while the game is focused (Microsoft Learn, "Multimedia Class Scheduler Service").
+/// MMCSS values applied for the whole RAPO session (Microsoft Learn, "Multimedia Class Scheduler Service").
 /// SystemResponsiveness 10 is the lowest effective reserve: values below 10 are clamped back to the default 20.
 /// NetworkThrottlingIndex 0xFFFFFFFF disables the multimedia network throttle. `Priority` is ignored for
 /// Scheduling Category High and `GPU Priority`/`SFIO Priority` are documented as unused; they stay for parity
@@ -49,14 +50,16 @@ pub fn settings() -> Vec<String> {
         let value = match value { Val::Dword(u32::MAX) => "0xFFFFFFFF".into(), Val::Dword(v) => v.to_string(), Val::Sz(v) => v };
         format!("{} · {name} = {value}", if path == GAMES { "MMCSS Tasks\\Games" } else { "MMCSS SystemProfile" })
     }).collect();
-    lines.push("Prioridade de AION2.exe · Alta (apenas se estava Normal)".into());
+    lines.push("Prioridade de AION2.exe · Alta somente enquanto em foco (apenas se estava Normal)".into());
     lines
 }
 
-fn backup_path() -> Result<PathBuf, String> {
+fn data_dir() -> Result<PathBuf, String> {
     let base = std::env::var_os("LOCALAPPDATA").ok_or("LOCALAPPDATA ausente")?;
-    Ok(PathBuf::from(base).join("Rintel RAPO").join("mmcss-backup.json"))
+    Ok(PathBuf::from(base).join("Rintel RAPO"))
 }
+fn backup_path() -> Result<PathBuf, String> { data_dir().map(|dir| dir.join("mmcss-backup.json")) }
+fn priority_path() -> Result<PathBuf, String> { data_dir().map(|dir| dir.join("priority-backup.json")) }
 
 fn read(key: &RegKey, name: &str) -> Result<Option<Val>, String> {
     let raw = match key.get_raw_value(name) {
@@ -121,40 +124,68 @@ fn load_backup() -> Result<Option<Saved>, String> {
     }
 }
 
-/// Write-then-rename so a crash mid-write never leaves a truncated backup.
-fn write_backup(path: &std::path::Path, saved: &Saved) -> Result<(), String> {
+/// Write-then-rename so a crash mid-write never leaves a truncated file.
+fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let temp = path.with_extension("json.tmp");
-    let bytes = serde_json::to_vec(saved).map_err(|e| e.to_string())?;
     let mut file = std::fs::File::create(&temp).map_err(|e| format!("{}: {e}", temp.display()))?;
-    file.write_all(&bytes).and_then(|()| file.sync_all()).map_err(|e| format!("{}: {e}", temp.display()))?;
+    file.write_all(bytes).and_then(|()| file.sync_all()).map_err(|e| format!("{}: {e}", temp.display()))?;
     std::fs::rename(&temp, path).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// Records which processes this session raised (pid, creation time) so a crash cannot leave them High
+/// unnoticed; an empty set removes the file.
+fn persist_priorities(boosted: &HashMap<u32, u64>) -> Result<(), String> {
+    let path = priority_path()?;
+    if boosted.is_empty() {
+        return match std::fs::remove_file(&path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("{}: {e}", path.display())),
+            _ => Ok(()),
+        };
+    }
+    let entries: Vec<(u32, u64)> = boosted.iter().map(|(&pid, &created)| (pid, created)).collect();
+    write_atomic(&path, &serde_json::to_vec(&entries).map_err(|e| e.to_string())?)
+}
+
+/// Processes a crashed session raised. Restoring only touches a process whose pid, creation time and
+/// current High class still match, so a tampered file can at worst lower a High process to Normal.
+fn load_priorities() -> HashMap<u32, u64> {
+    let Ok(path) = priority_path() else { return HashMap::new() };
+    std::fs::read(path).ok()
+        .and_then(|bytes| serde_json::from_slice::<Vec<(u32, u64)>>(&bytes).ok())
+        .map(|entries| entries.into_iter().collect())
+        .unwrap_or_default()
+}
+
 pub struct Focus {
-    /// Originals of the tweaks currently applied (or left by a crash and not yet restored).
+    /// Originals of the MMCSS tweaks currently applied (or left by a crash and not yet restored).
     saved: Option<Saved>,
     /// pid -> process creation time, so a recycled pid is never touched.
     boosted: HashMap<u32, u64>,
-    /// Failure of the current focus period; no retry until focus is lost, so a failing write is not repeated every second.
+    /// Failure to apply the tweaks this session; no retry until the mode is switched off and on again,
+    /// so a failing write (for example without administrator rights) is not repeated every second.
     latched: Option<String>,
 }
 
 impl Focus {
-    /// Rolls back tweaks a previous crashed session left applied; a failed rollback is retried on every update.
+    /// Rolls back what a previous crashed session left applied; failed rollbacks are retried on every update.
     pub fn new() -> (Self, Option<String>) {
-        let mut focus = Self { saved: None, boosted: HashMap::new(), latched: None };
-        let error = match load_backup() {
-            Ok(Some(saved)) => { focus.saved = Some(saved); focus.revert().err() }
-            Ok(None) => None,
-            Err(e) => Some(e),
-        };
-        (focus, error)
+        let mut focus = Self { saved: None, boosted: load_priorities(), latched: None };
+        let mut errors = Vec::new();
+        match load_backup() {
+            Ok(Some(saved)) => { focus.saved = Some(saved); errors.extend(focus.revert().err()); }
+            Ok(None) => {}
+            Err(e) => errors.push(e),
+        }
+        errors.extend(focus.unboost().err());
+        (focus, if errors.is_empty() { None } else { Some(errors.join("; ")) })
     }
 
     pub fn active(&self) -> bool { self.saved.is_some() }
 
-    pub fn update(&mut self, focused: bool, pids: &[u32]) -> Result<(), String> {
-        if !focused {
+    /// `enabled`: MMCSS tweaks held for the session. `focused`: AION2 owns the foreground, so its
+    /// processes (`pids`) run at High priority.
+    pub fn update(&mut self, enabled: bool, focused: bool, pids: &[u32]) -> Result<(), String> {
+        if !enabled {
             self.latched = None;
             let errors: Vec<String> = [self.unboost(), self.revert()].into_iter().filter_map(Result::err).collect();
             return if errors.is_empty() { Ok(()) } else { Err(errors.join("; ")) };
@@ -164,7 +195,7 @@ impl Focus {
             self.latched = Some(error.clone());
             return Err(error);
         }
-        self.boost(pids)
+        if focused { self.boost(pids) } else { self.unboost() }
     }
 
     fn apply(&mut self) -> Result<(), String> {
@@ -181,7 +212,7 @@ impl Focus {
             saved.push(read(&key, name)?);
             keys.push(key);
         }
-        write_backup(&path, &saved)?;
+        write_atomic(&path, &serde_json::to_vec(&saved).map_err(|e| e.to_string())?)?;
         for ((_, name, value), key) in specs.iter().zip(&keys) {
             if let Err(e) = write(key, name, value) {
                 return match restore(&saved) {
@@ -205,7 +236,8 @@ impl Focus {
         }
     }
 
-    /// Raises Normal-priority AION2 processes to High; anything already customised is left alone.
+    /// Raises Normal-priority AION2 processes to High; anything already customised is left alone. Each is
+    /// recorded on disk before it is raised.
     fn boost(&mut self, pids: &[u32]) -> Result<(), String> {
         let mut first = None;
         for &pid in pids {
@@ -219,10 +251,23 @@ impl Focus {
                     continue;
                 }
                 if GetPriorityClass(handle) == NORMAL_PRIORITY_CLASS {
-                    if SetPriorityClass(handle, HIGH_PRIORITY_CLASS) == 0 {
-                        first.get_or_insert(format!("PID {pid}: {}", std::io::Error::last_os_error()));
-                    } else if let Ok(created) = crate::windows::process_created(handle) {
-                        self.boosted.insert(pid, created);
+                    match crate::windows::process_created(handle) {
+                        Ok(created) => {
+                            self.boosted.insert(pid, created);
+                            let raised = persist_priorities(&self.boosted).and_then(|()| {
+                                if SetPriorityClass(handle, HIGH_PRIORITY_CLASS) == 0 {
+                                    Err(format!("PID {pid}: {}", std::io::Error::last_os_error()))
+                                } else {
+                                    Ok(())
+                                }
+                            });
+                            if let Err(e) = raised {
+                                self.boosted.remove(&pid);
+                                let _ = persist_priorities(&self.boosted);
+                                first.get_or_insert(e);
+                            }
+                        }
+                        Err(e) => { first.get_or_insert(e); }
                     }
                 }
                 CloseHandle(handle);
@@ -233,11 +278,15 @@ impl Focus {
 
     /// Entries stay until restored or the process is confirmed gone, so a transient failure is retried.
     fn unboost(&mut self) -> Result<(), String> {
-        let mut first = None;
+        if self.boosted.is_empty() { return Ok(()); }
+        let (mut first, before) = (None, self.boosted.len());
         self.boosted.retain(|&pid, &mut created| match restore_priority(pid, created) {
             Ok(()) => false,
             Err(e) => { first.get_or_insert(e); true }
         });
+        if self.boosted.len() != before {
+            if let Err(e) = persist_priorities(&self.boosted) { first.get_or_insert(e); }
+        }
         first.map_or(Ok(()), Err)
     }
 }
@@ -265,7 +314,7 @@ fn restore_priority(pid: u32, created: u64) -> Result<(), String> {
 
 impl Drop for Focus {
     fn drop(&mut self) {
-        let _ = self.update(false, &[]);
+        let _ = self.update(false, false, &[]);
     }
 }
 

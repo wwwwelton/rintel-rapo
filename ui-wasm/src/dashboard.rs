@@ -556,12 +556,12 @@ pub fn render(view: &Dashboard) -> String {
 
 /// Info box: every setting AION2 focus mode applies, whether it is active now, and the opt-out switch.
 fn render_focus(html: &mut String, focus: &Focus) {
-    write!(html, "<section class=\"power-plan focus-info\"><h2>MODO FOCO AION2 · CONFIGURAÇÕES ADICIONADAS</h2><label class=\"property-toggle\"><input type=\"checkbox\" data-action=\"focus\"{}> <div class=\"property-text\"><span class=\"property-name\">Aplicar ao focar o AION2.exe</span><span class=\"property-desc\">{}</span></div></label>",
+    write!(html, "<section class=\"power-plan focus-info\"><h2>MODO FOCO AION2 · CONFIGURAÇÕES ADICIONADAS</h2><label class=\"property-toggle\"><input type=\"checkbox\" data-action=\"focus\"{}> <div class=\"property-text\"><span class=\"property-name\">Aplicar ajustes MMCSS ao iniciar o RAPO</span><span class=\"property-desc\">{}</span></div></label>",
         if focus.enabled { " checked" } else { "" },
-        if !focus.enabled { "Desligado: nada é alterado." } else if focus.active { "ATIVO agora: ajustes aplicados." } else { "Em espera: aplica quando o AION2 estiver em primeiro plano." }).unwrap();
+        if !focus.enabled { "Desligado: nada é alterado." } else if focus.active { "ATIVO agora: MMCSS aplicado desde a inicialização do RAPO." } else { "Não aplicado: veja o erro abaixo." }).unwrap();
     html.push_str("<ul>");
     for line in &focus.settings { write!(html, "<li><code>{}</code></li>", escape(line)).unwrap(); }
-    html.push_str("</ul><p>Valores originais são salvos antes e restaurados ao perder o foco, ao fechar o RAPO e após uma queda (backup em <code>%LOCALAPPDATA%\\Rintel RAPO\\mmcss-backup.json</code>). Requer administrador.</p>");
+    html.push_str("</ul><p>Os ajustes MMCSS são aplicados ao iniciar o RAPO, independentemente do jogo, e mantidos enquanto ele roda; a prioridade do AION2 só sobe com a janela em foco. Valores originais são salvos antes e restaurados ao desligar a opção, ao fechar o RAPO e após uma queda (backups em <code>%LOCALAPPDATA%\\Rintel RAPO</code>). Requer administrador.</p>");
     if !focus.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&focus.error)).unwrap(); }
     html.push_str("</section>");
 }

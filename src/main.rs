@@ -370,7 +370,7 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
 
             let focused = self.focus_enabled && windows::aion2_foreground();
             let pids = if focused { windows::aion2_pids() } else { Ok(Vec::new()) };
-            let focus_result = self.focus.update(focused, pids.as_deref().unwrap_or_default()).and(pids.map(drop));
+            let focus_result = self.focus.update(self.focus_enabled, focused, pids.as_deref().unwrap_or_default()).and(pids.map(drop));
             match focus_result {
                 Err(error) => self.focus_error = error,
                 // A preference that failed to load keeps its message while the mode stays off.
