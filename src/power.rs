@@ -20,10 +20,13 @@ extern "system" {
 extern "system" { fn LocalFree(memory: *mut std::ffi::c_void) -> *mut std::ffi::c_void; }
 fn active() -> Result<Guid, String> {
     let mut scheme = ptr::null_mut();
+    // SAFETY: a null root key selects the local machine and `scheme` is a valid out-pointer.
     let error = unsafe { PowerGetActiveScheme(ptr::null_mut(), &mut scheme) };
     if error != 0 { return Err(format!("Leitura do plano de energia: {error}")); }
     if scheme.is_null() { return Err("Plano de energia ausente".into()); }
+    // SAFETY: `scheme` is non-null (checked above) and points to a GUID written by PowerGetActiveScheme.
     let value = unsafe { *scheme };
+    // SAFETY: `scheme` was allocated by PowerGetActiveScheme with LocalAlloc and is freed exactly once; it is not used afterwards.
     unsafe { LocalFree(scheme.cast()); }
     Ok(value)
 }
@@ -37,16 +40,18 @@ pub struct ActivePlan {
 pub fn active_plan() -> Result<ActivePlan, String> {
     let scheme = active()?;
     let mut bytes = 0u32;
+    // SAFETY: a null name buffer is the documented size query; `scheme` and `bytes` are live locals.
     let error = unsafe {
         PowerReadFriendlyName(ptr::null_mut(), &scheme, ptr::null(), ptr::null(), ptr::null_mut(), &mut bytes)
     };
     if error != 0 && error != 234 {
         return Err(format!("Leitura do nome do plano de energia: {error}"));
     }
-    if bytes == 0 || bytes % 2 != 0 {
+    if bytes == 0 || !bytes.is_multiple_of(2) {
         return Err("Nome do plano de energia inválido".into());
     }
     let mut name = vec![0u16; bytes as usize / 2];
+    // SAFETY: `name` is a writable buffer of exactly `bytes` bytes and `scheme` is a live GUID.
     let error = unsafe {
         PowerReadFriendlyName(ptr::null_mut(), &scheme, ptr::null(), ptr::null(), name.as_mut_ptr().cast(), &mut bytes)
     };
@@ -83,6 +88,7 @@ impl PlanWatch {
     pub fn new() -> Result<Self, String> {
         let subscription = Box::new(Subscription { callback: plan_changed, context: ptr::null_mut() });
         let mut handle = ptr::null_mut();
+        // SAFETY: the setting GUID is a static, `subscription` is heap-allocated and kept alive in `PlanWatch` until unregistration, and `handle` is a valid out-pointer.
         let error = unsafe {
             PowerSettingRegisterNotification(&ACTIVE_SCHEME_SETTING, DEVICE_NOTIFY_CALLBACK, &*subscription, &mut handle)
         };
@@ -95,6 +101,7 @@ impl PlanWatch {
 
 impl Drop for PlanWatch {
     fn drop(&mut self) {
+        // SAFETY: `self.handle` came from a successful registration and is unregistered once, before `_subscription` drops.
         unsafe { PowerSettingUnregisterNotification(self.handle); }
     }
 }
@@ -127,6 +134,7 @@ fn preferred() -> Result<Guid, String> {
     for index in 0.. {
         let mut scheme = PERFORMANCE;
         let mut bytes = std::mem::size_of::<Guid>() as u32;
+        // SAFETY: `scheme` and `bytes` are valid for writes and `bytes` is the size of `scheme`.
         let error = unsafe {
             PowerEnumerate(ptr::null_mut(), ptr::null(), ptr::null(), 16, index,
                 (&mut scheme as *mut Guid).cast(), &mut bytes)
@@ -135,6 +143,7 @@ fn preferred() -> Result<Guid, String> {
         if error != 0 { return Err(format!("Enumeração dos planos de energia: {error}")); }
         let mut name = [0u16; 256];
         let mut bytes = std::mem::size_of_val(&name) as u32;
+        // SAFETY: `scheme` is a live GUID and `name` is a writable buffer of exactly `bytes` bytes.
         let error = unsafe {
             PowerReadFriendlyName(ptr::null_mut(), &scheme, ptr::null(), ptr::null(),
                 name.as_mut_ptr().cast(), &mut bytes)
@@ -155,6 +164,7 @@ impl Power {
         if focused && self.applied.is_none() {
             let original = active()?;
             let selected = preferred()?;
+            // SAFETY: `selected` is a live GUID for the duration of the call; a null root key selects the local machine.
             let error = unsafe { PowerSetActiveScheme(ptr::null_mut(), &selected) };
             if error != 0 { return Err(format!("Ativação do plano de desempenho: {error}")); }
             self.applied = Some((original, selected));
@@ -162,6 +172,7 @@ impl Power {
             if let Some((original, selected)) = self.applied {
                 // Do not overwrite a plan chosen by the user or another controller.
                 if active()? == selected {
+                    // SAFETY: `original` is a live GUID for the duration of the call; a null root key selects the local machine.
                     let error = unsafe { PowerSetActiveScheme(ptr::null_mut(), &original) };
                     if error != 0 { return Err(format!("Restauração do plano de energia: {error}")); }
                 }

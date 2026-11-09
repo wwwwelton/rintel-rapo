@@ -387,8 +387,10 @@ impl RelayServer {
                 run.shared.close_connections();
                 if run.worker.take().unwrap().join().is_err() { self.error = "Worker SOCKS5 encerrado inesperadamente".into(); }
             }
-            if run.redundancy_worker.as_ref().is_some_and(JoinHandle::is_finished) {
-                if run.redundancy_worker.take().unwrap().join().is_err() { self.error = "Aprendizado UDP encerrado inesperadamente".into(); }
+            if run.redundancy_worker.as_ref().is_some_and(JoinHandle::is_finished)
+                && run.redundancy_worker.take().unwrap().join().is_err()
+            {
+                self.error = "Aprendizado UDP encerrado inesperadamente".into();
             }
         }
     }

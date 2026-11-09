@@ -9,6 +9,7 @@ fn result(code: u32, operation: &str) -> Result<(), String> {
     } else { Err(format!("{operation}: {} (Windows {code})", std::io::Error::from_raw_os_error(code as i32))) }
 }
 fn address(ip: IpAddr, scope: u32) -> SOCKADDR_INET {
+    // SAFETY: SOCKADDR_INET is plain data valid when zeroed; only the union member matching the written family is touched.
     unsafe {
         let mut value: SOCKADDR_INET = std::mem::zeroed();
         match ip {
@@ -19,6 +20,7 @@ fn address(ip: IpAddr, scope: u32) -> SOCKADDR_INET {
     }
 }
 fn decode(value: SOCKADDR_INET) -> Option<(IpAddr, u32)> {
+    // SAFETY: the union member read is the one selected by `si_family`.
     unsafe { match value.si_family {
         AF_INET => Some((Ipv4Addr::from(value.Ipv4.sin_addr.S_un.S_addr.to_ne_bytes()).into(), 0)),
         AF_INET6 => Some((Ipv6Addr::from(value.Ipv6.sin6_addr.u.Byte).into(), value.Ipv6.Anonymous.sin6_scope_id)),
@@ -28,12 +30,14 @@ fn decode(value: SOCKADDR_INET) -> Option<(IpAddr, u32)> {
 fn decode_row(row: &MIB_IPFORWARD_ROW2) -> Option<Route> {
     let (destination, _) = decode(row.DestinationPrefix.Prefix)?;
     let (gateway, scope) = decode(row.NextHop)?;
+    // SAFETY: LUID `Value` is a plain u64 view of the union and is always initialised.
     Some(Route { destination, prefix: row.DestinationPrefix.PrefixLength, luid: unsafe { row.InterfaceLuid.Value },
         index: row.InterfaceIndex, gateway, scope, site_prefix: row.SitePrefixLength, metric: row.Metric,
         protocol: row.Protocol, origin: row.Origin, valid: row.ValidLifetime, preferred: row.PreferredLifetime,
         flags: [row.Loopback, row.AutoconfigureAddress, row.Publish, row.Immortal] })
 }
 fn encode_row(row: &Route) -> MIB_IPFORWARD_ROW2 {
+    // SAFETY: MIB_IPFORWARD_ROW2 is plain data valid when zeroed and is initialised by InitializeIpForwardEntry before use.
     unsafe {
         let mut native = std::mem::zeroed(); InitializeIpForwardEntry(&mut native);
         native.InterfaceLuid.Value = row.luid; native.InterfaceIndex = row.index;
@@ -47,6 +51,7 @@ fn encode_row(row: &Route) -> MIB_IPFORWARD_ROW2 {
 }
 impl Backend for Windows {
     fn rows(&mut self) -> Result<Vec<Route>, String> {
+        // SAFETY: the table pointer is null-checked, the slice covers exactly `NumEntries` rows of that table, and the table is freed once after the rows were copied out.
         unsafe {
             let mut table = std::ptr::null_mut();
             result(GetIpForwardTable2(AF_UNSPEC, &mut table), "Ler rotas")?;
@@ -63,6 +68,7 @@ impl Backend for Windows {
                 || route.host() || route.valid == 0 || route.flags[0] != 0 || route.destination.is_ipv6() != route.gateway.is_ipv6() { continue; }
             let id = route.candidate_id();
             if candidates.iter().any(|c: &Candidate| c.id == id) { continue; }
+            // SAFETY: rows are plain data valid when zeroed, initialised by the Initialize* helpers and queried through valid pointers.
             unsafe {
                 let mut interface: MIB_IF_ROW2 = std::mem::zeroed(); interface.InterfaceLuid.Value = route.luid;
                 if GetIfEntry2(&mut interface) != 0 || interface.OperStatus != IfOperStatusUp || interface.InterfaceIndex != route.index { continue; }
@@ -80,6 +86,7 @@ impl Backend for Windows {
     }
     fn create(&mut self, row: &Route) -> Result<(), String> {
         // CreateIpForwardEntry2 only touches the active store, not persistent routes.
+        // SAFETY: the temporary row built by `encode_row` outlives the call.
         result(unsafe { CreateIpForwardEntry2(&encode_row(row)) }, "Criar rota host")
     }
     fn delete(&mut self, row: &Route) -> Result<(), String> {
@@ -87,6 +94,7 @@ impl Backend for Windows {
         let current = self.rows()?.into_iter().find(|r| r.same_key(row));
         match current {
             None => Ok(()),
+            // SAFETY: the temporary row built by `encode_row` outlives the call.
             Some(current) if current == *row => result(unsafe { DeleteIpForwardEntry2(&encode_row(row)) }, "Remover rota host"),
             Some(_) => Err("Rota mudou antes da remoção; preservada.".into()),
         }
@@ -111,6 +119,7 @@ pub(crate) fn egresses(destination: SocketAddr) -> Result<Vec<(Observation, Sock
 }
 
 fn observe_on(destination: SocketAddr, interface: u32) -> Result<(Observation, SocketAddr), String> {
+    // SAFETY: SOCKADDR_INET/route rows are plain data valid when zeroed; all out-pointers are valid locals and the decoders read the union member selected by the family.
     unsafe {
         let target = address(destination.ip(), match destination { SocketAddr::V6(v6) => v6.scope_id(), _ => 0 });
         let mut row = std::mem::zeroed(); let mut source = std::mem::zeroed();

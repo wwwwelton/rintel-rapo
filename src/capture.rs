@@ -148,6 +148,7 @@ mod integrated {
     #[cfg(windows)]
     impl Drop for Session {
         fn drop(&mut self) {
+            // SAFETY: `self.0` is the session pointer this wrapper owns and stops exactly once.
             unsafe {
                 rapo_capture_stop(self.0);
             }
@@ -161,6 +162,7 @@ mod integrated {
             samples: &mut Samples,
         ) -> Result<usize, String> {
             let mut count = 0;
+            // SAFETY: `self.0` is the live session pointer; `frames` has the length passed and `count` is a valid out-pointer.
             check(unsafe {
                 rapo_capture_read(self.0, frames.as_mut_ptr(), frames.len() as u32, &mut count)
             })?;
@@ -172,6 +174,7 @@ mod integrated {
         }
         fn finish(&self) -> Result<(), String> {
             let mut lost = 0;
+            // SAFETY: `self.0` is the live session pointer and `lost` is a valid out-pointer.
             check(unsafe { rapo_capture_finish(self.0, &mut lost) })?;
             if lost != 0 {
                 return Err("Perda de eventos/buffers ETW; medição descartada e perfil anterior preservado".into());
@@ -240,6 +243,7 @@ mod integrated {
         /// One ETW session for `pid`; returns when the game exits, the session fails, or cancel is set.
         fn run(pid: u32, cancel: &AtomicBool, latest: &Mutex<Option<LiveStats>>) -> Result<(), String> {
             let (mut frequency, mut origin, mut error) = (0u64, 0u64, 0u32);
+            // SAFETY: out-pointers are valid locals; `cancel` outlives the session (dropped before return) so `cancelled` may read it; a null result is checked below.
             let pointer = unsafe {
                 super::rapo_capture_start(pid, &mut frequency, &mut origin, &mut error, super::cancelled, (cancel as *const AtomicBool).cast())
             };
@@ -252,6 +256,7 @@ mod integrated {
             let span = frequency.saturating_mul(2);
             while !cancel.load(Ordering::Acquire) {
                 let mut count = 0;
+                // SAFETY: `session.0` is the live session pointer; `frames` has the length passed and `count` is a valid out-pointer.
                 check(unsafe { super::rapo_capture_read(session.0, frames.as_mut_ptr(), frames.len() as u32, &mut count) })?;
                 for frame in frames.get(..count as usize).unwrap_or(&[]) {
                     if frame.lost == 0 && frame.timestamp >= origin {
@@ -295,6 +300,7 @@ mod integrated {
     }
     #[cfg(windows)]
     extern "C" fn cancelled(context: *const c_void) -> bool {
+        // SAFETY: `context` is the `*const AtomicBool` given to `rapo_capture_start`; the borrowed flag outlives the session that calls back.
         unsafe { &*context.cast::<AtomicBool>() }.load(Ordering::Acquire)
     }
     #[cfg(windows)]
@@ -307,6 +313,7 @@ mod integrated {
             return Err("Captura cancelada".into());
         }
         let (mut frequency, mut origin, mut error) = (0, 0, 0);
+        // SAFETY: out-pointers are valid locals; `cancel` outlives the session (dropped before return) so `cancelled` may read it; a null result is checked below.
         let pointer = unsafe {
             rapo_capture_start(
                 pid, &mut frequency, &mut origin, &mut error,

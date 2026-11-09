@@ -79,9 +79,11 @@ fn worker(id: usize, shared: Arc<Shared>) {
             break;
         }
         let window = shared.window.load(Ordering::Acquire);
+        // SAFETY: GetCurrentProcessorNumber takes no arguments and only reads the current thread's state.
         let first = unsafe { GetCurrentProcessorNumber() };
         at = chase(&private, at, PRIVATE_LINES * PRIVATE_PASSES);
         shared_at = chase(&shared.data, shared_at, SHARED_STEPS);
+        // SAFETY: GetCurrentProcessorNumber takes no arguments and only reads the current thread's state.
         let cpu = unsafe { GetCurrentProcessorNumber() };
         if let Some(stats) = shared.stats.get(window) {
             stats.worker_frames.fetch_add(1, Ordering::Relaxed);
@@ -143,7 +145,7 @@ fn score(times: &[f64]) -> Score {
 fn median(mut values: Vec<f64>) -> f64 {
     values.sort_by(f64::total_cmp);
     let mid = values.len() / 2;
-    if values.len() % 2 == 0 { (values[mid - 1] + values[mid]) / 2.0 } else { values[mid] }
+    if values.len().is_multiple_of(2) { (values[mid - 1] + values[mid]) / 2.0 } else { values[mid] }
 }
 
 #[test]

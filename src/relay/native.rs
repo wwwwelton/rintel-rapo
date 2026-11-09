@@ -12,6 +12,7 @@ pub(super) fn egresses(target: SocketAddr) -> io::Result<Vec<Egress>> {
     }).collect()).map_err(io::Error::other)
 }
 fn address(socket: SocketAddr) -> (SOCKADDR_INET, i32) {
+    // SAFETY: SOCKADDR_INET is plain data valid when zeroed; only the union member matching the written family is touched.
     unsafe {
         let mut value: SOCKADDR_INET = std::mem::zeroed();
         let length = match socket {
@@ -32,7 +33,10 @@ fn address(socket: SocketAddr) -> (SOCKADDR_INET, i32) {
         (value, length as i32)
     }
 }
-fn last_error() -> io::Error { io::Error::from_raw_os_error(unsafe { WSAGetLastError() }) }
+fn last_error() -> io::Error {
+    // SAFETY: WSAGetLastError takes no arguments and only reads thread-local state.
+    io::Error::from_raw_os_error(unsafe { WSAGetLastError() })
+}
 
 /// Socket pinned to the exit's interface (`*_UNICAST_IF`) and source address; never falls back unbound.
 fn bound(target: SocketAddr, exit: &Egress, kind: i32, protocol: i32) -> io::Result<OwnedSocket> {
@@ -40,16 +44,20 @@ fn bound(target: SocketAddr, exit: &Egress, kind: i32, protocol: i32) -> io::Res
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "Saída SOCKS5 sem interface/origem válida"));
     }
     // The listener initializes Winsock before any client worker can reach this function.
+    // SAFETY: plain value arguments and a null protocol-info pointer; the result is checked against INVALID_SOCKET.
     let raw = unsafe { WSASocketW(if target.is_ipv4() { AF_INET } else { AF_INET6 } as i32,
         kind, protocol, std::ptr::null(), 0, WSA_FLAG_NO_HANDLE_INHERIT | WSA_FLAG_OVERLAPPED) };
     if raw == INVALID_SOCKET { return Err(last_error()); }
+    // SAFETY: `raw` is a freshly created socket not owned elsewhere, so the wrapper becomes its sole owner.
     let socket = unsafe { OwnedSocket::from_raw_socket(raw as _) };
     let (level, option, index) = if target.is_ipv4() { (IPPROTO_IP, IP_UNICAST_IF, exit.interface.to_be()) }
         else { (IPPROTO_IPV6, IPV6_UNICAST_IF, exit.interface) };
+    // SAFETY: `raw` is a live socket owned by `socket`; `index` is a live integer of the size passed.
     if unsafe { setsockopt(raw, level, option, std::ptr::addr_of!(index).cast(), std::mem::size_of_val(&index) as i32) } == SOCKET_ERROR {
         return Err(last_error());
     }
     let (local, length) = address(exit.source);
+    // SAFETY: `raw` is a live socket owned by `socket`; `local` is a valid SOCKADDR_INET of `length` bytes.
     if unsafe { bind(raw, std::ptr::addr_of!(local).cast(), length) } == SOCKET_ERROR { return Err(last_error()); }
     Ok(socket)
 }
@@ -63,6 +71,7 @@ pub(super) fn connect(target: SocketAddr, exit: &Egress, running: &AtomicBool) -
     let raw = socket.as_raw_socket() as SOCKET;
     socket.set_nonblocking(true)?;
     let (remote, length) = address(target);
+    // SAFETY: `raw` is a live socket owned by `socket`; `remote` is a valid SOCKADDR_INET of `length` bytes.
     let result = unsafe { windows_sys::Win32::Networking::WinSock::connect(raw, std::ptr::addr_of!(remote).cast(), length) };
     if result == SOCKET_ERROR {
         let error = last_error();
@@ -73,6 +82,7 @@ pub(super) fn connect(target: SocketAddr, exit: &Egress, running: &AtomicBool) -
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() { return Err(io::ErrorKind::TimedOut.into()); }
             let mut fd = WSAPOLLFD { fd: socket.as_raw_socket() as _, events: POLLWRNORM, revents: 0 };
+            // SAFETY: `fd` is a live WSAPOLLFD and the count of 1 matches it.
             let ready = unsafe { WSAPoll(&mut fd, 1, remaining.min(Duration::from_millis(50)).as_millis().max(1) as i32) };
             if ready == SOCKET_ERROR { return Err(last_error()); }
             if ready == 0 { continue; }
@@ -100,6 +110,7 @@ mod tests {
             let raw = stream.as_raw_socket() as _;
             let mut index = 0u32; let mut length = 4;
             let (level, option) = if target.is_ipv4() { (IPPROTO_IP, IP_UNICAST_IF) } else { (IPPROTO_IPV6, IPV6_UNICAST_IF) };
+            // SAFETY: `raw` is a live socket and `index`/`length` describe a writable 4-byte option buffer.
             assert_eq!(unsafe { getsockopt(raw, level, option, std::ptr::addr_of_mut!(index).cast(), &mut length) }, 0);
             assert_eq!(index, exit.interface, "Windows reports the selected outgoing interface");
             let mut invalid = exit.clone();

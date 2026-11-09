@@ -45,6 +45,7 @@ impl Monitor {
     }
 
     pub fn refresh(&mut self) -> Result<(), String> {
+        // SAFETY: GetActiveProcessorCount takes a plain group id and touches no memory.
         let count = unsafe { GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) } as usize;
         if count == 0 || count > 4096 {
             return Err("Contagem de processadores indisponível".into());
@@ -52,6 +53,7 @@ impl Monitor {
         let mut now = vec![ProcessorTime::default(); count];
         let mut returned = 0;
         // SystemProcessorPerformanceInformation (8) reports one sample per logical processor.
+        // SAFETY: `now` holds `count` samples and the byte length passed matches it; `returned` is a valid out-pointer.
         let status = unsafe {
             NtQuerySystemInformation(
                 8,
@@ -113,9 +115,11 @@ mod tests {
         monitor.refresh().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(60));
         monitor.refresh().unwrap();
+        // SAFETY: GetActiveProcessorCount takes a plain group id and touches no memory.
+        let active = unsafe { GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) } as usize;
         assert_eq!(
             monitor.load.len(),
-            unsafe { GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) } as usize
+            active
         );
         assert!(monitor.load.iter().all(|value| (0.0..=1.0).contains(value)));
     }

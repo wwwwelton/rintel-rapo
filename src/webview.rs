@@ -36,7 +36,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .with_custom_protocol("rapo".into(), |_id, req: Request<Vec<u8>>| asset(req.uri().path()))
         .with_url(ORIGIN)
         .with_navigation_handler(|url| url == ORIGIN || url == format!("{ORIGIN}index.html"))
-        .with_initialization_script(&format!("window.INITIAL_STATE = {initial};"))
+        .with_initialization_script(format!("window.INITIAL_STATE = {initial};"))
         .with_ipc_handler(move |req| {
             if let Some(command) = crate::command::from_json(req.body()) {
                 let _ = proxy.send_event(HostEvent::Command(command));

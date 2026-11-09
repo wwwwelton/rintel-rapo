@@ -54,6 +54,7 @@ mod windows_impl {
     fn system_dir() -> io::Result<PathBuf> {
         use std::os::windows::ffi::OsStringExt;
         let mut path = [0u16; 260];
+        // SAFETY: `path` is writable for the length passed.
         let length = unsafe {
             windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW(
                 path.as_mut_ptr(),
@@ -67,6 +68,7 @@ mod windows_impl {
 
     fn driver_running() -> io::Result<bool> {
         use windows_sys::Win32::System::Services::*;
+        // SAFETY: handles are null-checked and closed on every path; the name is NUL-terminated UTF-16 and the status struct is a valid out-buffer.
         unsafe {
             let scm = OpenSCManagerW(std::ptr::null(), std::ptr::null(), SC_MANAGER_CONNECT);
             if scm.is_null() { return Err(io::Error::last_os_error()); }
@@ -91,6 +93,7 @@ mod windows_impl {
     /// Without it an orphaned proxy keeps redirecting the game to a dead local port.
     fn kill_on_close_job() -> isize {
         use windows_sys::Win32::System::JobObjects::*;
+        // SAFETY: the job handle is created here and returned to the caller; the zeroed limit struct is plain data and is passed with its exact size.
         unsafe {
             let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
             if job.is_null() { return 0; }
@@ -226,6 +229,7 @@ mod windows_impl {
                 Ok(mut child) => {
                     if self.job != 0 {
                         use std::os::windows::io::AsRawHandle;
+                        // SAFETY: `self.job` is a job handle created by `kill_on_close_job` and `child` owns a live process handle.
                         let ok = unsafe { windows_sys::Win32::System::JobObjects::AssignProcessToJobObject(self.job as _, child.as_raw_handle() as _) };
                         if ok == 0 {
                             let _ = child.kill();

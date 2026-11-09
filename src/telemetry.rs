@@ -265,24 +265,28 @@ impl Mailbox {
         let previous = self.request.swap(Box::into_raw(Box::new(request)), Ordering::AcqRel);
         if !previous.is_null() {
             // A swap transfers exclusive ownership of the displaced allocation.
+            // SAFETY: the pointer was produced by `Box::into_raw` and the swap gave this thread sole ownership.
             drop(unsafe { Box::from_raw(previous) });
         }
     }
 
     fn take_request(&self) -> Option<Box<Request>> {
         let request = self.request.swap(std::ptr::null_mut(), Ordering::AcqRel);
+        // SAFETY: the pointer was produced by `Box::into_raw` and the swap gave this thread sole ownership.
         if request.is_null() { None } else { Some(unsafe { Box::from_raw(request) }) }
     }
 
     fn snapshot(&self, snapshot: Snapshot) {
         let previous = self.snapshot.swap(Box::into_raw(Box::new(snapshot)), Ordering::AcqRel);
         if !previous.is_null() {
+            // SAFETY: the pointer was produced by `Box::into_raw` and the swap gave this thread sole ownership.
             drop(unsafe { Box::from_raw(previous) });
         }
     }
 
     fn take_snapshot(&self) -> Option<Box<Snapshot>> {
         let snapshot = self.snapshot.swap(std::ptr::null_mut(), Ordering::AcqRel);
+        // SAFETY: the pointer was produced by `Box::into_raw` and the swap gave this thread sole ownership.
         if snapshot.is_null() { None } else { Some(unsafe { Box::from_raw(snapshot) }) }
     }
 }
@@ -432,6 +436,7 @@ struct Sampler {
 
 impl Sampler {
     fn new() -> Self {
+        // SAFETY: the PDH query/counters are out-parameters owned by this function; wide strings outlive each call and the query handle is only used after a successful open.
         #[cfg(windows)]
         let (pdh_query, counter_gpu, counter_disk_read, counter_net_recv, counter_net_sent) = unsafe {
             let mut query: isize = 0;
@@ -489,10 +494,10 @@ impl Sampler {
             }
             let val = item.fmt_value.double_value;
             total_sum += val;
-            if !target_pids.is_empty() && !item.sz_name.is_null() {
-                if pid_from_instance(instance_name(item.sz_name)).is_some_and(|pid| target_pids.contains(&pid)) {
-                    pid_sum += val;
-                }
+            if !target_pids.is_empty() && !item.sz_name.is_null()
+                && pid_from_instance(instance_name(item.sz_name)).is_some_and(|pid| target_pids.contains(&pid))
+            {
+                pid_sum += val;
             }
         }
         if target_pids.is_empty() {
@@ -566,6 +571,7 @@ impl Sampler {
 
         #[cfg(windows)]
         self.proc_samples.retain(|pid, _| target_pids.contains(pid));
+        // SAFETY: the PDH query and counters belong to `self`; every process handle is null-checked and closed, and each out-struct is zeroed plain data with its size field set before the call.
         #[cfg(windows)]
         unsafe {
             let mut mem_status: win_ffi::MemoryStatusEx = std::mem::zeroed();
@@ -720,6 +726,7 @@ impl Drop for Sampler {
     fn drop(&mut self) {
         #[cfg(windows)]
         if self.pdh_query != 0 {
+            // SAFETY: `pdh_query` was opened by PdhOpenQueryW in `new` and is closed exactly once here.
             unsafe {
                 let _ = win_ffi::PdhCloseQuery(self.pdh_query);
             }

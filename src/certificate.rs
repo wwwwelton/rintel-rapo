@@ -14,13 +14,19 @@ const PROMPTED_VALUE: &str = "CertificatePrompted";
 
 struct Cert(*mut CERT_CONTEXT);
 impl Drop for Cert {
-    fn drop(&mut self) { unsafe { CertFreeCertificateContext(self.0); } }
+    fn drop(&mut self) {
+        // SAFETY: `self.0` is the context this wrapper owns and frees exactly once.
+        unsafe { CertFreeCertificateContext(self.0); }
+    }
 }
 
 struct Store(HCERTSTORE);
 impl Drop for Store {
     // Flags 0 keeps contexts taken from the store valid until they are freed.
-    fn drop(&mut self) { unsafe { CertCloseStore(self.0, 0); } }
+    fn drop(&mut self) {
+        // SAFETY: `self.0` is the store handle this wrapper owns and closes exactly once.
+        unsafe { CertCloseStore(self.0, 0); }
+    }
 }
 
 fn wide(text: impl AsRef<std::ffi::OsStr>) -> Vec<u16> { text.as_ref().encode_wide().chain(Some(0)).collect() }
@@ -30,6 +36,7 @@ fn signer(exe: &Path) -> Option<Cert> {
     let path = wide(exe);
     let (mut encoding, mut content, mut format) = (0, 0, 0);
     let (mut store, mut msg) = (null_mut(), null_mut());
+    // SAFETY: `path` is NUL-terminated UTF-16 outliving the call; the returned store/msg are owned by the wrappers/closed below; every out-buffer is sized by the preceding size query.
     unsafe {
         if CryptQueryObject(CERT_QUERY_OBJECT_FILE, path.as_ptr().cast(), CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED, CERT_QUERY_FORMAT_FLAG_BINARY,
             0, &mut encoding, &mut content, &mut format, &mut store, &mut msg, null_mut()) == 0 { return None; }
@@ -48,6 +55,7 @@ fn signer(exe: &Path) -> Option<Cert> {
 }
 
 fn self_signed(cert: &Cert) -> bool {
+    // SAFETY: `cert.0` is a live context for the lifetime of `cert`, so `pCertInfo` and the borrowed names are valid for the comparison.
     unsafe {
         let info = &*(*cert.0).pCertInfo;
         CertCompareCertificateName(X509_ASN_ENCODING, &info.Subject, &info.Issuer) != 0
@@ -56,6 +64,7 @@ fn self_signed(cert: &Cert) -> bool {
 
 fn thumbprint(cert: &Cert) -> Option<String> {
     let (mut hash, mut size) = ([0u8; 20], 20u32);
+    // SAFETY: `hash` is a 20-byte buffer and `size` states exactly that length.
     let ok = unsafe { CertGetCertificateContextProperty(cert.0, CERT_SHA1_HASH_PROP_ID, hash.as_mut_ptr().cast(), &mut size) } != 0;
     ok.then(|| hash[..size as usize].iter().map(|b| format!("{b:02X}")).collect())
 }
@@ -63,6 +72,7 @@ fn thumbprint(cert: &Cert) -> Option<String> {
 fn open(name: &str, read_only: bool) -> Option<Store> {
     let name = wide(name);
     let flags = CERT_SYSTEM_STORE_CURRENT_USER | if read_only { CERT_STORE_READONLY_FLAG } else { 0 };
+    // SAFETY: `name` is a NUL-terminated UTF-16 string that outlives the call; the result is null-checked.
     let store = unsafe { CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0, flags, name.as_ptr() as *const c_void) };
     (!store.is_null()).then_some(Store(store))
 }
@@ -70,6 +80,7 @@ fn open(name: &str, read_only: bool) -> Option<Store> {
 /// The user's Root view also lists the machine's trusted roots.
 fn trusted(cert: &Cert) -> bool {
     let Some(root) = open("Root", true) else { return false };
+    // SAFETY: `root` and `cert` are live; the returned context (if any) is owned and released through `Cert`.
     let found = unsafe { CertFindCertificateInStore(root.0, ENCODING, 0, CERT_FIND_EXISTING, cert.0 as *const c_void, null()) };
     !found.is_null() && { drop(Cert(found)); true }
 }
@@ -78,6 +89,7 @@ fn trusted(cert: &Cert) -> bool {
 fn install(cert: &Cert) -> Result<(), String> {
     for name in ["Root", "TrustedPublisher"] {
         let store = open(name, false).ok_or_else(|| format!("Abrir CurrentUser\\{name}: {}", std::io::Error::last_os_error()))?;
+        // SAFETY: `store` and `cert` are live handles owned by their wrappers; the final out-pointer may be null.
         if unsafe { CertAddCertificateContextToStore(store.0, cert.0, CERT_STORE_ADD_USE_EXISTING, null_mut()) } == 0 {
             return Err(format!("CurrentUser\\{name}: {}", std::io::Error::last_os_error()));
         }
@@ -87,6 +99,7 @@ fn install(cert: &Cert) -> Result<(), String> {
 
 fn message(text: &str, flags: u32) -> i32 {
     let (text, title) = (wide(text), wide("Rintel RAPO"));
+    // SAFETY: both strings are NUL-terminated UTF-16 that outlive the call; a null owner window is allowed.
     unsafe { MessageBoxW(null_mut(), text.as_ptr(), title.as_ptr(), flags) }
 }
 

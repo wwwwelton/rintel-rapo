@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-#[path = "flow.rs"]
-mod flow;
+use crate::network_learning::flow;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct Settings {

@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(s.history.len(), 1); assert!(s.history(now)[0].contains("previsão neural"));
         let before = Window { sum: 120.0, min: 39.0, max: 41.0, count: 3 };
         let trial = Window { sum: 117.0, min: 38.0, max: 40.0, count: 3 };
-        assert!(!(trial.max + (before.mean() * 0.1).max(3.0) < before.min));
+        assert!(trial.max + (before.mean() * 0.1).max(3.0) >= before.min);
     }
     impl Action {
         fn clone_for_test(&self) -> Self { match self { Self::None => Self::None, Self::Restore => Self::Restore, Self::Apply(id) => Self::Apply(id.clone()) } }

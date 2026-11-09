@@ -85,6 +85,7 @@ fn affinity_mask(cores: &[Core], settings: Settings, process_mask: usize) -> usi
 }
 
 fn cpu_cores() -> Result<Vec<Core>, String> {
+    // SAFETY: the buffer is sized by the first call and 8-aligned; each entry is bounds-checked against `bytes` and its own `Size` before being read, and no reference outlives `buffer`.
     unsafe {
         let mut bytes = 0u32;
         GetSystemCpuSetInformation(std::ptr::null_mut(), 0, &mut bytes, std::ptr::null_mut(), 0);
@@ -148,6 +149,7 @@ fn cpu_cores() -> Result<Vec<Core>, String> {
 }
 
 fn thread_time(handle: *mut std::ffi::c_void) -> Option<(u64, u64, bool)> {
+    // SAFETY: `handle` is a caller-owned thread handle, FILETIME is plain data valid when zeroed, and the out-pointers are valid locals.
     unsafe {
         let (mut created, mut exited, mut kernel, mut user): (
             FILETIME,
@@ -251,6 +253,7 @@ impl Pinner {
     }
 
     fn restore_pin(pin: &Pinned) -> Result<RestoreOutcome, String> {
+        // SAFETY: the thread handle is null-checked and closed on every path; GROUP_AFFINITY is plain data valid when zeroed.
         unsafe {
             let thread = OpenThread(
                 THREAD_QUERY_LIMITED_INFORMATION | THREAD_SET_INFORMATION,
@@ -308,6 +311,7 @@ impl Pinner {
 
     fn restore(&mut self, pid: u32) -> Result<(), String> {
         if let Some(original_mask) = self.process_masks.remove(&pid) {
+            // SAFETY: the handle is null-checked, only borrowed by SetProcessAffinityMask, and closed afterwards.
             unsafe {
                 let handle = OpenProcess(PROCESS_SET_INFORMATION, 0, pid);
                 if !handle.is_null() {
@@ -335,6 +339,7 @@ impl Pinner {
     ) -> Result<(), String> {
         let prev_last = self.last;
         self.last = None;
+        // SAFETY: handles are null-checked and closed on every path; out-pointers are valid locals; every Win32 call receives only handles opened in this block.
         unsafe {
             let hwnd = GetForegroundWindow();
             let mut foreground = 0;
@@ -710,6 +715,7 @@ mod tests {
     #[test]
     fn installed_topology_accepts_reversible_p_core_mask() {
         let mask = Pinner::new().unwrap().mask;
+        // SAFETY: only plain-value Win32 calls on the current thread's pseudo-handle; the original affinity is restored before the assertion.
         unsafe {
             if GetActiveProcessorGroupCount() != 1 { return; }
             let thread = windows_sys::Win32::System::Threading::GetCurrentThread();

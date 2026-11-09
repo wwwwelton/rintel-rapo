@@ -39,6 +39,7 @@ mod native {
 
     pub fn executable(pid: u32, expected: &Path) -> Result<(), String> {
         existing_exe(expected)?;
+        // SAFETY: the process handle is null-checked and closed right after the query; `buffer` is writable for `length` UTF-16 units and `length` is updated to the count written.
         unsafe {
             let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
             if process.is_null() { return Err(format!("Alvo indisponível/acesso negado (Windows {})", GetLastError())); }

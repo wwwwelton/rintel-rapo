@@ -233,6 +233,7 @@ mod win_tray {
         optimizer_running: Arc<AtomicBool>,
         stop_flag: Arc<AtomicBool>,
         ) {
+        // SAFETY: this thread owns every window, icon and menu it creates and destroys them before exiting; all strings are NUL-terminated UTF-16 outliving their calls, and message structs are zeroed plain data.
         std::thread::spawn(move || unsafe {
             let class_name = to_wide("RintelRapoTrayClass");
             let wc = WndClassW {

@@ -168,6 +168,9 @@ fn decorate_rate_sample(sample: &ProcessPing, destination: &str, expected_route:
     route.gateway = format!("{} · {}", route.gateway, bps.map_or_else(|| "sem limite RAPO".into(), |r| format!("sistema {:.3} MB/s saída", r as f64 / 8_000_000.0)));
     Ok(sample)
 }
+impl Default for Service {
+    fn default() -> Self { Self::new() }
+}
 impl Service {
     pub fn new() -> Self {
         let (sender, requests) = mpsc::sync_channel(1); let (results, receiver) = mpsc::channel(); let (finished, done) = mpsc::channel();

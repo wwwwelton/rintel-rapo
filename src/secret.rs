@@ -19,6 +19,7 @@ pub fn seal(plain: &[u8]) -> Result<Vec<u8>, String> {
     let input = CRYPT_INTEGER_BLOB { cbData: u32::try_from(plain.len()).map_err(|_| "Segredo grande demais")?, pbData: plain.as_ptr().cast_mut() };
     let entropy = CRYPT_INTEGER_BLOB { cbData: ENTROPY.len() as u32, pbData: ENTROPY.as_ptr().cast_mut() };
     let mut output = CRYPT_INTEGER_BLOB { cbData: 0, pbData: null_mut() };
+    // SAFETY: `input`/`entropy` blobs borrow live slices for the call; on success DPAPI returns a LocalAlloc buffer of `cbData` bytes that is copied then freed once.
     unsafe {
         if CryptProtectData(&input, null(), &entropy, null(), null(), CRYPTPROTECT_UI_FORBIDDEN, &mut output) == 0 {
             return Err(format!("DPAPI não cifrou o segredo: {}", std::io::Error::last_os_error()));
@@ -38,6 +39,7 @@ pub fn open(blob: &[u8]) -> Option<Vec<u8>> {
     let input = CRYPT_INTEGER_BLOB { cbData: u32::try_from(body.len()).ok()?, pbData: body.as_ptr().cast_mut() };
     let entropy = CRYPT_INTEGER_BLOB { cbData: ENTROPY.len() as u32, pbData: ENTROPY.as_ptr().cast_mut() };
     let mut output = CRYPT_INTEGER_BLOB { cbData: 0, pbData: null_mut() };
+    // SAFETY: `input`/`entropy` blobs borrow live slices for the call; on success DPAPI returns a LocalAlloc buffer of `cbData` bytes that is copied then freed once.
     unsafe {
         if CryptUnprotectData(&input, null_mut(), &entropy, null(), null(), CRYPTPROTECT_UI_FORBIDDEN, &mut output) == 0 { return None; }
         let plain = std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec();

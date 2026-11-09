@@ -49,6 +49,7 @@ fn dynamic_budget() -> u64 {
             ull_avail_virtual: 0,
             ull_avail_extended_virtual: 0,
         };
+        // SAFETY: `status` is a live MEMORYSTATUSEX-compatible struct with its length field set.
         unsafe {
             if GlobalMemoryStatusEx(&mut status) == 0 {
                 return 0;

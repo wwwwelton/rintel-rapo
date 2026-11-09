@@ -386,9 +386,9 @@ mod tests {
         let json = serde_json::to_string(&rows).unwrap();
         assert!(!json.contains(KEY_A), "the private key must not reach the page: {json}");
         assert!(rows[0].active && !rows[1].active);
-        assert_eq!(rows[0].secrets_set["private_key"], true);
-        assert_eq!(rows[0].secrets_set["preshared_key"], false);
-        assert_eq!(rows[1].secrets_set["auth"], false);
+        assert!(rows[0].secrets_set["private_key"]);
+        assert!(!rows[0].secrets_set["preshared_key"]);
+        assert!(!rows[1].secrets_set["auth"]);
     }
 
     #[test]

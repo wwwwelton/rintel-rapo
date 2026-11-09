@@ -4,12 +4,13 @@ const MAX_DESTINATIONS: usize = 4;
 const TIMEOUT_MS: u32 = 250;
 const SAMPLE_INTERVAL: Duration = Duration::from_secs(3);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EchoOutcome {
     Reply(u32),
     ReplyTrace { ms: u32, hops: u8 },
     ReplyTcp { ms: u32, port: u16 },
     ReplyUdp { ms: u32, port: u16 },
+    #[default]
     Timeout,
     Unavailable(u32),
     TtlExpired(u32),
@@ -39,7 +40,7 @@ impl EchoOutcome {
         }
     }
 
-    #[cfg(any(windows, test))]
+    #[cfg(test)]
     pub(crate) fn from_status(status: u32, elapsed_ms: u32, hops: Option<u8>) -> Self {
         match status {
             0 => match hops {
@@ -50,12 +51,6 @@ impl EchoOutcome {
             11013 | 11014 => Self::TtlExpired(elapsed_ms),
             code => Self::Unavailable(code),
         }
-    }
-}
-
-impl Default for EchoOutcome {
-    fn default() -> Self {
-        Self::Timeout
     }
 }
 
@@ -223,7 +218,8 @@ pub(crate) fn round_trip_ms(_: std::net::Ipv4Addr) -> Option<u32> {
     None
 }
 
-static OBSERVED_UDP: std::sync::Mutex<Option<std::collections::HashMap<std::net::SocketAddr, (Option<u32>, Instant)>>> = std::sync::Mutex::new(None);
+type ObservedUdp = std::collections::HashMap<std::net::SocketAddr, (Option<u32>, Instant)>;
+static OBSERVED_UDP: std::sync::Mutex<Option<ObservedUdp>> = std::sync::Mutex::new(None);
 
 pub fn record_udp_destination(endpoint: std::net::SocketAddr, rtt_ms: Option<u32>) {
     if endpoint.ip().is_loopback() || endpoint.ip().is_unspecified() { return; }
@@ -265,6 +261,7 @@ fn collect(pids: &[u32]) -> ProcessPing {
     let relay_destinations = get_observed_udp_destinations();
     let mut errors = Vec::new();
 
+    // SAFETY: `MIB_TCPROW_OWNER_PID` is the row type returned for AF_INET TCP tables.
     let v4 = unsafe {
         visit_tcp_rows::<MIB_TCPROW_OWNER_PID>(AF_INET as u32, |row| {
             if row.dwState == 5 && pids.contains(&row.dwOwningPid) {
@@ -280,6 +277,7 @@ fn collect(pids: &[u32]) -> ProcessPing {
             }
         })
     };
+    // SAFETY: `MIB_TCP6ROW_OWNER_PID` is the row type returned for AF_INET6 TCP tables.
     let v6 = unsafe {
         visit_tcp_rows::<MIB_TCP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
             if row.dwState == 5 && pids.contains(&row.dwOwningPid) {
@@ -301,11 +299,13 @@ fn collect(pids: &[u32]) -> ProcessPing {
 
 
     let mut udp_sockets = 0usize;
+    // SAFETY: `MIB_UDPROW_OWNER_PID` is the row type returned for AF_INET UDP tables.
     let udp_v4 = unsafe {
         visit_udp_rows::<MIB_UDPROW_OWNER_PID>(AF_INET as u32, |row| {
             if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
         })
     };
+    // SAFETY: `MIB_UDP6ROW_OWNER_PID` is the row type returned for AF_INET6 UDP tables.
     let udp_v6 = unsafe {
         visit_udp_rows::<MIB_UDP6ROW_OWNER_PID>(AF_INET6 as u32, |row| {
             if pids.contains(&row.dwOwningPid) { udp_sockets += 1; }
@@ -359,8 +359,8 @@ unsafe fn visit_udp_rows<T: Copy>(family: u32, mut visit: impl FnMut(T)) -> Resu
     let mut status = GetExtendedUdpTable(std::ptr::null_mut(), &mut size, 0, family, UDP_TABLE_OWNER_PID, 0);
     for _ in 0..3 {
         if status != ERROR_INSUFFICIENT_BUFFER { return Err(status); }
-        if size < 4 || size > 16 * 1024 * 1024 { return Err(ERROR_INVALID_DATA); }
-        let mut buffer = vec![0u32; (size as usize + 3) / 4];
+        if !(4..=16 * 1024 * 1024).contains(&size) { return Err(ERROR_INVALID_DATA); }
+        let mut buffer = vec![0u32; (size as usize).div_ceil(4)];
         let capacity = buffer.len() * 4;
         size = capacity as u32;
         status = GetExtendedUdpTable(buffer.as_mut_ptr().cast(), &mut size, 0, family, UDP_TABLE_OWNER_PID, 0);
@@ -388,8 +388,8 @@ unsafe fn visit_tcp_rows<T: Copy>(family: u32, mut visit: impl FnMut(T)) -> Resu
     for _ in 0..3 {
         if status != ERROR_INSUFFICIENT_BUFFER { return Err(status); }
         // shortcut: cap the native table at 16 MiB; revisit only for unusually large connection tables.
-        if size < 4 || size > 16 * 1024 * 1024 { return Err(ERROR_INVALID_DATA); }
-        let mut buffer = vec![0u32; (size as usize + 3) / 4];
+        if !(4..=16 * 1024 * 1024).contains(&size) { return Err(ERROR_INVALID_DATA); }
+        let mut buffer = vec![0u32; (size as usize).div_ceil(4)];
         let capacity = buffer.len() * 4;
         size = capacity as u32;
         status = GetExtendedTcpTable(buffer.as_mut_ptr().cast(), &mut size, 0, family, TCP_TABLE_OWNER_PID_CONNECTIONS, 0);
@@ -519,6 +519,7 @@ pub(crate) fn trace_destination(destination: Destination) -> (EchoOutcome, Optio
         NetworkManagement::IpHelper::*,
     };
 
+    // SAFETY: the ICMP handle is validated before use and closed on every path; buffers given to the probe calls are live locals.
     unsafe {
         let handle = if destination.remote.is_ipv4() { IcmpCreateFile() } else { Icmp6CreateFile() };
         if handle == INVALID_HANDLE_VALUE || handle.is_null() {
@@ -579,7 +580,7 @@ pub(crate) fn trace_destination(destination: Destination) -> (EchoOutcome, Optio
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 fn echo(destination: Destination) -> EchoOutcome {
     trace_destination(destination).0
 }
@@ -867,6 +868,7 @@ mod tests {
         let _client = TcpStream::connect(address).unwrap();
         let (_server, _) = listener.accept().unwrap();
         let mut found = false;
+        // SAFETY: `MIB_TCPROW_OWNER_PID` is the row type returned for AF_INET TCP tables.
         unsafe {
             visit_tcp_rows::<MIB_TCPROW_OWNER_PID>(AF_INET as u32, |row| {
                 found |= row.dwOwningPid == std::process::id()

@@ -86,6 +86,7 @@ api! {
     start_local_server: unsafe extern "C" fn(*mut u8, usize, *mut usize) -> i32,
 }
 
+// SAFETY: `load` resolves every symbol with the signature declared in `Api`; the result is cached for the process lifetime.
 static API: LazyLock<Result<Api, String>> = LazyLock::new(|| unsafe { load() }.map_err(|e| e.to_string()));
 fn api() -> io::Result<&'static Api> {
     API.as_ref().map_err(|e| io::Error::other(format!("Biblioteca HY2 indisponível: {e}")))
@@ -131,10 +132,9 @@ mod platform {
         if module.is_null() { return Err(io::Error::last_os_error()); }
         Ok(move |name: &str| {
             let addr = GetProcAddress(module, name.as_ptr());
-            if addr.is_none() {
-                Err(io::Error::other(format!("símbolo ausente {}", name.trim_end_matches('\0'))))
-            } else {
-                Ok(addr.unwrap() as *const ())
+            match addr {
+                Some(addr) => Ok(addr as *const ()),
+                None => Err(io::Error::other(format!("símbolo ausente {}", name.trim_end_matches('\0')))),
             }
         })
     }
@@ -200,7 +200,12 @@ fn wait_ms(timeout: Option<Duration>) -> io::Result<u32> {
 /// Closes its Go handle on drop; closing a client also closes its children.
 struct Handle(u64);
 impl Drop for Handle {
-    fn drop(&mut self) { if let Ok(api) = api() { unsafe { (api.close)(self.0) } } }
+    fn drop(&mut self) {
+        if let Ok(api) = api() {
+            // SAFETY: `self.0` is the handle this wrapper owns and closes exactly once.
+            unsafe { (api.close)(self.0) }
+        }
+    }
 }
 
 /// One authenticated QUIC connection. Clones share it; it closes with its last owner.
@@ -212,6 +217,7 @@ pub fn local_server_config() -> io::Result<Config> {
     let api = api()?;
     let mut buf = [0u8; 8192];
     let mut actual = 0usize;
+    // SAFETY: `buf` is writable for its length and `actual` is a valid out-pointer.
     let code = unsafe { (api.start_local_server)(buf.as_mut_ptr(), buf.len(), &mut actual) };
     if code != 0 {
         return Err(error(code));
@@ -226,6 +232,7 @@ impl Client {
         let api = api()?;
         let json = serde_json::to_vec(config).map_err(io::Error::other)?;
         let mut id = 0;
+        // SAFETY: `json` is valid for its length and `id` is a valid out-pointer.
         check(unsafe { (api.connect)(json.as_ptr(), json.len(), &mut id) })?;
         Ok(Self(Arc::new(Handle(id))))
     }
@@ -234,6 +241,7 @@ impl Client {
     pub fn connect_wireguard(profile_json: &[u8]) -> io::Result<Self> {
         let api = api()?;
         let mut id = 0;
+        // SAFETY: `profile_json` is valid for its length and `id` is a valid out-pointer.
         check(unsafe { (api.connect_wg)(profile_json.as_ptr(), profile_json.len(), &mut id) })?;
         Ok(Self(Arc::new(Handle(id))))
     }
@@ -241,6 +249,7 @@ impl Client {
     pub fn connect_openvpn(profile_json: &[u8]) -> io::Result<Self> {
         let api = api()?;
         let mut id = 0;
+        // SAFETY: `profile_json` is valid for its length and `id` is a valid out-pointer.
         check(unsafe { (api.connect_ovpn)(profile_json.as_ptr(), profile_json.len(), &mut id) })?;
         Ok(Self(Arc::new(Handle(id))))
     }
@@ -248,6 +257,7 @@ impl Client {
     pub fn tcp(&self, target: &str) -> io::Result<TcpStream> {
         let api = api()?;
         let mut id = 0;
+        // SAFETY: the client handle is live; `target` is valid for its length and `id` is a valid out-pointer.
         check(unsafe { (api.tcp)(self.0 .0, target.as_ptr(), target.len(), &mut id) })?;
         Ok(TcpStream { stream: Arc::new(Stream { handle: Handle(id), write_closed: AtomicBool::new(false) }), _client: self.clone(),
             read_ms: AtomicU32::new(0), write_ms: AtomicU32::new(0) })
@@ -255,6 +265,7 @@ impl Client {
     pub fn udp(&self) -> io::Result<UdpSession> {
         let api = api()?;
         let mut id = 0;
+        // SAFETY: the client handle is live and `id` is a valid out-pointer.
         check(unsafe { (api.udp)(self.0 .0, &mut id) })?;
         Ok(UdpSession { handle: Handle(id), _client: self.clone(), read_ms: AtomicU32::new(250) })
     }
@@ -275,12 +286,14 @@ impl TcpStream {
     pub fn shutdown(&self, how: Shutdown) -> io::Result<()> {
         if how != Shutdown::Read { self.stream.write_closed.store(true, Ordering::Release); }
         let how = match how { Shutdown::Read => 1, Shutdown::Write => 2, Shutdown::Both => 3 };
+        // SAFETY: the handle is live while `self` is and the call takes no pointers.
         match unsafe { (api()?.shutdown)(self.stream.handle.0, how) } { 0 | -2 => Ok(()), code => Err(error(code)) }
     }
     fn io(&self, call: Io, buffer: *mut u8, length: usize, timeout: &AtomicU32) -> io::Result<usize> {
         loop {
             let ms = timeout.load(Ordering::Relaxed);
             let mut count = 0;
+            // SAFETY: the handle is live while `self` is; `buffer`/`length` come from the caller's live slice and `count` is a valid out-pointer.
             match unsafe { call(self.stream.handle.0, buffer, length, if ms == 0 { MAX_WAIT_MS } else { ms }, &mut count) } {
                 0 => return Ok(count),
                 1 => return Ok(0),
@@ -313,6 +326,7 @@ pub struct UdpSession { handle: Handle, _client: Client, read_ms: AtomicU32 }
 impl UdpSession {
     pub fn set_read_timeout(&self, timeout: Option<Duration>) -> io::Result<()> { self.read_ms.store(wait_ms(timeout)?, Ordering::Relaxed); Ok(()) }
     pub fn send_to(&self, data: &[u8], target: &str) -> io::Result<usize> {
+        // SAFETY: the handle is live while `self` is; `data` and `target` are valid for their lengths for the duration of the call.
         check(unsafe { (api()?.udp_send)(self.handle.0, data.as_ptr(), data.len(), target.as_ptr(), target.len()) })?;
         Ok(data.len())
     }
@@ -323,6 +337,7 @@ impl UdpSession {
         loop {
             let ms = self.read_ms.load(Ordering::Relaxed);
             let (mut count, mut length) = (0, 0);
+            // SAFETY: the handle is live while `self` is; `buffer` and `address` are writable for their lengths and the out-pointers are valid locals.
             let code = unsafe { (api.udp_recv)(self.handle.0, buffer.as_mut_ptr(), buffer.len(), if ms == 0 { MAX_WAIT_MS } else { ms },
                 &mut count, address.as_mut_ptr(), address.len(), &mut length) };
             match code {

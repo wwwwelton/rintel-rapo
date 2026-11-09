@@ -35,6 +35,7 @@ fn query_service_status(service_name: &str) -> Option<u32> {
         SC_MANAGER_CONNECT, SERVICE_QUERY_STATUS, SERVICE_STATUS,
     };
 
+    // SAFETY: handles are null-checked, every wide string outlives its call, SERVICE_STATUS is a valid out-buffer, and both handles are closed on every path.
     unsafe {
         let scm = OpenSCManagerW(std::ptr::null(), std::ptr::null(), SC_MANAGER_CONNECT);
         if scm.is_null() {
@@ -73,6 +74,7 @@ fn check_running_dtt_processes() -> Vec<String> {
     };
 
     let mut found = Vec::new();
+    // SAFETY: the snapshot handle is checked and closed below; PROCESSENTRY32 is plain data valid when zeroed and `dwSize` is set before each call.
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {

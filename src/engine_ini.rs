@@ -59,6 +59,10 @@ pub struct EngineIni {
     error: String,
 }
 
+impl Default for EngineIni {
+    fn default() -> Self { Self::new() }
+}
+
 impl EngineIni {
     /// `%LOCALAPPDATA%\AION2\Saved_Steam\Config\Windows\Engine.ini` with the profile saved in
     /// `HKCU\Software\RintelRAPO\EngineIni`. A new user starts Off with nothing checked; a block left

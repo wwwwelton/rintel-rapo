@@ -64,13 +64,14 @@ pub fn get_cache_topology() -> CacheTopology {
         rdt: detect_rdt_cat(),
         ..Default::default()
     };
+    // SAFETY: the buffer is sized by the first call and 8-aligned; each entry is bounds-checked against `len` and its own `Size` before the reference is used, and the reference does not outlive `buf`.
     unsafe {
         let mut len = 0u32;
         GetLogicalProcessorInformationEx(RelationCache, std::ptr::null_mut(), &mut len);
         if len == 0 {
             return topo;
         }
-        let mut buf = vec![0u8; len as usize];
+        let mut buf = vec![0u64; (len as usize).div_ceil(8)]; // u64 elements keep the 8-byte alignment the entries need.
         if GetLogicalProcessorInformationEx(
             RelationCache,
             buf.as_mut_ptr().cast(),
@@ -81,7 +82,7 @@ pub fn get_cache_topology() -> CacheTopology {
 
         let mut offset = 0usize;
         while offset + std::mem::size_of::<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>() <= len as usize {
-            let ptr = buf.as_ptr().add(offset).cast::<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>();
+            let ptr = buf.as_ptr().cast::<u8>().add(offset).cast::<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>();
             let info = &*ptr;
             if info.Size == 0 || offset + info.Size as usize > len as usize {
                 break;

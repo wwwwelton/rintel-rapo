@@ -21,7 +21,9 @@ pub struct MemoryQosState {
 #[cfg(windows)]
 fn process_created(handle: HANDLE) -> Result<u64, String> {
     let (mut created, mut exited, mut kernel, mut user): (FILETIME, FILETIME, FILETIME, FILETIME) =
+        // SAFETY: FILETIME is a plain integer struct for which all-zero is a valid value.
         unsafe { std::mem::zeroed() };
+    // SAFETY: `handle` is a caller-owned process handle and the four FILETIME out-pointers are valid for writes.
     if unsafe { GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) } == 0 {
         return Err(format!("Falha ao identificar processo: {}", std::io::Error::last_os_error()));
     }
@@ -36,6 +38,7 @@ pub fn matches_process(handle: HANDLE, state: &MemoryQosState) -> Result<bool, S
 #[cfg(windows)]
 fn memory_priority(handle: HANDLE) -> Result<MEMORY_PRIORITY_INFORMATION, String> {
     let mut memory = MEMORY_PRIORITY_INFORMATION { MemoryPriority: 0 };
+    // SAFETY: `memory` is a valid out-buffer of exactly the size passed; `handle` is a caller-owned process handle with query access.
     if unsafe {
         GetProcessInformation(
             handle,
@@ -56,6 +59,7 @@ fn power_throttling(handle: HANDLE) -> Result<PROCESS_POWER_THROTTLING_STATE, St
         ControlMask: 0,
         StateMask: 0,
     };
+    // SAFETY: `power` is a valid out-buffer of exactly the size passed; `handle` is a caller-owned process handle with query access.
     if unsafe {
         GetProcessInformation(
             handle,
@@ -79,6 +83,7 @@ pub unsafe fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String>
     let original_power = power_throttling(handle)?;
     let mut memory = MEMORY_PRIORITY_INFORMATION { MemoryPriority: 5 };
     if original_memory.MemoryPriority != 5
+        // SAFETY: `memory` is a live, correctly sized MEMORY_PRIORITY_INFORMATION; `handle` is a caller-owned process handle with set-information access.
         && unsafe {
             SetProcessInformation(
                 handle, ProcessMemoryPriority, (&mut memory as *mut MEMORY_PRIORITY_INFORMATION).cast(),
@@ -93,6 +98,7 @@ pub unsafe fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String>
         ControlMask: original_power.ControlMask | PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
         StateMask: original_power.StateMask & !PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
     };
+    // SAFETY: `power` is a live, correctly sized PROCESS_POWER_THROTTLING_STATE; `handle` is a caller-owned process handle with set-information access.
     if unsafe {
         SetProcessInformation(
             handle, ProcessPowerThrottling, (&mut power as *mut PROCESS_POWER_THROTTLING_STATE).cast(),
@@ -102,6 +108,7 @@ pub unsafe fn apply_memory_qos(handle: HANDLE) -> Result<MemoryQosState, String>
         let error = std::io::Error::last_os_error();
         if original_memory.MemoryPriority != 5 {
             let mut previous = original_memory;
+            // SAFETY: `previous` is a live, correctly sized MEMORY_PRIORITY_INFORMATION; `handle` is a caller-owned process handle with set-information access.
             if unsafe {
                 SetProcessInformation(
                     handle, ProcessMemoryPriority, (&mut previous as *mut MEMORY_PRIORITY_INFORMATION).cast(),
@@ -134,6 +141,7 @@ pub unsafe fn restore_memory_qos(handle: HANDLE, state: &MemoryQosState) -> Resu
     let mut error = None;
     if current_memory.MemoryPriority == 5 && state.original_memory_priority != 5 {
         let mut memory = MEMORY_PRIORITY_INFORMATION { MemoryPriority: state.original_memory_priority };
+        // SAFETY: `memory` is a live, correctly sized MEMORY_PRIORITY_INFORMATION; `handle` is a caller-owned process handle with set-information access.
         if unsafe {
             SetProcessInformation(
                 handle, ProcessMemoryPriority, (&mut memory as *mut MEMORY_PRIORITY_INFORMATION).cast(),
@@ -153,6 +161,7 @@ pub unsafe fn restore_memory_qos(handle: HANDLE, state: &MemoryQosState) -> Resu
             ControlMask: state.original_throttle_control,
             StateMask: state.original_throttle_state,
         };
+        // SAFETY: `power` is a live, correctly sized PROCESS_POWER_THROTTLING_STATE; `handle` is a caller-owned process handle with set-information access.
         if unsafe {
             SetProcessInformation(
                 handle, ProcessPowerThrottling, (&mut power as *mut PROCESS_POWER_THROTTLING_STATE).cast(),
@@ -175,16 +184,20 @@ mod tests {
     #[test]
     fn test_memory_qos_and_verification_current_process() {
         use windows_sys::Win32::System::Threading::GetCurrentProcess;
+        // SAFETY: GetCurrentProcess returns a pseudo-handle that needs no closing.
         let handle = unsafe { GetCurrentProcess() };
         let before = memory_priority(handle).unwrap().MemoryPriority;
         let power_before = power_throttling(handle).unwrap();
+        // SAFETY: `handle` is the current-process pseudo-handle, valid for query and set-information calls.
         let state = unsafe { apply_memory_qos(handle) }.expect("apply_memory_qos on current process");
         assert_eq!(power_throttling(handle).unwrap().StateMask & PROCESS_POWER_THROTTLING_EXECUTION_SPEED, 0);
         let mut recycled = state;
         recycled.created += 1;
         assert!(!matches_process(handle, &recycled).unwrap());
+        // SAFETY: `handle` is the current-process pseudo-handle and `recycled` is a plain state value.
         unsafe { restore_memory_qos(handle, &recycled) }.unwrap();
         assert_eq!(memory_priority(handle).unwrap().MemoryPriority, 5);
+        // SAFETY: `handle` is the current-process pseudo-handle and `state` was produced for it.
         unsafe { restore_memory_qos(handle, &state) }.expect("restore_memory_qos");
         assert_eq!(memory_priority(handle).unwrap().MemoryPriority, before);
         let power_after = power_throttling(handle).unwrap();
