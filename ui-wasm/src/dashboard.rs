@@ -38,6 +38,16 @@ pub struct Dashboard {
     pub engine_ini: EngineIni,
     #[serde(default)]
     pub vpn: crate::vpn::Vpn,
+    #[serde(default)]
+    pub focus: Focus,
+}
+
+#[derive(Default, Deserialize)]
+pub struct Focus {
+    pub enabled: bool,
+    pub active: bool,
+    pub settings: Vec<String>,
+    pub error: String,
 }
 
 #[derive(Default, Deserialize)]
@@ -538,9 +548,22 @@ pub fn render(view: &Dashboard) -> String {
         None => { write!(html, "<p class=\"alert\" role=\"alert\">Plano indisponível: {}</p>", escape(&view.power_plan.error)).unwrap(); }
     }
     html.push_str("</section>");
+    render_focus(&mut html, &view.focus);
     render_engine_ini(&mut html, &view.engine_ini);
     html.push_str("</div>");
     html
+}
+
+/// Info box: every setting AION2 focus mode applies, whether it is active now, and the opt-out switch.
+fn render_focus(html: &mut String, focus: &Focus) {
+    write!(html, "<section class=\"power-plan focus-info\"><h2>MODO FOCO AION2 · CONFIGURAÇÕES ADICIONADAS</h2><label class=\"property-toggle\"><input type=\"checkbox\" data-action=\"focus\"{}> <div class=\"property-text\"><span class=\"property-name\">Aplicar ao focar o AION2.exe</span><span class=\"property-desc\">{}</span></div></label>",
+        if focus.enabled { " checked" } else { "" },
+        if !focus.enabled { "Desligado: nada é alterado." } else if focus.active { "ATIVO agora: ajustes aplicados." } else { "Em espera: aplica quando o AION2 estiver em primeiro plano." }).unwrap();
+    html.push_str("<ul>");
+    for line in &focus.settings { write!(html, "<li><code>{}</code></li>", escape(line)).unwrap(); }
+    html.push_str("</ul><p>Valores originais são salvos antes e restaurados ao perder o foco, ao fechar o RAPO e após uma queda (backup em <code>%LOCALAPPDATA%\\Rintel RAPO\\mmcss-backup.json</code>). Requer administrador.</p>");
+    if !focus.error.is_empty() { write!(html, "<p class=\"alert\" role=\"alert\">{}</p>", escape(&focus.error)).unwrap(); }
+    html.push_str("</section>");
 }
 
 /// Metrics shown in the Resources tab instead of the Visão geral telemetry grid.
@@ -708,6 +731,7 @@ mod tests {
                 EngineIniOption { key: "additions".into(), label: "Additions".into(), enabled: false }],
             error: String::new() },
             vpn: Default::default(),
+            focus: Focus { enabled: true, active: true, settings: vec!["MMCSS · <img src=focus> = 1".into()], error: "<b>foco</b>".into() },
         };
         view.routes = Routes {
             candidates: vec![RouteCandidate { id: "x\"<&>".into(), interface: "<img src=x>".into(), index: 2, gateway: "fe80::1%2".into(), ipv6: true }],
@@ -723,6 +747,7 @@ mod tests {
         assert!(html.contains("&lt;img src=x onerror=alert(1)&gt;"));
         assert!(html.contains("&lt;script&gt;energia&lt;/script&gt;"), "a failed read must keep the last plan visible");
         assert!(html.contains("&lt;b&gt;falha&lt;/b&gt;"));
+        assert!(html.contains("data-action=\"focus\" checked>") && html.contains("ATIVO agora") && html.contains("MMCSS · &lt;img src=focus&gt; = 1") && html.contains("&lt;b&gt;foco&lt;/b&gt;"), "focus box lists settings, state and errors escaped");
         assert!(html.contains("game&lt;&amp;&gt;.exe"), "network tweak exe must be escaped");
         assert!(html.contains("&lt;img src=x&gt; &amp; destino"));
         assert!(html.contains("<fieldset disabled>"));

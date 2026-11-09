@@ -44,6 +44,7 @@ pub enum Command {
     StartRateLearning { pid: u32, destination: String, rates: Vec<u64> },
     RemoveRate,
     SetNetworkPriority(bool),
+    SetFocus(bool),
     SetRelay(bool),
     SetRelayInterfaces(Vec<String>),
     ConfigureRelay { mode: crate::relay::Mode, config: crate::relay::Hy2Config },
@@ -87,6 +88,7 @@ pub fn from_ui_event(action: &str, dir: Option<&str>, checked: Option<bool>) -> 
         "profile-apply" => Some(Command::ApplyLearnedProfile(directory()?)),
         "profile-delete" => Some(Command::DeleteLearnedProfile(directory()?)),
         "network-priority" => Some(Command::SetNetworkPriority(checked?)),
+        "focus" => Some(Command::SetFocus(checked?)),
         "relay" => Some(Command::SetRelay(checked?)),
         "wfp" => Some(Command::SetWfp(checked?)),
         "engine-ini-active" => Some(Command::SetEngineIniActive(checked?)),
@@ -183,13 +185,13 @@ pub fn from_json(body: &str) -> Option<Command> {
         "network-stop" => return Some(Command::StopNetworkLearning),
         "rate-remove" => return Some(Command::RemoveRate),
         "route-learn" => {
-            if event.get("consent")?.as_bool()? != true { return None; }
+            if !event.get("consent")?.as_bool()? { return None; }
             let candidates = event.get("candidates")?.as_array()?.iter().map(|v| v.as_str().filter(|s| !s.is_empty() && s.len() <= 512).map(str::to_owned)).collect::<Option<Vec<_>>>()?;
             return Some(Command::StartRouteLearning { destination: text("destination")?, candidates });
         }
         "rate-apply" => return Some(Command::ApplyRate { pid: pid.filter(|p| *p != 0), bps: crate::network_qos::megabytes_per_second(&text("mb_s")?).ok()? }),
         "rate-learn" => {
-            if event.get("consent")?.as_bool()? != true { return None; }
+            if !event.get("consent")?.as_bool()? { return None; }
             let rates = event.get("rates")?.as_array()?.iter().map(|v| crate::network_qos::megabytes_per_second(v.as_str()?).ok()).collect::<Option<Vec<_>>>()?;
             return Some(Command::StartRateLearning { pid: pid.filter(|p| *p != 0)?, destination: text("destination")?, rates });
         }
@@ -329,7 +331,7 @@ mod tests {
         ] { assert_eq!(page(action, none.clone()), Some(expected), "{action}"); }
         for (action, expected) in [
             ("auto-yield", Command::SetAutoYield(true)), ("windowed", Command::SetWindowed(true)),
-            ("minimize-tray", Command::SetMinimizeToTray(true)), ("network-priority", Command::SetNetworkPriority(true)),
+            ("minimize-tray", Command::SetMinimizeToTray(true)), ("network-priority", Command::SetNetworkPriority(true)), ("focus", Command::SetFocus(true)),
             ("relay", Command::SetRelay(true)), ("wfp", Command::SetWfp(true)), ("engine-ini-active", Command::SetEngineIniActive(true)),
             ("engine-ini-backup", Command::BackupEngineIni), ("engine-ini-restore", Command::RestoreEngineIni),
         ] { assert_eq!(page(action, serde_json::json!({ "checked": true })), Some(expected), "{action}"); }

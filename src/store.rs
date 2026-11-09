@@ -249,6 +249,16 @@ impl Store {
         }
     }
 
+    /// AION2 focus mode is on by default; a `focus_disabled` marker records the user's opt-out.
+    pub fn focus_enabled(&self) -> Result<bool, String> {
+        self.db.query_row("SELECT NOT EXISTS(SELECT 1 FROM store_metadata WHERE key = 'focus_disabled')", [], |row| row.get(0)).map_err(text)
+    }
+
+    pub fn set_focus_enabled(&self, on: bool) -> Result<(), String> {
+        let sql = if on { "DELETE FROM store_metadata WHERE key = 'focus_disabled'" } else { "INSERT OR IGNORE INTO store_metadata (key) VALUES ('focus_disabled')" };
+        self.db.execute(sql, []).map(drop).map_err(text)
+    }
+
     pub fn redundancy(&self) -> Result<crate::relay::RedundancyConfig, String> {
         match self.db.query_row("SELECT enabled, x, y FROM udp_redundancy WHERE id = 1", [], |row| {
             Ok((row.get::<_, i64>(0)? != 0, row.get::<_, u32>(1)?, row.get::<_, u32>(2)?))
@@ -267,6 +277,16 @@ mod tests {
     fn memory() -> Store { Store::open(Path::new(":memory:")).unwrap() }
     fn profile(exe: &str, fps: f64) -> Profile {
         Profile { exe: exe.into(), settings: Settings { pin: true, cores: 6, ..Settings::default() }, score: Score { fps, low_fps: fps * 0.8 } }
+    }
+
+    #[test]
+    fn focus_mode_defaults_on_and_remembers_opt_out() {
+        let store = memory();
+        assert!(store.focus_enabled().unwrap());
+        store.set_focus_enabled(false).unwrap();
+        assert!(!store.focus_enabled().unwrap());
+        store.set_focus_enabled(true).unwrap();
+        assert!(store.focus_enabled().unwrap());
     }
 
     #[test]
@@ -305,10 +325,10 @@ mod tests {
     fn deleting_best_preserves_trials_and_does_not_reimport_registry() {
         let store = memory();
         let saved = profile("game.exe", 100.0);
-        store.import(&[saved.clone()]).unwrap();
+        store.import(std::slice::from_ref(&saved)).unwrap();
         store.record_trial(&saved.exe, saved.settings, saved.score).unwrap();
         store.delete_best(&saved.exe).unwrap();
-        assert_eq!(store.import(&[saved.clone()]).unwrap(), 0);
+        assert_eq!(store.import(std::slice::from_ref(&saved)).unwrap(), 0);
         assert!(store.best_profiles().unwrap().is_empty());
         assert_eq!(store.trial_count(&saved.exe).unwrap(), 1);
     }

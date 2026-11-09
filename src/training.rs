@@ -5,6 +5,8 @@ use crate::{
 
 #[path = "power.rs"]
 mod power;
+#[path = "focus.rs"]
+mod focus;
 
 struct Training {
     pid: u32,
@@ -22,6 +24,7 @@ struct Training {
     power: power::Power,
 }
 fn foreground_pid() -> u32 {
+    // SAFETY: both calls take plain values or a valid `&mut u32` out-parameter; a null window yields pid 0.
     unsafe {
         let window = windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow();
         let mut pid = 0;

@@ -1,6 +1,5 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
-#![allow(dead_code)]
-#![allow(unused_imports)]
+#![warn(clippy::undocumented_unsafe_blocks)]
 
 pub mod cache;
 mod capture;
@@ -133,6 +132,9 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
         power_watch: Option<power::PlanWatch>,
         power_plan: Option<power::ActivePlan>,
         power_error: String,
+        focus: focus::Focus,
+        focus_enabled: bool,
+        focus_error: String,
         relay: crate::relay::RelayServer,
         wfp: crate::wfp::WfpManager,
         engine_ini: crate::engine_ini::EngineIni,
@@ -165,6 +167,7 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
 
     impl App {
         pub fn new() -> Self {
+            let (focus, focus_error) = focus::Focus::new();
             let mut app = Self {
                 games: Vec::new(),
                 game_search_names: Vec::new(),
@@ -205,6 +208,9 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                 power_watch: power::PlanWatch::new().ok(),
                 power_plan: None,
                 power_error: String::new(),
+                focus,
+                focus_enabled: true,
+                focus_error: focus_error.unwrap_or_default(),
                 relay: crate::relay::RelayServer::new(1080),
                 wfp: crate::wfp::WfpManager::new(),
                 engine_ini: crate::engine_ini::EngineIni::new(),
@@ -232,6 +238,10 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                     }
                     if let Ok(Some(echo)) = store.auto_echo() {
                         let _ = app.relay.set_auto_echo(Some(echo));
+                    }
+                    match store.focus_enabled() {
+                        Ok(enabled) => app.focus_enabled = enabled,
+                        Err(error) => { app.focus_enabled = false; app.focus_error = format!("Preferência do modo foco ilegível; modo desligado: {error}"); }
                     }
                     app.store = Some(store);
                     app.reload_vpn();
@@ -287,6 +297,7 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
 
         fn restore_qos(&mut self, pid: u32) -> Result<(), String> {
             let Some(state) = self.applied_qos.get(&pid) else { return Ok(()) };
+            // SAFETY: the handle is checked for null before use, only borrowed by `restore_memory_qos`, and closed before leaving the block.
             unsafe {
                 let handle = OpenProcess(
                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION, 0, pid,
@@ -357,6 +368,15 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                 }
             }
 
+            let focused = self.focus_enabled && windows::aion2_foreground();
+            let pids = if focused { windows::aion2_pids() } else { Ok(Vec::new()) };
+            let focus_result = self.focus.update(focused, pids.as_deref().unwrap_or_default()).and(pids.map(drop));
+            match focus_result {
+                Err(error) => self.focus_error = error,
+                // A preference that failed to load keeps its message while the mode stays off.
+                Ok(()) if self.focus_enabled => self.focus_error.clear(),
+                Ok(()) => {}
+            }
             if optimizer_active {
                 if let Some(error) = self.optimizer.update(self.windowed_mode).into_iter().next() {
                     self.error = error;
@@ -387,6 +407,7 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                     if !self.effective_settings(process).qos {
                         continue;
                     }
+                    // SAFETY: the handle is checked for null before use, passed only to calls that borrow it, and closed on every path.
                     unsafe {
                         let handle = OpenProcess(
                             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION, 0, process.pid,
@@ -556,7 +577,6 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
         }
 
         /// `include_strings` is true only for the initial page state; the page caches them.
-
         pub fn webview_state(&self, include_strings: bool) -> serde_json::Value {
             let pin_status = self.pinner.as_ref().and_then(Pinner::status);
             let tm = &self.telemetry.metrics;
@@ -652,6 +672,7 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                     "route_endpoints": tm.process_ping.endpoints.iter().map(|e| &e.destination).collect::<Vec<_>>(),
                     "network_target_pid": if tm.has_target { tm.target_pid } else { 0 },
                     "power_plan": { "plan": self.power_plan, "error": self.power_error },
+                    "focus": { "enabled": self.focus_enabled, "active": self.focus.active(), "settings": focus::settings(), "error": self.focus_error },
                     "target": if tm.has_target {
                         let same_game: Vec<_> = self.running.iter().filter(|p| p.game == tm.target_name).collect();
                         let executables = windows::game_executables(&self.running, tm.target_pid).len();
@@ -798,6 +819,14 @@ fn game_frame_time_label(live: Option<f64>, training: Option<f64>) -> String {
                 }
                 crate::command::Command::Refresh => self.refresh(),
                 crate::command::Command::SetNetworkPriority(on) => { self.network_priority = on; self.refresh(); }
+                crate::command::Command::SetFocus(on) => {
+                    if let Some(store) = &self.store {
+                        if let Err(error) = store.set_focus_enabled(on) { self.focus_error = error; return false; }
+                    }
+                    self.focus_enabled = on;
+                    self.focus_error.clear();
+                    self.refresh();
+                }
                 crate::command::Command::SetRelay(on) => {
                     if on { self.start_relay(); } else { self.relay.stop(); }
                 }
@@ -1056,6 +1085,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(error) = &result {
         let message: Vec<u16> = format!("Não foi possível abrir a interface WebView2: {error}\nVerifique a instalação do Microsoft Edge WebView2 Runtime.").encode_utf16().chain(Some(0)).collect();
         let title: Vec<u16> = "Rintel RAPO".encode_utf16().chain(Some(0)).collect();
+        // SAFETY: both buffers are NUL-terminated UTF-16 that outlive the call; a null owner window is allowed.
         unsafe {
             windows_sys::Win32::UI::WindowsAndMessaging::MessageBoxW(
                 std::ptr::null_mut(), message.as_ptr(), title.as_ptr(),

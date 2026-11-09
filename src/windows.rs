@@ -45,6 +45,7 @@ fn path_component_eq(a: &std::ffi::OsStr, b: &std::ffi::OsStr) -> bool {
     }
     let a: Vec<u16> = a.encode_wide().collect();
     let b: Vec<u16> = b.encode_wide().collect();
+    // SAFETY: both pointers/lengths describe live Vec<u16> buffers.
     unsafe { CompareStringOrdinal(a.as_ptr(), a.len() as i32, b.as_ptr(), b.len() as i32, 1) == 2 }
 }
 
@@ -90,7 +91,8 @@ pub fn path_in_directory(exe: &Path, directory: &Path) -> bool {
     exe.next().is_some()
 }
 
-fn process_created(handle: HANDLE) -> Result<u64, String> {
+pub(crate) fn process_created(handle: HANDLE) -> Result<u64, String> {
+    // SAFETY: FILETIME is plain integers valid when zeroed; the handle is caller-owned and the out-pointers are valid locals.
     unsafe {
         let (mut created, mut exited, mut kernel, mut user): (FILETIME, FILETIME, FILETIME, FILETIME) = std::mem::zeroed();
         if GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) == 0 {
@@ -124,6 +126,7 @@ fn parent_wait_args(mut args: impl Iterator<Item = std::ffi::OsString>) -> Resul
 pub fn wait_for_parent() -> Result<(), String> {
     let Some((pid, created)) = parent_wait_args(std::env::args_os().skip(1))? else { return Ok(()); };
     let executable = std::env::current_exe().map_err(|error| error.to_string())?;
+    // SAFETY: the handle is null-checked, only borrowed by the calls below, and closed before leaving the block.
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE, 0, pid);
         if handle.is_null() {
@@ -165,11 +168,13 @@ pub fn relaunch_elevated() -> Result<(), String> {
 
     let executable = std::env::current_exe()
         .map_err(|error| format!("Não foi possível localizar o executável: {error}"))?;
+    // SAFETY: GetCurrentProcess returns a pseudo-handle that needs no closing.
     let created = process_created(unsafe { GetCurrentProcess() })?;
     let parameters: Vec<u16> = format!("--wait-parent {} --wait-parent-created {created}", std::process::id())
         .encode_utf16().chain([0]).collect();
     let path: Vec<u16> = executable.as_os_str().encode_wide().chain([0]).collect();
     let runas = [b'r' as u16, b'u' as u16, b'n' as u16, b'a' as u16, b's' as u16, 0];
+    // SAFETY: every string is NUL-terminated UTF-16 outliving the call; null owner/directory are allowed.
     let result = unsafe {
         ShellExecuteW(
             std::ptr::null_mut(),
@@ -187,6 +192,7 @@ pub fn relaunch_elevated() -> Result<(), String> {
 }
 fn process_path_handle(handle: HANDLE) -> Option<PathBuf> {
     use std::os::windows::ffi::OsStringExt;
+    // SAFETY: `buffer` is valid for `length` UTF-16 units and `length` is updated by the call to the number written (<= capacity).
     unsafe {
         let mut buffer = [0u16; 32_768];
         let mut length = buffer.len() as u32;
@@ -197,6 +203,7 @@ fn process_path_handle(handle: HANDLE) -> Option<PathBuf> {
 
 fn process_path(pid: u32) -> Option<PathBuf> {
     if pid <= 4 { return None; }
+    // SAFETY: the handle is null-checked, borrowed by `process_path_handle`, and closed before returning.
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
         if handle.is_null() { return None; }
@@ -232,6 +239,7 @@ pub fn running(games: &[Game]) -> Result<Vec<Running>, String> {
     if games.is_empty() {
         return Ok(Vec::new());
     }
+    // SAFETY: the snapshot handle is checked and closed on every path; PROCESSENTRY32W is plain data valid when zeroed and `dwSize` is set before the first call.
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
@@ -293,6 +301,7 @@ pub(crate) fn telemetry_pids(running: &[Running], target: &Running) -> Vec<u32> 
     extern "system" {
         fn CompareStringOrdinal(a: *const u16, a_len: i32, b: *const u16, b_len: i32, ignore_case: i32) -> i32;
     }
+    // SAFETY: the snapshot handle is checked and closed below; PROCESSENTRY32W is plain data valid when zeroed; the UTF-16 slices passed to CompareStringOrdinal are valid for their stated lengths.
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE { return pids; }
@@ -329,6 +338,11 @@ pub fn game_executables(running: &[Running], pid: u32) -> Vec<(u32, PathBuf)> {
 }
 
 pub fn aion2_running() -> Result<bool, String> {
+    aion2_pids().map(|pids| !pids.is_empty())
+}
+
+pub fn aion2_pids() -> Result<Vec<u32>, String> {
+    // SAFETY: the snapshot handle is checked and closed on every path; PROCESSENTRY32W is plain data valid when zeroed and `dwSize` is set before the first call.
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
@@ -336,12 +350,11 @@ pub fn aion2_running() -> Result<bool, String> {
         }
         let mut entry: PROCESSENTRY32W = std::mem::zeroed();
         entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
-        let mut found = false;
+        let mut pids = Vec::new();
         if Process32FirstW(snapshot, &mut entry) != 0 {
             loop {
                 if is_aion2_image(&entry.szExeFile) {
-                    found = true;
-                    break;
+                    pids.push(entry.th32ProcessID);
                 }
                 if Process32NextW(snapshot, &mut entry) == 0 {
                     break;
@@ -349,8 +362,16 @@ pub fn aion2_running() -> Result<bool, String> {
             }
         }
         CloseHandle(snapshot);
-        Ok(found)
+        Ok(pids)
     }
+}
+
+/// True while the foreground window belongs to an `AION2.exe` process.
+pub fn aion2_foreground() -> bool {
+    let mut pid = 0;
+    // SAFETY: both calls take a plain window handle or a valid `&mut u32` out-parameter; a null window yields pid 0.
+    unsafe { GetWindowThreadProcessId(GetForegroundWindow(), &mut pid) };
+    process_path(pid).and_then(|exe| exe.file_name().map(|name| name.eq_ignore_ascii_case("aion2.exe"))).unwrap_or(false)
 }
 
 struct Managed {
@@ -381,6 +402,7 @@ impl Optimizer {
         if !process_path(pid).is_some_and(|exe| same_executable(&exe, &process.exe)) {
             return Err("O processo mudou; atualize a lista".into());
         }
+        // SAFETY: the handle is null-checked, borrowed only by the calls below, and closed on every path.
         unsafe {
             let handle = OpenProcess(
                 PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
@@ -436,6 +458,7 @@ impl Optimizer {
 
     pub fn update(&mut self, keep_windowed: bool) -> Vec<String> {
         let mut errors = Vec::new();
+        // SAFETY: handles are null-checked, each is closed on every path, and the out-pointers are valid locals.
         unsafe {
             let hwnd = GetForegroundWindow();
             let mut foreground_pid = 0;
@@ -499,6 +522,7 @@ impl Drop for Optimizer {
             if !managed.boosted || !process_path(pid).is_some_and(|exe| same_executable(&exe, &managed.exe)) {
                 continue;
             }
+            // SAFETY: the handle is null-checked, only borrowed by the calls below, and closed afterwards.
             unsafe {
                 let handle = OpenProcess(
                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
